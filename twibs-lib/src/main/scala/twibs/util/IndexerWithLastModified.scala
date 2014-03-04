@@ -1,0 +1,30 @@
+package twibs.util
+
+import org.apache.lucene.index.{IndexNotFoundException, DirectoryReader, IndexWriter}
+import scala.collection.JavaConverters._
+
+trait IndexerWithLastModified extends Indexer {
+  val LAST_COMMITTED_MILLIS = "last-committed-millis"
+
+  override def write(func: (IndexWriter) => Any): Unit =
+    super.write {
+      indexWriter =>
+        func(indexWriter)
+        indexWriter.setCommitData(createCommitUserData())
+    }
+
+  //  def lastModified: DateTime = new DateTime(lastModifiedMillis)
+
+  def lastModifiedMillis: Long = getLastCommitUserData.get(LAST_COMMITTED_MILLIS).map(_.toLong) getOrElse 0
+
+  private def createCommitUserData(): java.util.Map[String, String] = createCommitUserData(System.currentTimeMillis).asJava
+
+  private def getLastCommitUserData: Map[String, String] =
+    try {
+      DirectoryReader.listCommits(directory).asScala.toList.lastOption.map(_.getUserData.asScala.toMap) getOrElse createCommitUserData(0)
+    } catch {
+      case e: IndexNotFoundException => createCommitUserData(0)
+    }
+
+  private def createCommitUserData(committed: Long): Map[String, String] = Map[String, String](LAST_COMMITTED_MILLIS -> committed.toString)
+}

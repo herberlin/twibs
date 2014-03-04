@@ -1,0 +1,137 @@
+package twibs.form.base
+
+import twibs.TwibsTest
+import twibs.form.bootstrap3._
+
+class FormHierarchyTest extends TwibsTest {
+
+  trait UserContainer extends Dynamic {
+    val username = new Field("useranem") with StringValues with SingleLineField
+
+    val password = new Field("password") with StringValues with PasswordField
+
+    def check2(): Unit = children should have size 2
+  }
+
+  class CustomContainer private(parent: BaseParentItem, unit: Unit = Unit) extends ItemContainer("custom")(parent) {
+    def this()(implicit parent: BaseParentItem) = this(parent)
+
+    new DisplayHtml("Me")
+  }
+
+  test("Validate hierarchy is correct") {
+    val form = new Form("test") {
+      val container = new ItemContainer("level1") {
+        val container = new ItemContainer("level2") {
+          val field = new Field("field") with StringValues with SingleLineField
+
+          val dynamics = new DynamicContainer[UserContainer]("uploads") {
+            override def create(dynamicId: String): UserContainer with Dynamic = new Dynamic("user", dynamicId) with UserContainer with Detachable
+
+            def check0(): Unit = children should have size 0
+
+            def check2(): Unit = children should have size 2
+          }
+
+          def check(): Unit = children should have size 2
+        }
+
+        def check(): Unit = children should have size 1
+      }
+
+      val custom = new CustomContainer()
+
+      def check(): Unit = children should have size 2
+
+      override def accessAllowed: Boolean = true
+    }
+
+    form.check()
+    form.container.check()
+    form.container.container.check()
+    form.container.container.dynamics.check0()
+
+    form.items should have size 7
+
+    form.container.container.dynamics.create("a")
+    form.container.container.dynamics.create("b")
+
+    form.items should have size 13
+
+    form.container.container.dynamics.dynamics.foreach(_.check2())
+    form.container.container.dynamics.check2()
+
+    form.container.container.dynamics.reset()
+    form.container.container.dynamics.check0()
+
+    form.items should have size 7
+
+    form.container.container.check()
+  }
+
+  test("Check implicit hierarchy") {
+    trait Item {
+      def name: String
+
+      override def toString = name
+    }
+
+    trait Parent extends Item {
+      implicit def thisAsParent = this
+    }
+
+    trait Child extends Item {
+      def parent: Parent
+    }
+
+    trait Node extends Child with Parent
+
+    class IC private(val name: String, val parent: Parent, padPrivateConstructor: Unit) extends Node {
+      def this(name: String)(implicit parent: Parent) = this(name, parent, ())
+    }
+
+    class U private(parent: Parent, unit: Unit = Unit) extends IC("P")(parent) {
+      def this()(implicit parent: Parent) = this(parent, ())
+
+      val f = new F("F")
+    }
+
+    class F(val name: String)(implicit val parent: Parent) extends Child
+
+    val root = new Parent {
+      val name = "R"
+      val ic = new IC("IC") {
+        val u = new U {
+          val u = new U {
+          }
+        }
+      }
+    }
+
+    root.ic.parent should be theSameInstanceAs root
+    root.ic.u.parent should be theSameInstanceAs root.ic
+    root.ic.u.f.parent should be theSameInstanceAs root.ic.u
+    root.ic.u.u.parent should be theSameInstanceAs root.ic.u
+    root.ic.u.u.f.parent should be theSameInstanceAs root.ic.u.u
+  }
+
+  test("Test unique names") {
+    val form = new Form("test") {
+      val field = new Field("field") with StringValues with SingleLineField
+
+      val container = new ItemContainer("level1") {
+        val field = new Field("field") with StringValues with SingleLineField
+
+        val container = new ItemContainer("level2") {
+          val field = new Field("field") with StringValues with SingleLineField
+        }
+      }
+
+      override def accessAllowed: Boolean = true
+    }
+
+    form.field.name should not be form.container.field.name
+    form.field.name should not be form.container.container.field.name
+    form.container.field.name should not be form.container.container.field.name
+  }
+}

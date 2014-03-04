@@ -1,0 +1,11 @@
+includeFile("modernizr.js");
+includeFile("ie8/html5shiv-printshiv.js");
+includeFile("ie8/respond.js");
+includeFile("ie8/jquery-1.11.0.js");
+includeFile("twibs-base.js");
+Modernizr.load({
+    test: Modernizr.input.placeholder,
+    nope: [
+        '/inc/polyfills/jquery.placeholder.js'
+    ]
+});
