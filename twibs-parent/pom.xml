@@ -95,41 +95,6 @@
                 </plugins>
             </build>
         </profile>
-        <profile>
-            <id>install-jars-to-local-repository</id>
-            <activation>
-                <file>
-                    <missing>
-                        ${user.home}/.m2/repository/com/microsoft/sqlserver/sqljdbc4/4.0.2206.100/sqljdbc4-4.0.2206.100.jar
-                    </missing>
-                </file>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-install-plugin</artifactId>
-                        <version>2.5.1</version>
-                        <executions>
-                            <execution>
-                                <id>sqljdbc4</id>
-                                <phase>validate</phase>
-                                <goals>
-                                    <goal>install-file</goal>
-                                </goals>
-                                <configuration>
-                                    <file>${basedir}/prgs/sqljdbc4-4.0.2206.100.jar</file>
-                                    <groupId>com.microsoft.sqlserver</groupId>
-                                    <artifactId>sqljdbc4</artifactId>
-                                    <version>4.0.2206.100</version>
-                                    <packaging>jar</packaging>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
     </profiles>
     <build>
         <defaultGoal>package</defaultGoal>
@@ -315,4 +280,17 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+    <distributionManagement>
+        <repository>
+            <id>twibs-release-repository</id>
+            <name>Twibs Release Repository</name>
+            <url>file:${project.basedir}/../twibs-repository/releases/</url>
+        </repository>
+        <snapshotRepository>
+            <id>twibs-snapshot-repository</id>
+            <name>Twibs Snapshot Repository</name>
+            <uniqueVersion>false</uniqueVersion>
+            <url>file:${project.basedir}/../twibs-repository/snapshots/</url>
+        </snapshotRepository>
+    </distributionManagement>
 </project>

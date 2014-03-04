@@ -3,11 +3,12 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>twibs</groupId>
-        <artifactId>parent</artifactId>
-        <version>5.0.0-SNAPSHOT</version>
+        <artifactId>twibs-parent</artifactId>
+        <version>0.5-SNAPSHOT</version>
+        <relativePath>../twibs-parent</relativePath>
     </parent>
-    <artifactId>twibs-lib</artifactId>
-    <version>5.0.0-SNAPSHOT</version>
+    <artifactId>twibs-core</artifactId>
+    <version>0.5-SNAPSHOT</version>
     <inceptionYear>2013</inceptionYear>
     <packaging>jar</packaging>
     <build>
