@@ -3,11 +3,11 @@
     <parent>
         <groupId>twibs</groupId>
         <artifactId>twibs-parent</artifactId>
-        <version>0.5</version>
+        <version>0.6-SNAPSHOT</version>
         <relativePath>../twibs-parent</relativePath>
     </parent>
     <artifactId>twibs-core</artifactId>
-    <version>0.5</version>
+    <version>0.6-SNAPSHOT</version>
     <inceptionYear>2013</inceptionYear>
     <packaging>jar</packaging>
     <build>

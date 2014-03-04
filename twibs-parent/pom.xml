@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>twibs</groupId>
     <artifactId>twibs-parent</artifactId>
-    <version>0.5</version>
+    <version>0.6-SNAPSHOT</version>
     <inceptionYear>2013</inceptionYear>
     <packaging>pom</packaging>
     <properties>
@@ -33,7 +33,7 @@
     </pluginRepositories>
     <scm>
         <connection>scm:git:https://github.com/hombre/twibs-parent.git</connection>
-      <tag>v0.5</tag>
+      <tag>HEAD</tag>
   </scm>
     <profiles>
         <profile>
