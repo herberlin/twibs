@@ -94,6 +94,13 @@
                                 <goal>testCompile</goal>
                             </goals>
                         </execution>
+                        <execution>
+                            <id>scala-doc-deploy</id>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>doc-jar</goal>
+                            </goals>
+                        </execution>
                     </executions>
                     <configuration>
                         <recompileMode>incremental</recompileMode>
