@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>net.twibs</groupId>
     <artifactId>twibs-parent</artifactId>
-    <version>0.5</version>
+    <version>0.6-SNAPSHOT</version>
     <inceptionYear>2013</inceptionYear>
     <packaging>pom</packaging>
     <name>Twibs: Maven Parent</name>
