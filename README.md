@@ -1,7 +1,7 @@
-twibs
+Twibs
 =====
 
-This is Twibs
+Twibs is a suite of utility classes to ease the development of internet applications with scala.
 
 # Create a release
 
