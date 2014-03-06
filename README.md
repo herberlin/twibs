@@ -9,9 +9,6 @@ Twibs is a suite of utility classes to ease the development of internet applicat
     mvn release:prepare
     mvn release:perform
 
-    // TODO: Check that this works (next time)
-    // cd twibs/target/checkout; git commit --amend -C HEAD; cd ../../.,
-
     git checkout develop
     git merge --no-ff release/v0.1
     git checkout master
