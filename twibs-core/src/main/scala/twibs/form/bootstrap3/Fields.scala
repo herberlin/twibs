@@ -243,8 +243,13 @@ trait FileEntryField extends Field with FileEntryValues with Result {
 
   override def inputAsElem(input: Input): Elem = <span>{input.title}</span>
 
-  override def inputAsEnrichedHtml(input: Input, index: Int): NodeSeq =
-    <p class="form-control-static clearfix"><div class="pull-right">{deleteButton.buttonAsHtml(input.string)}</div><a href="#">{input.title}</a></p>
+  override def inputAsEnrichedHtml(input: Input, index: Int): NodeSeq = {
+    val link = input match {
+      case ValidInput(_, _, Some(fileEntry)) => fileEntry.path
+      case _ => "#"
+    }
+    <p class="form-control-static clearfix"><div class="pull-right">{deleteButton.buttonAsHtml(input.string)}</div><a href={link} target="_blank">{input.title}</a></p>
+  }
 
   override def minimumNumberOfInputs: Int = 0
 
@@ -279,6 +284,9 @@ trait UploadWithOverwrite extends BaseItemContainer {
 
   val files = new Field("files") with FileEntryField {
     def deleteFileEntry(fileEntry: FileEntry): Unit = UploadWithOverwrite.this.deleteFileEntry(fileEntry)
+
+    // Ignore parameters from Request
+    override def strings_=(strings: Seq[String]): Unit = Unit
 
     override def defaultValues: Seq[ValueType] = defaultFileEntries
   }
