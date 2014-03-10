@@ -3,7 +3,7 @@ package twibs.web
 import com.google.common.cache.{CacheLoader, CacheBuilder, LoadingCache}
 import java.io._
 import scala.collection.JavaConverters._
-import twibs.util.IOUtils._
+import twibs.util.Predef._
 import twibs.util.{RunMode, Loggable}
 
 class UniqueCacheResponder(delegate: Responder, fileOption: Option[File] = None) extends LoadingCacheResponder(delegate) with Loggable {
@@ -21,7 +21,7 @@ class UniqueCacheResponder(delegate: Responder, fileOption: Option[File] = None)
   private[web] def save(file: File): Unit = {
     logger.info(s"Saving '${file.getAbsolutePath}'")
     try {
-      using(new FileOutputStream(file))(save)
+      new FileOutputStream(file) useAndClose {os => save(os)}
     } catch {
       case e: Exception =>
         if (logger.isDebugEnabled)
@@ -46,7 +46,7 @@ class UniqueCacheResponder(delegate: Responder, fileOption: Option[File] = None)
   private[web] def load(file: File): Unit = {
     logger.info(s"Loading '${file.getAbsolutePath}'")
     try {
-      using(new FileInputStream(file))(load)
+      new FileInputStream(file) useAndClose {is => load(is)}
     } catch {
       case e: Exception =>
         if (logger.isDebugEnabled)

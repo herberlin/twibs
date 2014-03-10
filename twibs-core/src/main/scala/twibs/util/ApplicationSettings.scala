@@ -22,10 +22,10 @@ class SettingsFactory {
   def applicationSettingsMap = applicationSettingsMapCache.value
 
   private val applicationSettingsMapCache = LazyCache(if (defaultSystemSettings.runMode.isDevelopment) 15 second else 1 day) {
-    ConfigurationForTypesafeConfig.baseConfig().getObject("APPLICATIONS").unwrapped().keySet().asScala.filter(_ != "default").map(name => name -> new ApplicationSettings(name)).toMap
+    ConfigurationForTypesafeConfig.baseConfig().getObject("APPLICATIONS").unwrapped().keySet().asScala.filter(_ != ApplicationSettings.DEFAULT_NAME).map(name => name -> new ApplicationSettings(name)).toMap
   }
 
-  private val defaultApplicationSettingsCached = LazyCache(if (defaultSystemSettings.runMode.isDevelopment) 15 second else 1 day) {new ApplicationSettings("default")}
+  private val defaultApplicationSettingsCached = LazyCache(if (defaultSystemSettings.runMode.isDevelopment) 15 second else 1 day) {new ApplicationSettings(ApplicationSettings.DEFAULT_NAME)}
 
   def applicationSettingsForPath(path: String) =
     SettingsFactory.applicationSettingsMap.values.collectFirst {case x if x.matches(path) => x} getOrElse defaultApplicationSettings
@@ -123,6 +123,8 @@ class ApplicationSettings(val name: String) {
 
 object ApplicationSettings extends DynamicVariableWithDefault[ApplicationSettings] {
   val PN_NAME = "application-name"
+
+  val DEFAULT_NAME = "default"
 
   def default: ApplicationSettings = SettingsFactory.defaultApplicationSettings
 }

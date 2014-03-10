@@ -5,7 +5,7 @@ import com.google.common.io.{CharStreams, ByteStreams}
 import concurrent.duration._
 import java.io._
 import java.util.zip.GZIPOutputStream
-import twibs.util.IOUtils._
+import twibs.util.Predef._
 import twibs.util.{ApplicationSettings, RunMode}
 
 trait Response extends Serializable {
@@ -32,7 +32,7 @@ trait Response extends Serializable {
   def isInMemory: Boolean
 
   lazy val gzippedOption: Option[Array[Byte]] = {
-    val bytes = using(asInputStream) {
+    val bytes = asInputStream useAndClose {
       is => compressWithGzip(is)
     }
     if (bytes.length < length)
@@ -42,7 +42,7 @@ trait Response extends Serializable {
 
   private def compressWithGzip(uncompressed: InputStream) = {
     val baos = new ByteArrayOutputStream()
-    using(new GZIPOutputStream(baos)) {
+    new GZIPOutputStream(baos) useAndClose {
       os => ByteStreams.copy(uncompressed, os)
     }
     baos.toByteArray

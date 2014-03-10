@@ -25,7 +25,7 @@ class SettingsTwibsAndRunModeTest extends TwibsTest {
   }
 
   test("Configuration for production mode is default") {
-    val config = ConfigurationForTypesafeConfig.forSettings("default", new SystemSettings() {
+    val config = ConfigurationForTypesafeConfig.forSettings(ApplicationSettings.DEFAULT_NAME, new SystemSettings() {
       override val runMode = RunMode.PRODUCTION
     })
 
@@ -34,11 +34,11 @@ class SettingsTwibsAndRunModeTest extends TwibsTest {
   }
 
   test("Configuration for host overrides and joins configuration") {
-    val config = ConfigurationForTypesafeConfig.forSettings("default", new SystemSettings() {
+    val config = ConfigurationForTypesafeConfig.forSettings(ApplicationSettings.DEFAULT_NAME, new SystemSettings() {
       override val hostName = "twibs-test-host"
     })
 
-    val applicationSettings = new ApplicationSettings("default") {
+    val applicationSettings = new ApplicationSettings(ApplicationSettings.DEFAULT_NAME) {
       override lazy val configuration: Configuration = config
     }
 
@@ -56,6 +56,6 @@ class SettingsTwibsAndRunModeTest extends TwibsTest {
 
   test("Find application settings by path") {
     SettingsFactory.applicationSettingsForPath("/content/t1").name should be ("t1")
-    SettingsFactory.applicationSettingsForPath("/content/t").name should be ("default")
+    SettingsFactory.applicationSettingsForPath("/content/t").name should be (ApplicationSettings.DEFAULT_NAME)
   }
 }

@@ -46,7 +46,7 @@
         <url>https://github.com/hombre/twibs.git</url>
         <connection>scm:git:https://github.com/hombre/twibs.git</connection>
         <developerConnection>scm:git:https://github.com/hombre/twibs.git</developerConnection>
-        <tag>v0.5</tag>
+        <tag>HEAD</tag>
     </scm>
     <build>
         <defaultGoal>package</defaultGoal>
@@ -94,13 +94,13 @@
                                 <goal>testCompile</goal>
                             </goals>
                         </execution>
-                        <execution>
-                            <id>scala-doc-deploy</id>
-                            <phase>package</phase>
-                            <goals>
-                                <goal>doc-jar</goal>
-                            </goals>
-                        </execution>
+                        <!--<execution>-->
+                            <!--<id>scala-doc-deploy</id>-->
+                            <!--<phase>package</phase>-->
+                            <!--<goals>-->
+                                <!--<goal>doc-jar</goal>-->
+                            <!--</goals>-->
+                        <!--</execution>-->
                     </executions>
                     <configuration>
                         <recompileMode>incremental</recompileMode>

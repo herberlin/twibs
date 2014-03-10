@@ -4,7 +4,7 @@ import com.google.common.base.Charsets
 import com.google.common.io.ByteStreams
 import javax.servlet.http.{HttpServletRequest, HttpServletResponse}
 import org.threeten.bp.ZoneOffset
-import twibs.util.IOUtils._
+import twibs.util.Predef._
 
 private[web] class HttpResponseRenderer(request: Request, response: Response, httpRequest: HttpServletRequest, httpResponse: HttpServletResponse) {
   private val currentDateTime = Request.now()
@@ -66,7 +66,7 @@ private[web] class HttpResponseRenderer(request: Request, response: Response, ht
         httpResponse.getOutputStream.write(bytes)
       case None =>
         httpResponse.setContentLength(response.length.toInt)
-        using(response.asInputStream)(is => ByteStreams.copy(is, httpResponse.getOutputStream))
+        response.asInputStream useAndClose {is => ByteStreams.copy(is, httpResponse.getOutputStream)}
     }
     httpResponse.getOutputStream.close()
   }

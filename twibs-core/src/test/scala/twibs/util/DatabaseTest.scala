@@ -6,7 +6,7 @@ import scala.slick.jdbc.GetResult
 import slick.jdbc.StaticQuery.interpolation
 import slick.session.Database.threadLocalSession
 import twibs.TwibsTest
-import twibs.util.IOUtils._
+import twibs.util.Predef._
 
 class DatabaseTest extends TwibsTest with BeforeAndAfterAll {
   var database: Database = null
@@ -36,7 +36,7 @@ class DatabaseTest extends TwibsTest with BeforeAndAfterAll {
   }
 
   test("Direct") {
-    using(new GwbiDatabase()) {
+    new GwbiDatabase() useAndClose {
       _.withSession {
         sql"SELECT count(*) FROM user_".as[(Int)].first should be > 78206
         sql"SELECT firstname, lastname, emailaddress, screenname FROM user_ WHERE firstname LIKE $search LIMIT 10 OFFSET 5".as(convert).list() should have size 10
@@ -45,7 +45,7 @@ class DatabaseTest extends TwibsTest with BeforeAndAfterAll {
   }
 
   test("Check email addresses") {
-    val l = using(new GwbiDatabase()) {
+    val l = new GwbiDatabase() useAndClose {
       _.withSession(sql"SELECT emailaddress FROM user_".as[String].list().filterNot(EmailUtils.isValidEmailAddress))
     }
     l should have size 4

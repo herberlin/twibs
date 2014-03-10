@@ -2,6 +2,7 @@ package twibs.util
 
 import java.io.{FileNotFoundException, InputStreamReader}
 import org.mozilla.javascript._
+import twibs.util.Predef._
 
 object LessCssParserFactory extends Loggable {
   private val scope = inContext {
@@ -13,7 +14,7 @@ object LessCssParserFactory extends Loggable {
       val scope = cx.initStandardObjects()
       ("env" :: "cssmin" :: "less" :: "parser" :: Nil)
         .map(fileName => getClass.getClassLoader.getResource(s"META-INF/less-css-parser/$fileName.js"))
-        .map(url => IOUtils.using(new InputStreamReader(url.openStream())) {cx.evaluateReader(scope, _, url.toString, 1, null)})
+        .map(url => new InputStreamReader(url.openStream()) useAndClose {cx.evaluateReader(scope, _, url.toString, 1, null)})
       scope
   }
 

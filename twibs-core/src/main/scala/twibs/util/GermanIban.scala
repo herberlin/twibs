@@ -1,11 +1,11 @@
 package twibs.util
 
-import IOUtils._
 import com.google.common.io.ByteStreams
 import io.Source
 import java.io._
 import java.net.URL
 import java.util.zip.ZipFile
+import twibs.util.Predef._
 
 case class GermanIban(str: String) {
   val string = str.toUpperCase.replace(" ", "")
@@ -42,14 +42,14 @@ object GermanIban {
   def isValidBlz(blzString: String) = blzToBicAndName.contains(blzString)
 
   lazy val blzToBicAndName = Option(getClass.getResourceAsStream("de_blz.ser")) match {
-    case Some(stream) => IOUtils.using(new ObjectInputStream(stream))(_.readObject.asInstanceOf[Map[String, (String, String)]])
+    case Some(stream) => new ObjectInputStream(stream) useAndClose {_.readObject.asInstanceOf[Map[String, (String, String)]]}
     case None => loadAndCache()
   }
 
   private def loadAndCache() = {
     val ret = blzToNameFromUrl
     if (outfile.getParentFile.canWrite) {
-      IOUtils.using(new ObjectOutputStream(new FileOutputStream(outfile)))(_.writeObject(ret))
+      new ObjectOutputStream(new FileOutputStream(outfile)) useAndClose {_.writeObject(ret)}
     }
     ret
   }
@@ -58,16 +58,16 @@ object GermanIban {
     val infile = File.createTempFile("blz", "zip")
     infile.deleteOnExit()
 
-    using(new FileOutputStream(infile)) {
+    new FileOutputStream(infile) useAndClose {
       os =>
-        using(inUrl.openStream) {
+        inUrl.openStream useAndClose {
           is => {}
             ByteStreams.copy(is, os)
         }
     }
 
     val zipFile = new ZipFile(infile)
-    IOUtils.using(zipFile.getInputStream(zipFile.entries().nextElement())) {
+    zipFile.getInputStream(zipFile.entries().nextElement()) useAndClose {
       is =>
         (for (line <- Source.fromInputStream(is, "ISO-8859-15").getLines() if line.charAt(8) == '1') yield
           line.substring(0, 8) ->(line.substring(139, 150), line.substring(9, 60).trim)).toMap
