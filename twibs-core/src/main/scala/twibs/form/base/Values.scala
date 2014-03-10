@@ -353,7 +353,7 @@ trait UploadValues extends Values {
 trait DateTimeValues extends MinMaxValues {
   type ValueType = LocalDateTime
 
-  def editDateTimeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern(translator.translate("date-time-format", "dd.MM.yyyy HH:mm"), Environment.locale.toLocale)
+  def editDateTimeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern(translator.translate("date-time-format", "dd.MM.yyyy HH:mm"), translator.locale.toLocale)
 
   def displayDateTimeFormat = editDateTimeFormat
 
@@ -379,7 +379,7 @@ trait DateTimeValues extends MinMaxValues {
 trait DateValues extends MinMaxValues {
   type ValueType = LocalDate
 
-  def editDateFormat: DateTimeFormatter = DateTimeFormatter.ofPattern(translator.translate("date-format", "dd.MM.yyyy"), Environment.locale.toLocale)
+  def editDateFormat: DateTimeFormatter = DateTimeFormatter.ofPattern(translator.translate("date-format", "dd.MM.yyyy"), translator.locale.toLocale)
 
   def displayDateFormat = editDateFormat
 

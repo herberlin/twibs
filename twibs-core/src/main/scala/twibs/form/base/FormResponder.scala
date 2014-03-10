@@ -18,7 +18,7 @@ class FormResponder(makeForm: () => BaseForm) extends Responder {
     }
 
   def parse(request: Request) = {
-    BaseForm.use(request.parameters.getString("form-id", IdGenerator.next()), request.parameters.getBoolean("form-modal", default = false)) {
+    BaseForm.use(request.parameters.getString(BaseForm.PN_ID, IdGenerator.next()), request.parameters.getBoolean(BaseForm.PN_MODAL, default = false)) {
       val form = makeForm()
 
       val result: List[Result.Value] =

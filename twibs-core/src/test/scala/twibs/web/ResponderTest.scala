@@ -6,7 +6,7 @@ import org.apache.tika.Tika
 import scala.concurrent.duration._
 import twibs.TwibsTest
 import twibs.util.Parameters._
-import twibs.util.{Environment, Parameters}
+import twibs.util.{RequestSettings, Parameters}
 
 class ResponderTest extends TwibsTest {
   private implicit def toRequest(pathArg: String): Request = toRequest(pathArg, "localhost", Parameters())
@@ -236,7 +236,7 @@ class ResponderTest extends TwibsTest {
   test("Restrict locale responder") {
     val localeStringResponder = new Responder() {
       override def respond(request: Request): Option[Response] = Some(new StringResponse with VolatileResponse with TextMimeType {
-        override val asString: String = Environment.locale.toString + ": " + Environment.translator.translate("label", "NIX")
+        override val asString: String = RequestSettings.locale.toString + ": " + RequestSettings.translator.translate("label", "NIX")
       })
     }
 

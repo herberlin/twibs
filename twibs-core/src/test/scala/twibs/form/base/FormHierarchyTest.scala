@@ -134,4 +134,25 @@ class FormHierarchyTest extends TwibsTest {
     form.field.name should not be form.container.container.field.name
     form.container.field.name should not be form.container.container.field.name
   }
+
+  test("Dynamic values validation") {
+    val form = new Form("test") {
+      val dynamics = new DynamicContainer[UserContainer]("uploads") {
+        override def minimumNumberOfDynamics: Int = 1
+
+        override def maximumNumberOfDynamics: Int = 2
+
+        override def create(dynamicId: String): UserContainer with Dynamic = new Dynamic("user", dynamicId) with UserContainer with Detachable
+      }
+
+      override def accessAllowed: Boolean = true
+    }
+
+    form.dynamics.isValid should beTrue
+    form.dynamics.messageOption should be ('empty)
+    form.dynamics.validate() should beFalse
+    form.dynamics.messageOption should not be 'empty
+    form.reset()
+    form.dynamics.isValid should beTrue
+  }
 }

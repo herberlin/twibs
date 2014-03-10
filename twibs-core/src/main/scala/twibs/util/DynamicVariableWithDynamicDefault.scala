@@ -1,19 +1,8 @@
 package twibs.util
 
-class DynamicVariableWithDynamicDefault[T](createFallback: => T) {
-  implicit def unwrap(companion: DynamicVariableWithDynamicDefault[T]): T = current
+import scala.util.DynamicVariable
 
-  def current = threadLocal.get getOrElse default
-
-  def use[R](newValue: T)(f: => R): R = {
-    val oldValue = threadLocal.get
-    threadLocal set Some(newValue)
-
-    try f finally threadLocal set oldValue
-  }
-
-  private val threadLocal = new InheritableThreadLocal[Option[T]] {override def initialValue = None}
-
+class DynamicVariableWithDynamicDefault[T](createFallback: => T) extends DynamicVariableWithDefault[T] {
   def default = actives.headOption getOrElse fallback
 
   private var actives: List[T] = Nil
@@ -26,5 +15,17 @@ class DynamicVariableWithDynamicDefault[T](createFallback: => T) {
 
   private lazy val cachedFallback = createFallback
 
-  override def toString: String = "DynamicVariableWithDynamicDefault(" + current + ")"
+  override def toString(): String = "DynamicVariableWithDynamicDefault(" + current + ")"
+}
+
+abstract class DynamicVariableWithDefault[T] extends DynamicVariable[Option[T]](None) {
+  implicit def unwrap(companion: DynamicVariableWithDefault[T]): T = current
+
+  def current = value getOrElse default
+
+  def use[R](newValue: T)(f: => R): R = withValue(Some(newValue))(f)
+
+  def default: T
+
+  override def toString(): String = "DynamicVariableWithDefault(" + current + ")"
 }

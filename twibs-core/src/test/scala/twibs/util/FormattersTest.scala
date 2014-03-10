@@ -6,8 +6,8 @@ import org.threeten.bp.{ZoneId, LocalDateTime}
 import scala.concurrent.duration._
 
 class FormattersTest extends FunSuite with Matchers {
-  val ukFormatter = new Formatters(Environment.configuration.translators(ULocale.ENGLISH), ULocale.ENGLISH, "USD")
-  val deFormatter = new Formatters(Environment.configuration.translators(ULocale.GERMAN), ULocale.GERMAN, "EUR")
+  val ukFormatter = new Formatters(ApplicationSettings.translators(ULocale.ENGLISH), ULocale.ENGLISH, "USD")
+  val deFormatter = new Formatters(ApplicationSettings.translators(ULocale.GERMAN), ULocale.GERMAN, "EUR")
 
   test("Display country") {
     deFormatter.getDisplayCountry("DE") should equal("Deutschland")

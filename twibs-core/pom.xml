@@ -10,6 +10,32 @@
     <version>0.6-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>Twibs: Core Libraries</name>
+    <url>https://github.com/hombre/twibs</url>
+    <developers>
+        <developer>
+            <id>hombre</id>
+            <name>Michael Hombre Brinkmann</name>
+            <email>hombre@twibs.net</email>
+            <roles>
+                <role>owner</role>
+                <role>developer</role>
+            </roles>
+            <timezone>+1</timezone>
+        </developer>
+    </developers>
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <scm>
+        <url>https://github.com/hombre/twibs.git</url>
+        <connection>scm:git:https://github.com/hombre/twibs.git</connection>
+        <developerConnection>scm:git:https://github.com/hombre/twibs.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
     <build>
         <defaultGoal>install</defaultGoal>
         <plugins>

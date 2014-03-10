@@ -22,3 +22,39 @@ Twibs is a suite of utility classes to ease the development of internet applicat
 [A successful Git branching model](http://nvie.com/posts/a-successful-git-branching-model/)
 
 [Git extensions to provide high-level repository operations for Vincent Driessen's branching model.](https://github.com/nvie/gitflow)
+
+
+
+SystemSettings
+    host
+    starttime
+    systemusername
+    runmode
+    locale
+
+ApplicationSettingsFactory
+    defaultApplicationSettings (Reloadable)
+    applicationSettingForName(name)  (Reloadable in DEV)
+
+ApplicationSettings
+    name
+    configuration
+    locales
+    translators
+    defaultUserSettings
+
+UserSettings
+    name
+    locale
+
+RequestSettings
+    locale
+    translator
+    userSettings
+    applicationSettings
+
+
+
+
+
+

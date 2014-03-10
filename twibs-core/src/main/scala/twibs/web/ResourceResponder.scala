@@ -2,7 +2,7 @@ package twibs.web
 
 import java.net.URL
 import twibs.util.IOUtils._
-import twibs.util.{Environment, IOUtils}
+import twibs.util.{ApplicationSettings, IOUtils}
 
 trait ResourceResponder extends Responder {
   def respond(request: Request): Option[Response] =
@@ -29,7 +29,7 @@ trait ResourceResponder extends Responder {
               def isModified = !exists || resource.openConnection().getLastModified != lastModified
 
               lazy val mimeType = using(asInputStream) {
-                is => Environment.tika.detect(resource)
+                is => ApplicationSettings.tika.detect(resource)
               }
             })
           }

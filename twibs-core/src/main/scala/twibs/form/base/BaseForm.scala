@@ -94,7 +94,9 @@ trait BaseChildItemWithName extends BaseChildItem {
 
   require(!ilk.isEmpty, "Empty ilk is not allowed")
   require(ilk matches "\\w+[\\w0-9-]*", "Ilk must start with character and contain only characters, numbers and -")
-  require(name != "form-is-modal" && name != "form-id", "'form-id' and 'form-modal' are reserved")
+  require(name != BaseForm.PN_ID, s"'${BaseForm.PN_ID}' is reserved")
+  require(name != BaseForm.PN_MODAL, s"'${BaseForm.PN_MODAL}' is reserved")
+  require(name != ApplicationSettings.PN_NAME, s"'${ApplicationSettings.PN_NAME}' is reserved")
 }
 
 trait BaseParentItem extends BaseItem with Validatable with RenderedItem {
@@ -128,6 +130,7 @@ trait BaseParentItem extends BaseItem with Validatable with RenderedItem {
   def validate(): Boolean = {
     items.foreach {
       case i: Values => i._validated = true
+      case i: MinMaxChildren => i._validated = true
       case _ =>
     }
     isValid
@@ -168,11 +171,11 @@ trait MinMaxChildren extends BaseParentItem {
 
   override def html = messageHtml ++ super.html
 
-  override def isValid: Boolean = super.isValid && Range(minimumNumberOfDynamics, maximumNumberOfDynamics).contains(children.size)
+  override def isValid: Boolean = super.isValid && (!validated || Range(minimumNumberOfDynamics, maximumNumberOfDynamics).contains(children.size))
 
   def messageOption: Option[Message] =
-    if (children.size < minimumNumberOfDynamics) Some(Message.warning(t"minimum-number-of-children-message: Please provide at least ${format(minimumNumberOfDynamics)} children"))
-    else if (children.size > maximumNumberOfDynamics) Some(Message.warning(t"maximum-number-of-chilren-message: Please provide no more than ${format(maximumNumberOfDynamics)} children"))
+    if (validated && children.size < minimumNumberOfDynamics) Some(Message.warning(t"minimum-number-of-children-message: Please provide at least ${format(minimumNumberOfDynamics)} children"))
+    else if (validated && children.size > maximumNumberOfDynamics) Some(Message.warning(t"maximum-number-of-chilren-message: Please provide no more than ${format(maximumNumberOfDynamics)} children"))
     else None
 
   private def format(i: Int) = form.formatters.integerFormat.format(i)
@@ -180,6 +183,20 @@ trait MinMaxChildren extends BaseParentItem {
   def messageHtml: NodeSeq = messageOption match {
     case Some(message) => form.renderer.renderMessage(message)
     case _ => NodeSeq.Empty
+  }
+
+  override def reset(): Unit = {
+    _validated = false
+    super.reset()
+  }
+
+  def validated = _validated
+
+  private[base] var _validated = false
+
+  override def validate(): Boolean = {
+    _validated = true
+    super.validate()
   }
 }
 
@@ -204,12 +221,16 @@ abstract class DynamicContainer[T <: Dynamic] private(val ilk: String, val paren
 }
 
 object BaseForm {
+  val PN_ID = "form-id"
+
+  val PN_MODAL = "form-modal"
+
   private val dynamicVar = new DynamicVariable[Option[(IdString, Boolean)]](None)
 
   def use[R](id: IdString, modal: Boolean)(f: => R): R = dynamicVar.withValue(Some((id, modal)))(f)
 }
 
-trait BaseForm extends BaseParentItem with CurrentEnviroment {
+trait BaseForm extends BaseParentItem with CurrentRequestSettings {
   def name: String
 
   val (id: IdString, modal: Boolean) = BaseForm.dynamicVar.value getOrElse ((IdString(IdGenerator.next()), false))
@@ -230,8 +251,8 @@ trait BaseForm extends BaseParentItem with CurrentEnviroment {
   def actionLinkWithContextPath: String = WebContext.path + actionLink
 
   private def queryString = {
-    val ret = items.collect({case item: BaseField if item.isModified => item.strings.map(string => item.name + "=" + string)}).flatten.mkString("&")
-    if (!ret.isEmpty) "?" + ret else ""
+    val keyValues = items.collect({case item: BaseField if item.isModified => item.strings.map(string => item.name -> string)}).flatten.toList
+    "?" + ((ApplicationSettings.PN_NAME -> ApplicationSettings.name) :: keyValues).map(e => e._1 + "=" + e._2).mkString("&")
   }
 
   def accessAllowed: Boolean

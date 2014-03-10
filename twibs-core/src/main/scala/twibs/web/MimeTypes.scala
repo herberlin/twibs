@@ -1,14 +1,14 @@
 package twibs.web
 
 import com.google.common.net.MediaType
-import twibs.util.Environment
+import twibs.util.ApplicationSettings
 import twibs.util.IOUtils._
 
 trait DetectedMimeType {
   self: Response =>
 
   lazy val mimeType = using(asInputStream) {
-    is => Environment.tika.detect(is, "")
+    is => ApplicationSettings.tika.detect(is, "")
   }
 }
 

@@ -6,6 +6,8 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 trait Translator {
+  def locale: ULocale
+
   def kind(kind: String): Translator
 
   def usage(appendedPrefixes: String*): Translator = usage(appendedPrefixes.toList)
@@ -52,14 +54,16 @@ trait TranslationSupport {
 }
 
 object Translator extends Loggable {
-  implicit def unwrap(companion: Translator.type): Translator = Environment.current.translator
+  implicit def unwrap(companion: Translator.type): Translator = current
 
-  implicit def withTranslationFormatter(sc: StringContext)(implicit translator: Translator = Environment.current.translator) = new {
+  def current: Translator = RequestSettings.current.translator
+
+  implicit def withTranslationFormatter(sc: StringContext)(implicit translator: Translator = current) = new {
     def t(args: Any*): String = translator.translate(sc, args: _*)
   }
 }
 
-class TranslatorResolver(locale: ULocale, configuration: Configuration) {
+class TranslatorResolver(val locale: ULocale, configuration: Configuration) {
   val root: Translator = new TranslatorImpl("", List(""))
 
   protected def unresolved(key: String, default: String, args: Any*): Unit = Translator.logger.info(s"Unresolved $key: $default")
@@ -96,6 +100,8 @@ class TranslatorResolver(locale: ULocale, configuration: Configuration) {
     cache.getOrElseUpdate(nid, new TranslatorImpl(nid, prefixes))
 
   private class TranslatorImpl(id: String, prefixes: List[String]) extends Translator {
+    def locale = TranslatorResolver.this.locale
+
     def kind(kind: String): Translator =
       if (kind.isEmpty) this
       else getTranslator(id + kind, prefixes :+ (kind + "."))

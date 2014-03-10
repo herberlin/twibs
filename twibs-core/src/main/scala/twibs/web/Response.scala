@@ -6,7 +6,7 @@ import concurrent.duration._
 import java.io._
 import java.util.zip.GZIPOutputStream
 import twibs.util.IOUtils._
-import twibs.util.{Environment, RunMode}
+import twibs.util.{ApplicationSettings, RunMode}
 
 trait Response extends Serializable {
   def asInputStream: InputStream
@@ -91,7 +91,7 @@ trait FileResponse extends InputStreamResponse {
 
   def isModified = !file.exists || file.lastModified() != lastModified
 
-  lazy val mimeType = Environment.tika.detect(file)
+  lazy val mimeType = ApplicationSettings.tika.detect(file)
 }
 
 trait StringResponse extends Response {
