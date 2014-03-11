@@ -12,7 +12,7 @@ class ApplicationResponder(delegate: Responder) extends Responder {
 
     applicationSettings.use {
       new RequestSettings(applicationSettings) {
-        override val locale = LocaleUtils.lookupLocale(ApplicationSettings.locales, request.desiredLocale)
+        override lazy val locale = LocaleUtils.lookupLocale(ApplicationSettings.locales, request.desiredLocale)
       } use {
         delegate.respond(request)
       }

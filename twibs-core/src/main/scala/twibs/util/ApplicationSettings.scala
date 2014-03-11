@@ -140,9 +140,9 @@ trait CurrentRequestSettings {
 }
 
 class RequestSettings(val applicationSettings: ApplicationSettings = ApplicationSettings.current) {
-  def locale: ULocale = applicationSettings.locales.head
+  lazy val locale: ULocale = applicationSettings.locales.head
 
-  def translator: Translator = applicationSettings.translators(locale)
+  lazy val translator: Translator = applicationSettings.translators(locale)
 
   lazy val formatters = new Formatters(translator, locale, "EUR")
 
