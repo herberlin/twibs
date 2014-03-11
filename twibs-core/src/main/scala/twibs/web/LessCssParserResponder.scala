@@ -23,11 +23,13 @@ class LessCssParserResponder(contentResponder: Responder, compress: Boolean = tr
       relativePath =>
         logger.debug(s"Loading: $relativePath")
 
-        if (relativePath == request.path) response.asString
+        if (relativePath == request.path) Some(response.asString)
         else {
-          val response = contentResponder.respond(request.relative(relativePath)).get
-          responsesBuffer += response
-          response.asString
+          contentResponder.respond(request.relative(relativePath)).map {
+            response =>
+              responsesBuffer += response
+              response.asString
+          }
         }
     }
 

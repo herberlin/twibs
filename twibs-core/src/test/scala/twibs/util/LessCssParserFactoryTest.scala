@@ -2,14 +2,18 @@ package twibs.util
 
 import com.google.common.base.Charsets
 import com.google.common.io.Files
-import java.io.File
+import java.io.{FileNotFoundException, File}
 import twibs.TwibsTest
 
 class LessCssParserFactoryTest extends TwibsTest {
   val dir = new File("src/test/webapp/www1")
   val parser = LessCssParserFactory.createParser(load)
 
-  def load(path: String) = Files.toString(new File(dir, path), Charsets.UTF_8)
+  def load(path: String): Option[String] = try {
+    Some(Files.toString(new File(dir, path), Charsets.UTF_8))
+  } catch {
+    case e: FileNotFoundException => None
+  }
 
   test("Simple") {
     parser.parse("/simple.less", compress = false, 1) should be("div {\n  width: 3;\n}\n")
@@ -42,5 +46,11 @@ class LessCssParserFactoryTest extends TwibsTest {
 
   test("Import simple") {
     parser.parse("/import-simple.less") should be("div{width:3}")
+  }
+
+  test("Imported file does not exists") {
+    (evaluating {
+      parser.parse("/subdir/import-missing-file.less")
+    } should produce[LessCssParserException]).getMessage should be("java.io.FileNotFoundException: /subdir/../../missing-file.less")
   }
 }

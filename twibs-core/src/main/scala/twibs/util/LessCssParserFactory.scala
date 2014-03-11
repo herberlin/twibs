@@ -18,16 +18,16 @@ object LessCssParserFactory extends Loggable {
       scope
   }
 
-  private class Adapter(doLoad: (String) => String) {
-    def load(path: String): String =
-      try doLoad(path) catch {
-        case e: FileNotFoundException => throw new FileNotFoundException(path)
-      }
+  private class Adapter(doLoad: (String) => Option[String]) {
+    def load(path: String): String = doLoad(path) match {
+      case Some(string) => string
+      case None => throw new FileNotFoundException(path)
+    }
 
     def debug(string: String): Unit = logger.debug(string)
   }
 
-  class LessCssParser private[LessCssParserFactory](loadFunc: (String) => String) {
+  class LessCssParser private[LessCssParserFactory](loadFunc: (String) => Option[String]) {
     /** This method is synchronized on LessCssParserFactory because the less compiler in javascript is not thread safe */
     def parse(path: String, compress: Boolean = true, optimization: Int = 1) = scope.synchronized {
       inContext {
@@ -45,7 +45,7 @@ object LessCssParserFactory extends Loggable {
     }
   }
 
-  def createParser(loadFunc: (String) => String) = new LessCssParser(loadFunc)
+  def createParser(loadFunc: (String) => Option[String]) = new LessCssParser(loadFunc)
 
   private def inContext[R](f: (Context) => R): R = try f(Context.enter()) finally Context.exit()
 }
