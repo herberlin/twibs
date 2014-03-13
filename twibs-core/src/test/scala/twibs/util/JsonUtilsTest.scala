@@ -29,7 +29,7 @@ class JsonUtilsTest extends TwibsTest {
   }
   test("Html") {
       <i class="icon-trash icon-white"/><u>{ "\r\n\r \n" }u</u>.toJsonString should equal(
-      """"<i class=\"icon-trash icon-white\"/><u>\n\n \nu</u>"""")
+      """"<i class=\"icon-trash icon-white\"\/><u>\r\n\r \nu<\/u>"""")
   }
   test("Create JSON") {
     val json = Map(
@@ -46,6 +46,6 @@ class JsonUtilsTest extends TwibsTest {
         "extra" -> "hrmll") :: Nil)
     )
 
-    json.toJsonString should equal( """{"sEcho":1,"iTotalRecords":"57","iTotalDisplayRecords":"57","aaData":[{"4":"-","5":"U","1":"Other browsers","0":"<img src=\"../examples_support/details_open.png\">","2":"All others","extra":"hrmll","3":"-"}]}""")
+    json.toJsonString should equal( """{"sEcho":1,"iTotalRecords":"57","iTotalDisplayRecords":"57","aaData":[{"4":"-","5":"U","1":"Other browsers","0":"<img src=\"..\/examples_support\/details_open.png\">","2":"All others","extra":"hrmll","3":"-"}]}""")
   }
 }
