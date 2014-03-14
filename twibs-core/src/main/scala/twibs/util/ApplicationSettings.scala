@@ -88,7 +88,9 @@ object RunMode {
 
   val DEVELOPMENT = new RunMode("development")
 
-  implicit def unwrap(companion: RunMode.type): RunMode = SystemSettings.current.runMode
+  implicit def unwrap(companion: RunMode.type): RunMode = current
+
+  def current = SystemSettings.current.runMode
 }
 
 class RunMode(val name: String) {

@@ -3,6 +3,7 @@ package twibs.util
 import java.util.{Date, Calendar}
 import org.joda.time.DateTime
 import org.threeten.bp.{LocalDate, ZoneOffset, Instant, LocalDateTime}
+import java.sql.Timestamp
 
 object ThreeTenTransition {
   // TODO; Switch to ThreeTen from Joda. Remove this function after done
@@ -30,6 +31,8 @@ object ThreeTenTransition {
       ret.setTimeInMillis(dateTime.toInstant(ZoneOffset.UTC).toEpochMilli)
       ret
     }
+
+    def toTimestamp = new Timestamp(toCalendar.getTime.getTime)
   }
 
   implicit def convertLocalDateFromThreeTen(date: LocalDate) = new {
@@ -38,5 +41,7 @@ object ThreeTenTransition {
       ret.setTimeInMillis(date.atStartOfDay.toInstant(ZoneOffset.UTC).toEpochMilli)
       ret
     }
+
+    def toDate = new java.sql.Date(toCalendar.getTime.getTime)
   }
 }

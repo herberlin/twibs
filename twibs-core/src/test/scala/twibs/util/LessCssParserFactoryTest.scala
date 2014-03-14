@@ -1,6 +1,6 @@
 package twibs.util
 
-import com.google.common.base.Charsets
+import com.google.common.base.{Stopwatch, Charsets}
 import com.google.common.io.Files
 import java.io.{FileNotFoundException, File}
 import twibs.TwibsTest
@@ -47,6 +47,14 @@ class LessCssParserFactoryTest extends TwibsTest {
   test("Import simple") {
     parser.parse("/import-simple.less") should be("div{width:3}")
   }
+
+//  test("Run 100 simple") {
+//    val sw = Stopwatch.createStarted()
+//    for (i <- 0 until 10) {
+//      parser.parse("/bootstrap.less")
+//    }
+//    println(sw.toString)
+//  }
 
   test("Imported file does not exists") {
     (evaluating {

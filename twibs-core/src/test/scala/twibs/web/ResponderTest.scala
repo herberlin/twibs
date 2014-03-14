@@ -233,17 +233,6 @@ class ResponderTest extends TwibsTest {
     responder.getResourceOption("/V1__empty.sql") should not be 'empty
   }
 
-  test("Restrict locale responder") {
-    val localeStringResponder = new Responder() {
-      override def respond(request: Request): Option[Response] = Some(new StringResponse with VolatileResponse with TextMimeType {
-        override val asString: String = RequestSettings.locale.toString + ": " + RequestSettings.translator.translate("label", "NIX")
-      })
-    }
-
-    new RestrictLocaleResponder(ULocale.GERMAN :: ULocale.ENGLISH :: Nil, localeStringResponder).respond("/test.html").get.asString should be("de: Herr")
-    new RestrictLocaleResponder(ULocale.FRENCH :: Nil, localeStringResponder).respond("/test.html").get.asString should be("fr: Monsieur")
-  }
-
   test("Tika mimetype for font") {
     new Tika().detect(getClass.getClassLoader.getResource("META-INF/resources/inc/bootstrap-fonts/glyphicons-halflings-regular.woff")) should be("application/font-woff")
   }
