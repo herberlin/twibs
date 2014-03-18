@@ -41,9 +41,11 @@ trait Table[ElementType] extends ItemContainer {
     override def parse(request: Request): Unit = {
       super.parse(request)
       if (request.parameters.getStringsOption(name + "-submit-while-typing").isDefined)
-        result = InsteadOfFormDisplay(jQuery(tableId).call("html", NodeSeq.seqToNodeSeq(tableHtml.child)))
+        result = InsteadOfFormDisplay(updateTableData)
     }
   }
+
+  def updateTableData = jQuery(tableId).call("html", NodeSeq.seqToNodeSeq(tableHtml.child))
 
   final def tableId = id + "-table"
 
