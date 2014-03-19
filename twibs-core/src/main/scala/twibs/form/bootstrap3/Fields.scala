@@ -259,9 +259,9 @@ trait FileEntryField extends Field with FileEntryValues with Result {
 
   private def processDeleteParameters(parameters: Seq[String]): Unit = {
     val ret = parameters.map(stringToValueConverter).collect {
-      case SuccessAndTerminate(value) =>
-        val message = Message.info(t"deleted-message: File ${value.title} was deleted")
-        deleteFileEntry(value)
+      case r: SuccessfulResult[String,FileEntry] =>
+        val message = Message.info(t"deleted-message: File ${r.output.title} was deleted")
+        deleteFileEntry(r.output)
         message.showNotification
     }
     reset()
