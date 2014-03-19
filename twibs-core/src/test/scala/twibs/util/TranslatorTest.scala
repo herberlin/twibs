@@ -16,7 +16,7 @@ class TranslatorTest extends TwibsTest {
         None
       }
 
-      override def unresolved(key: String, default: String, args: Any*): Unit =
+      override def unresolved(key: String, default: String): Unit =
         unresolvedKeys += key + " " + default
     }.root
 
