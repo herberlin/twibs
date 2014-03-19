@@ -258,12 +258,17 @@ trait FileEntryField extends Field with FileEntryValues with Result {
   override def itemIsVisible: Boolean = values.length > 0
 
   private def processDeleteParameters(parameters: Seq[String]): Unit = {
-    val ret = parameters.map(stringToValueConverter).collect {
-      case r: SuccessfulResult[String,FileEntry] =>
-        val message = Message.info(t"deleted-message: File ${r.output.title} was deleted")
-        deleteFileEntry(r.output)
-        message.showNotification
+    def doit(output: ValueType) = {
+      val message = Message.info(t"deleted-message: File ${output.title} was deleted")
+      deleteFileEntry(output)
+      message.showNotification
     }
+
+    val ret = parameters.map(stringToValueConverter).collect {
+      case Success(output) => doit(output)
+      case SuccessAndTerminate(output) => doit(output)
+    }
+
     reset()
     result = AfterFormDisplay(ret)
   }
