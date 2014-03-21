@@ -252,8 +252,8 @@ trait BaseForm extends BaseParentItem with CurrentRequestSettings {
 
   private def queryString = {
     val keyValues = items.collect({case item: BaseField if item.isModified => item.strings.map(string => item.name -> string)}).flatten.toList
-    val all = if(ApplicationSettings.name != ApplicationSettings.DEFAULT_NAME) (ApplicationSettings.PN_NAME -> ApplicationSettings.name) :: keyValues else keyValues
-    if( all.isEmpty) "" else "?" + all.map(e => e._1 + "=" + e._2).mkString("&")
+    val all = if (ApplicationSettings.name != ApplicationSettings.DEFAULT_NAME) (ApplicationSettings.PN_NAME -> ApplicationSettings.name) :: keyValues else keyValues
+    if (all.isEmpty) "" else "?" + all.map(e => e._1 + "=" + e._2).mkString("&")
   }
 
   def accessAllowed: Boolean

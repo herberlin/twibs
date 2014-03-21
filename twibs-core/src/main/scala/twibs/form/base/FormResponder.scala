@@ -29,19 +29,24 @@ class FormResponder(makeForm: () => BaseForm) extends Responder {
           form.items.collect {case r: Result if r.result != Result.Ignored => r.result}.toList
         } else Nil
 
-      val beforeDisplayJs = result.collect {case Result.BeforeFormDisplay(js) => js}
+      result.collectFirst {case Result.UseResponse(response) => response} match {
+        case Some(response) => response
+        case None =>
 
-      val displayJs = result.collect {case Result.InsteadOfFormDisplay(js) => js} match {
-        case Nil => form.displayJs :: Nil
-        case l => l
-      }
+          val beforeDisplayJs = result.collect {case Result.BeforeFormDisplay(js) => js}
 
-      val afterDisplayJs = result.collect {case Result.AfterFormDisplay(js) => js}
+          val displayJs = result.collect {case Result.InsteadOfFormDisplay(js) => js} match {
+            case Nil => form.displayJs :: Nil
+            case l => l
+          }
 
-      val javascript: JsCmd = beforeDisplayJs ::: displayJs ::: afterDisplayJs
+          val afterDisplayJs = result.collect {case Result.AfterFormDisplay(js) => js}
 
-      new StringResponse with VolatileResponse with TextMimeType {
-        val asString = javascript.toString
+          val javascript: JsCmd = beforeDisplayJs ::: displayJs ::: afterDisplayJs
+
+          new StringResponse with VolatileResponse with TextMimeType {
+            val asString = javascript.toString
+          }
       }
     }
   }

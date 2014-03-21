@@ -5,6 +5,7 @@ import scala.xml.{Text, Elem, NodeSeq}
 import twibs.util.JavaScript.JsCmd
 import twibs.util.Message
 import twibs.util.XmlUtils._
+import twibs.web.Response
 
 trait Result {
   var result: Result.Value = Result.Ignored
@@ -28,6 +29,7 @@ object Result {
 
   case class InsteadOfFormDisplay(js: JsCmd) extends Value
 
+  case class UseResponse(response: Response) extends Value
 }
 
 trait Validatable {

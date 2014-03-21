@@ -31,6 +31,8 @@ trait Response extends Serializable {
 
   def isInMemory: Boolean
 
+  def useFileName: String = ""
+  
   lazy val gzippedOption: Option[Array[Byte]] = {
     val bytes = asInputStream useAndClose {
       is => compressWithGzip(is)
@@ -50,26 +52,28 @@ trait Response extends Serializable {
 
 }
 
-class ResponseWrapper(delegate: Response) extends Response {
-  def asInputStream: InputStream = delegate.asInputStream
+class ResponseWrapper(delegatee: Response) extends Response {
+  def asInputStream: InputStream = delegatee.asInputStream
 
-  def asBytes: Array[Byte] = delegate.asBytes
+  def asBytes: Array[Byte] = delegatee.asBytes
 
-  def asString: String = delegate.asString
+  def asString: String = delegatee.asString
 
-  def length: Long = delegate.length
+  def length: Long = delegatee.length
 
-  def lastModified: Long = delegate.lastModified
+  def lastModified: Long = delegatee.lastModified
 
-  def mimeType: String = delegate.mimeType
+  def mimeType: String = delegatee.mimeType
 
-  def isModified: Boolean = delegate.isModified
+  def isModified: Boolean = delegatee.isModified
 
-  def expiresOnClientAfter: Duration = delegate.expiresOnClientAfter
+  def expiresOnClientAfter: Duration = delegatee.expiresOnClientAfter
 
-  def isCacheable: Boolean = delegate.isCacheable
+  def isCacheable: Boolean = delegatee.isCacheable
 
-  def isInMemory: Boolean = delegate.isInMemory
+  def isInMemory: Boolean = delegatee.isInMemory
+  
+  override def useFileName: String = delegatee.useFileName
 }
 
 trait InputStreamResponse extends Response {

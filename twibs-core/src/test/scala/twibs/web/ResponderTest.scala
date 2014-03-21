@@ -230,7 +230,7 @@ class ResponderTest extends TwibsTest {
 
   test("class loader responder") {
     val responder = new ClassLoaderResponder(getClass.getClassLoader, "/db/migration")
-    responder.getResourceOption("/V1__empty.sql") should not be 'empty
+    responder.getResourceOption("/V1_1__empty.sql") should not be 'empty
   }
 
   test("Tika mimetype for font") {

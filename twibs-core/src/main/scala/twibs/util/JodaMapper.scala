@@ -2,12 +2,11 @@ package twibs.util
 
 import java.sql.Timestamp
 import org.joda.time.DateTime
-import scala.slick.jdbc.{SetParameter, GetResult}
-import scala.slick.lifted.MappedTypeMapper
-import scala.slick.session.{PositionedResult, PositionedParameters}
+import scala.slick.driver.PostgresDriver.simple._
+import scala.slick.jdbc.{PositionedResult, PositionedParameters, SetParameter, GetResult}
 
 object JodaMapper {
-  implicit def timestamp2dateTime = MappedTypeMapper.base[DateTime, Timestamp](
+  implicit def timestamp2dateTime = MappedColumnType.base[DateTime, Timestamp](
     dateTime => new Timestamp(dateTime.getMillis),
     date => new DateTime(date)
   )

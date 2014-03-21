@@ -39,6 +39,10 @@ private[web] class HttpResponseRenderer(request: Request, response: Response, ht
     httpResponse.setHeader("Vary", "Accept-Encoding")
     httpResponse.setDateHeader("Date", currentDateTimeInMillis)
     httpResponse.setDateHeader("Expires", expiresInMillis)
+    response.useFileName match {
+      case "" => ""
+      case s => httpResponse.setHeader("Content-Disposition", """attachment; filename="""" + s + '"')
+    }
 
     if (response.mimeType.startsWith("text/"))
       httpResponse.setCharacterEncoding(Charsets.UTF_8.name)

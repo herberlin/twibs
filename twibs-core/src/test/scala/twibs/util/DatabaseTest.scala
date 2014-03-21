@@ -4,7 +4,7 @@ import java.sql._
 import org.scalatest.BeforeAndAfterAll
 import scala.slick.jdbc.GetResult
 import slick.jdbc.StaticQuery.interpolation
-import slick.session.Database.threadLocalSession
+import scala.slick.jdbc.JdbcBackend.Database.dynamicSession
 import twibs.TwibsTest
 import twibs.util.Predef._
 

@@ -1,11 +1,14 @@
 package twibs.util
 
 import ThreeTenTransition._
+import java.sql.Timestamp
 import org.threeten.bp.LocalDateTime
-import scala.slick.jdbc.{SetParameter, GetResult}
-import scala.slick.session.{PositionedParameters, PositionedResult}
+import scala.slick.driver.PostgresDriver.simple._
+import scala.slick.jdbc.{PositionedParameters, PositionedResult, SetParameter, GetResult}
 
 object ThreeTenMapper {
+  implicit val timestamp2dateTime = MappedColumnType.base[LocalDateTime, Timestamp](_.toTimestamp, _.toLocalDateTime)
+
   implicit object toDateTime extends GetResult[LocalDateTime] {
     def apply(rs: PositionedResult) = {
       val timestamp = rs.nextTimestamp()
@@ -25,4 +28,5 @@ object ThreeTenMapper {
     def apply(d: Option[LocalDateTime], p: PositionedParameters): Unit =
       p.setTimestampOption(d.map(dateTime => dateTime.toTimestamp))
   }
+
 }

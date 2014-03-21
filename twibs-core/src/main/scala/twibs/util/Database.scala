@@ -4,7 +4,7 @@ import com.googlecode.flyway.core.Flyway
 import concurrent.duration._
 import javax.sql.DataSource
 import org.apache.tomcat.jdbc.pool.{DataSource => TomcatDataSource, PoolProperties}
-import slick.session.{Database => SlickDatabase}
+import scala.slick.jdbc.JdbcBackend.{Database => SlickDatabase}
 
 trait Database {
   def password: String
@@ -17,13 +17,13 @@ trait Database {
 
   def migrationLocations = "db/migration" :: Nil
 
-  def withSession[R](func: => R): R = database.withSession(func)
+  def withSession[R](func: => R): R = database.withDynSession(func)
 
-  def withTransaction[R](func: => R): R = database.withTransaction(func)
+  def withTransaction[R](func: => R): R = database.withDynTransaction(func)
 
   def withSavepoint[T](f: => T): T = {
     var ok = false
-    val connection = SlickDatabase.threadLocalSession.conn
+    val connection = SlickDatabase.dynamicSession.conn
     val savePoint = connection.setSavepoint()
     try {
       val ret = f
@@ -70,9 +70,9 @@ trait Database {
 
   lazy val dataSource: DataSource = createDataSource()
 
-  def commit(): Unit = SlickDatabase.threadLocalSession.conn.commit()
+  def commit(): Unit = SlickDatabase.dynamicSession.conn.commit()
 
-  def rollback(): Unit = SlickDatabase.threadLocalSession.rollback()
+  def rollback(): Unit = SlickDatabase.dynamicSession.rollback()
 
   def init(): Unit = database
 

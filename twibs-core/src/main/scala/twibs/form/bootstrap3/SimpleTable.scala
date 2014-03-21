@@ -15,11 +15,10 @@ trait SimpleTable extends ItemContainer {
   override def html: NodeSeq =
     <div>
       <nav class="form-inline table-controls-top">
-        {pageSizeField.enrichedHtml}
-        <span class="display-text">{pageSizeField.formGroupTitle}</span>
-        {queryStringField.enrichedHtml}
-      </nav>
-      {tableHtml}
+        {pageSizeField.enrichedHtml}<span class="display-text">
+        {pageSizeField.formGroupTitle}
+      </span>{queryStringField.enrichedHtml}
+      </nav>{tableHtml}
     </div>
 
   private val pageSizeField = new Field("page-size") with SingleSelectField with IntValues with Required with Inline with SubmitOnChange {
@@ -41,29 +40,41 @@ trait SimpleTable extends ItemContainer {
     override def parse(request: Request): Unit = {
       super.parse(request)
       if (request.parameters.getStringsOption(name + "-submit-while-typing").isDefined)
-        result = InsteadOfFormDisplay(jQuery(tableId).call("html", NodeSeq.seqToNodeSeq(tableHtml.child)))
+        result = InsteadOfFormDisplay(refreshTableData)
     }
+
+    override def itemIsVisible: Boolean = searchable
   }
+
+  def searchable = true
+
+  def refreshTableData = jQuery(tableId).call("html", NodeSeq.seqToNodeSeq(tableHtml.child))
 
   private val offsetField = new Field("page-navigation") with LongValues {
     override def html: NodeSeq = inputsAsHtml
 
     override def inputAsEnrichedHtml(input: Input, index: Int): NodeSeq =
-      <div class="pagination">{displayedElementsText}</div> ++
-    <ul class="pagination pull-right">{
-        pagination.pages.map {
+      <div class="pagination">
+        {displayedElementsText}
+      </div> ++
+        <ul class="pagination pull-right">
+          {pagination.pages.map {
           page =>
-            <li>{
-              if (page.disabled || isDisabled)
-                <span>{page.title}</span>
-              else
-                <a name={name} value={valueToStringConverter(page.firstElementNumber)} href="#">{page.title}</a>
-                  .addClass(!isDisabled, "submit")
-            }</li>
+            <li>
+              {if (page.disabled || isDisabled)
+              <span>
+                {page.title}
+              </span>
+            else
+              <a name={name} value={valueToStringConverter(page.firstElementNumber)} href="#">
+                {page.title}
+              </a>
+                .addClass(!isDisabled, "submit")}
+            </li>
               .addClass(page.disabled, "disabled")
               .addClass(page.active, "active")
-        }
-      }</ul> ++ HiddenInputRenderer(fallbackName, string)
+        }}
+        </ul> ++ HiddenInputRenderer(fallbackName, string)
 
     private def displayedElementsText: String =
       if (pagination.displayedElementCount < pagination.totalElementCount)
@@ -105,19 +116,24 @@ trait SimpleTable extends ItemContainer {
   def tableHtml =
     <div id={tableId}>
       <table class={tableCssClasses}>
-        <thead>{tableHead}</thead>
-        <tbody>{tableBody}</tbody>
+        <thead>
+          {tableHead}
+        </thead>
+        <tbody>
+          {tableBody}
+        </tbody>
       </table>
-      <style>{Unparsed(columnsStyle)}</style>
+      <style>
+        {Unparsed(columnsStyle)}
+      </style>
       <nav class="form-inline clearfix">
         {offsetField.enrichedHtml}
-      </nav>
-      {columns.map(_.sortField.enrichedHtml)}
+      </nav>{columns.map(_.sortField.enrichedHtml)}
     </div>
 
   def tableCssClasses = "table" :: "table-bordered" :: "table-striped" :: "sortable" :: Nil
 
-  def tableHead: NodeSeq = <tr>{ visibleColumns.map(_.tableHeader) }</tr>
+  def tableHead: NodeSeq = <tr>{visibleColumns.map(_.tableHeader)}</tr>
 
   def columnsStyle: String = visibleColumns.zipWithIndex.map(e => e._1.style(e._2)).mkString("")
 
@@ -137,7 +153,9 @@ trait SimpleTable extends ItemContainer {
       .set(sortable, "value", sortField.string)
       .addClass(sortable, "submit")
 
-    def title: NodeSeq = translator.usage("column").usage(name).translate("column-title", name)
+    def title: NodeSeq = titleString
+
+    def titleString =translator.usage("column").usage(name).translate("column-title", name)
 
     private def cssClasses = sortCssClass :: Nil
 
@@ -159,7 +177,7 @@ trait SimpleTable extends ItemContainer {
 
     def wrapStyle(index: Int) = if (wrap) "" else s"#${tableId.string} > table > tbody > tr > td:nth-child(${index + 1}) { white-space: nowrap; }"
 
-    def sort = sortField.value
+    def sort: SortOrder = sortField.value
 
     private[SimpleTable] val sortField = new HiddenInput("sort") with EnumerationValues[SortOrder.type] {
       override def enumeration = SortOrder
@@ -184,4 +202,5 @@ trait SimpleTable extends ItemContainer {
   }
 
   case class NamedColumn(name: String) extends Column
+
 }
