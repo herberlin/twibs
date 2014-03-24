@@ -87,9 +87,7 @@ class RequestWrapper(val delegatee: Request) extends Request {
 }
 
 object Request extends DynamicVariableWithDynamicDefault[Request](ImmutableRequest) {
-  val clock = Clock.systemUTC()
-
-  def now() = LocalDateTime.now(clock)
+  def now() = LocalDateTime.now()
 }
 
 private object ImmutableRequest extends Request {
