@@ -5,16 +5,16 @@ Twibs is a suite of utility classes to ease the development of internet applicat
 
 # Create a release
 
-    git checkout -b release/v0.1 develop
-    mvn release:prepare
-    mvn release:perform
 
     git checkout develop
-    git merge --no-ff release/v0.1
-    git checkout master
-    git merge --no-ff release/v0.1~1
-    git push --all && git push --tags
+    mvn release:prepare
+    mvn release:perform
+    git branch release/v0.6 HEAD~1
 
+    git checkout master
+    git merge --no-ff release/v0.6
+    git push --all && git push --tags
+    git checkout develop
 
 ## More information
 
