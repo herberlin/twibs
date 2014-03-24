@@ -18,12 +18,10 @@ class JsMinimizerResponder(contentResponder: Responder) extends JsMinimizer with
         if (RunMode.isDevelopment || RunMode.isTest) "// " + e.getMessage.replace("\n", "\n// ") else "// Internal server error"
     }
 
-    new StringResponse with CacheableResponse with JavaScriptMimeType {
+    new StringResponse with SingleResponseWrapper with JavaScriptMimeType {
+      val delegatee = response
+
       val asString: String = minimized
-
-      val lastModified: Long = response.lastModified
-
-      def isModified = response.isModified
     }
   }
 }

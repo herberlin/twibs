@@ -36,14 +36,10 @@ class LessCssParserResponder(contentResponder: Responder, compress: Boolean = tr
     try {
       val string = lessCssParser.parse(request.path, compress)
 
-      new StringResponse with CacheableResponse with CssMimeType {
-        private val responses: List[Response] = responsesBuffer.toList
+      new StringResponse with MultiResponseWrapper with CssMimeType {
+        protected val delegatees: List[Response] = responsesBuffer.toList
 
         val asString: String = string
-
-        val lastModified: Long = responses.map(_.lastModified).max
-
-        def isModified = responses.exists(_.isModified)
       }
     } catch {
       case e: LessCssParserException =>
@@ -51,14 +47,10 @@ class LessCssParserResponder(contentResponder: Responder, compress: Boolean = tr
 
         val string = if (RunMode.isDevelopment || RunMode.isTest) "// " + e.getMessage.replace("\n", "\n// ") else "// Internal server error"
 
-        new StringResponse with CacheableResponse with CssMimeType with ErrorResponse {
-          private val responses: List[Response] = responsesBuffer.toList
+        new StringResponse with MultiResponseWrapper with CssMimeType with ErrorResponse {
+          protected val delegatees: List[Response] = responsesBuffer.toList
 
           val asString: String = string
-
-          val lastModified: Long = responses.map(_.lastModified).max
-
-          def isModified = responses.exists(_.isModified)
         }
     }
   }

@@ -1,7 +1,7 @@
 package twibs.web
 
 import collection.mutable.ListBuffer
-import twibs.util.Loggable
+import twibs.util.{RunMode, Loggable}
 import util.matching.Regex
 import util.matching.Regex.Match
 
@@ -33,14 +33,10 @@ class JsMergerResponder(contentResponder: Responder) extends Responder with Logg
 
     val merged = """(?<!// {0,99})includeFile\("(.*)"\)\s*;?""".r replaceAllIn(response.asString, (m: Match) => Regex.quoteReplacement(mergeURL(m.group(1))))
 
-    new StringResponse with CacheableResponse with JavaScriptMimeType {
-      private val responses: List[Response] = responsesBuffer.toList
+    new StringResponse with MultiResponseWrapper with JavaScriptMimeType {
+      protected val delegatees: List[Response] = responsesBuffer.toList
 
       val asString = merged
-
-      val lastModified: Long = responses.map(_.lastModified).max
-
-      def isModified = responses.exists(_.isModified)
     }
   }
 }

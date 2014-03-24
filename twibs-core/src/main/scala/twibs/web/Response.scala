@@ -32,7 +32,7 @@ trait Response extends Serializable {
   def isInMemory: Boolean
 
   def useFileName: String = ""
-  
+
   lazy val gzippedOption: Option[Array[Byte]] = {
     val bytes = asInputStream useAndClose {
       is => compressWithGzip(is)
@@ -50,30 +50,6 @@ trait Response extends Serializable {
     baos.toByteArray
   }
 
-}
-
-class ResponseWrapper(delegatee: Response) extends Response {
-  def asInputStream: InputStream = delegatee.asInputStream
-
-  def asBytes: Array[Byte] = delegatee.asBytes
-
-  def asString: String = delegatee.asString
-
-  def length: Long = delegatee.length
-
-  def lastModified: Long = delegatee.lastModified
-
-  def mimeType: String = delegatee.mimeType
-
-  def isModified: Boolean = delegatee.isModified
-
-  def expiresOnClientAfter: Duration = delegatee.expiresOnClientAfter
-
-  def isCacheable: Boolean = delegatee.isCacheable
-
-  def isInMemory: Boolean = delegatee.isInMemory
-  
-  override def useFileName: String = delegatee.useFileName
 }
 
 trait InputStreamResponse extends Response {
@@ -139,7 +115,7 @@ trait NotFoundResponse extends Response
 trait CacheableResponse extends Response {
   def isCacheable = true
 
-  def expiresOnClientAfter = if (RunMode.isDevelopment) 1 seconds else 8 hours
+  def expiresOnClientAfter = if (RunMode.isDevelopment) 5 seconds else 8 hours
 }
 
 trait NotCacheableResponse extends Response {
@@ -166,4 +142,48 @@ trait CompilationTimeResponse extends CalculatedLastModifiedResponse {
   def calculateModified: Long = if (RunMode.isDevelopment) System.currentTimeMillis() else compilationTime
 
   def compilationTime: Long
+}
+
+trait SingleResponseWrapper extends Response {
+  protected def delegatee: Response
+
+  def lastModified: Long = delegatee.lastModified
+
+  def isModified: Boolean = delegatee.isModified
+
+  def expiresOnClientAfter: Duration = delegatee.expiresOnClientAfter
+
+  def isCacheable: Boolean = delegatee.isCacheable
+
+  override val isWrappable = delegatee.isWrappable
+}
+
+trait MultiResponseWrapper extends Response {
+  protected def delegatees: List[Response]
+
+  val lastModified: Long = delegatees.map(_.lastModified).max
+
+  def isModified = delegatees.exists(_.isModified)
+
+  val expiresOnClientAfter = delegatees.map(_.expiresOnClientAfter).min
+
+  val isCacheable = delegatees.forall(_.isCacheable)
+
+  override val isWrappable = delegatees.forall(_.isWrappable)
+}
+
+class DecoratableResponseWrapper(val delegatee: Response) extends SingleResponseWrapper {
+  def asInputStream: InputStream = delegatee.asInputStream
+
+  def asBytes: Array[Byte] = delegatee.asBytes
+
+  def asString: String = delegatee.asString
+
+  def length: Long = delegatee.length
+
+  def mimeType: String = delegatee.mimeType
+
+  override def useFileName: String = delegatee.useFileName
+
+  override val isInMemory = delegatee.isInMemory
 }
