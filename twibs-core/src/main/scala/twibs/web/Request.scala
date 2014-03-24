@@ -1,5 +1,6 @@
 package twibs.web
 
+import com.ibm.icu.util.ULocale
 import java.io.InputStream
 import java.net.URI
 import org.threeten.bp.{LocalDateTime, Clock}
@@ -47,6 +48,8 @@ trait Request extends Serializable with AttributeContainer {
   }
 
   override def toString = s"Request[$path|$method]"
+
+  def desiredLocale: ULocale
 }
 
 class RequestWrapper(val delegatee: Request) extends Request {
@@ -75,12 +78,16 @@ class RequestWrapper(val delegatee: Request) extends Request {
   def removeAttribute(name: String): Unit = delegatee.removeAttribute(name)
 
   def useCache = delegatee.useCache
+
+  def desiredLocale = delegatee.desiredLocale
+
+  def useAndRespond(responder: Responder) = use {
+    responder.respond(this)
+  }
 }
 
 object Request extends DynamicVariableWithDynamicDefault[Request](ImmutableRequest) {
-  val clock = Clock.systemUTC()
-
-  def now() = LocalDateTime.now(clock)
+  def now() = LocalDateTime.now()
 }
 
 private object ImmutableRequest extends Request {
@@ -117,6 +124,8 @@ private object ImmutableRequest extends Request {
   def removeAttribute(name: String): Unit = Unit
 
   def useCache = true
+
+  val desiredLocale = SystemSettings.locale
 }
 
 trait Upload {
@@ -128,7 +137,7 @@ trait Upload {
 
   def stream: InputStream
 
-  def mimeTypeString: String = Environment.tika.detect(stream, name)
+  def mimeTypeString: String = ApplicationSettings.tika.detect(stream, name)
 
   def sizeAsHumanReadableString = Formatters.getHumanReadableByteCountSi(size)
 }

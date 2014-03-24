@@ -31,17 +31,13 @@ trait Configuration {
 
   def getIntList(key: String, default: List[Int]): List[Int] = getIntList(key) getOrElse default
 
-  lazy val locales = getStringList("APPLICATION.locales", List("en")).map(localeId => new ULocale(localeId))
-
-  lazy val translators: Map[ULocale, Translator] = locales.map(locale => locale -> new TranslatorResolver(locale, configurationForLocale(locale)).root).toMap
-
   def configurationForLocale(locale: ULocale): Configuration
 }
 
 object Configuration {
   implicit def unwrap(companion: Configuration.type): Configuration = current
 
-  def current = Environment.current.configuration
+  def current = ApplicationSettings.current.configuration
 }
 
 class ConfigurationForTypesafeConfig(config: Config) extends Configuration {
@@ -67,7 +63,7 @@ class ConfigurationForTypesafeConfig(config: Config) extends Configuration {
 }
 
 object ConfigurationForTypesafeConfig {
-  def forSettings(settings: Settings) = {
+  def baseConfig(settings: SystemSettings = SystemSettings) = {
     def config = {
       ConfigFactory.invalidateCaches()
       ConfigFactory.load() withFallback ConfigFactory.load(getClass.getClassLoader)
@@ -75,8 +71,11 @@ object ConfigurationForTypesafeConfig {
 
     def hostConfig = childConfig(config, "HOSTS." + settings.hostName)
 
-    new ConfigurationForTypesafeConfig(childConfig(hostConfig, "RUN-MODES." + settings.runMode.name))
+    childConfig(hostConfig, "RUN-MODES." + settings.runMode.name)
   }
+
+  def forSettings(applicationName: String, settings: SystemSettings = SystemSettings) =
+    new ConfigurationForTypesafeConfig(childConfig(baseConfig(settings), "APPLICATIONS." + applicationName))
 
   private def childConfig(parent: Config, path: String) = if (parent.hasPath(path)) parent.getConfig(path).withFallback(parent) else parent
 }

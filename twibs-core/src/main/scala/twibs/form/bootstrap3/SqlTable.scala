@@ -3,7 +3,7 @@ package twibs.form.bootstrap3
 import scala.xml.NodeSeq
 import slick.jdbc.GetResult
 import slick.jdbc.StaticQuery._
-import slick.session.Database.threadLocalSession
+import scala.slick.jdbc.JdbcBackend.Database.dynamicSession
 import twibs.form.base.LazyCacheItem
 import twibs.form.bootstrap3.SortOrder._
 import twibs.util.SqlUtils

@@ -16,13 +16,9 @@ trait Values extends TranslationSupport with Validatable {
 
   trait Result[I, O]
 
-  trait SuccessfulResult[I, O] extends Result[I, O] {
-    def output: O
-  }
+  case class Success[I, O](output: O) extends Result[I, O]
 
-  case class SuccessAndTerminate[I, O](output: O) extends SuccessfulResult[I, O]
-
-  case class Success[I, O](output: O) extends SuccessfulResult[I, O]
+  case class SuccessAndTerminate[I, O](output: O) extends Result[I, O]
 
   case class Failure[I, O](input: I, message: String) extends Result[I, O]
 
@@ -173,14 +169,16 @@ trait Values extends TranslationSupport with Validatable {
       case r: SuccessAndTerminate[String, String] => ValidInput(r.output, string, None)
       case r: Success[String, String] => convertStringToValue(r.output) match {
         case r2: Failure[String, ValueType] => InvalidInput(r2.input, r2.input, r2.message, None)
-        case r2: SuccessfulResult[String, ValueType] => validateValue(r2.output)
+        case r2: SuccessAndTerminate[String, ValueType] => validateValue(r2.output)
+        case r2: Success[String, ValueType] => validateValue(r2.output)
       }
     }
 
   def validateValue(value: ValueType): Input =
     processValue(value) match {
       case r: Failure[ValueType, ValueType] => InvalidInput(convertValueToString(r.input), titleForValue(r.input), r.message, Some(r.input))
-      case r: SuccessfulResult[ValueType, ValueType] => ValidInput(convertValueToString(r.output), titleForValue(r.output), Some(r.output))
+      case r: SuccessAndTerminate[ValueType, ValueType] => ValidInput(convertValueToString(r.output), titleForValue(r.output), Some(r.output))
+      case r: Success[ValueType, ValueType] => ValidInput(convertValueToString(r.output), titleForValue(r.output), Some(r.output))
     }
 
   def titleForValue(value: ValueType): String = convertValueToString(value)
@@ -353,7 +351,7 @@ trait UploadValues extends Values {
 trait DateTimeValues extends MinMaxValues {
   type ValueType = LocalDateTime
 
-  def editDateTimeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern(translator.translate("date-time-format", "dd.MM.yyyy HH:mm"), Environment.locale.toLocale)
+  def editDateTimeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern(translator.translate("date-time-format", "dd.MM.yyyy HH:mm"), translator.locale.toLocale)
 
   def displayDateTimeFormat = editDateTimeFormat
 
@@ -379,7 +377,7 @@ trait DateTimeValues extends MinMaxValues {
 trait DateValues extends MinMaxValues {
   type ValueType = LocalDate
 
-  def editDateFormat: DateTimeFormatter = DateTimeFormatter.ofPattern(translator.translate("date-format", "dd.MM.yyyy"), Environment.locale.toLocale)
+  def editDateFormat: DateTimeFormatter = DateTimeFormatter.ofPattern(translator.translate("date-format", "dd.MM.yyyy"), translator.locale.toLocale)
 
   def displayDateFormat = editDateFormat
 

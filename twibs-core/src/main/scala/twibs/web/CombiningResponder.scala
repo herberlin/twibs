@@ -6,14 +6,15 @@ import scala.concurrent.duration._
 import twibs.util.WebContext
 
 trait CombiningResponder extends Responder {
-  def destroy(): Unit =
-    uniqueCacheResponderVal.store()
+  def destroy(): Unit = uniqueCacheResponderVal.store()
 
   def respond(request: Request): Option[Response] = responder.respond(request)
 
   lazy val responder: Responder = loggingResponder()
 
-  def loggingResponder(): Responder = new LoggingResponder(errorResponder())
+  def loggingResponder(): Responder = new LoggingResponder(applicationResponder())
+
+  def applicationResponder() = new ApplicationResponder(errorResponder())
 
   def errorResponder(): Responder = new StaticErrorResponder(new ErrorResponder(notFoundResponder(), cachingResponderVal))
 
@@ -36,8 +37,7 @@ trait CombiningResponder extends Responder {
 
   final lazy val processingResponder: Responder = processingResponders()
 
-  def processingResponders(): List[Responder] =
-    new IndexRedirectResponder() :: contentModifingResponders()
+  def processingResponders(): List[Responder] = new IndexRedirectResponder() :: contentModifingResponders()
 
   def contentModifingResponders() =
     new JsMinimizerResponder(new JsMergerResponder(contentResponder)) ::

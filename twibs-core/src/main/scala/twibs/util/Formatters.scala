@@ -85,7 +85,7 @@ class Formatters(translator: Translator, locale: ULocale, currencyCode: String) 
 object Formatters {
   implicit def unwrap(companion: Formatters.type): Formatters = current
 
-  def current = Environment.current.formatters
+  def current = RequestSettings.current.formatters
 
   implicit def doubleToFormattable(value: Double) = current.doubleToFormattable(value)
 

@@ -1,7 +1,6 @@
 package twibs.web
 
 import collection.mutable.ListBuffer
-import scala.Some
 import twibs.util._
 
 class LessCssParserResponder(contentResponder: Responder, compress: Boolean = true) extends Responder with Loggable {
@@ -24,11 +23,13 @@ class LessCssParserResponder(contentResponder: Responder, compress: Boolean = tr
       relativePath =>
         logger.debug(s"Loading: $relativePath")
 
-        if (relativePath == request.path) response.asString
+        if (relativePath == request.path) Some(response.asString)
         else {
-          val response = contentResponder.respond(request.relative(relativePath)).get
-          responsesBuffer += response
-          response.asString
+          contentResponder.respond(request.relative(relativePath)).map {
+            response =>
+              responsesBuffer += response
+              response.asString
+          }
         }
     }
 
@@ -46,7 +47,8 @@ class LessCssParserResponder(contentResponder: Responder, compress: Boolean = tr
       }
     } catch {
       case e: LessCssParserException =>
-        logger.error(e.getMessage)
+        logger.error(e.getMessage, e)
+
         val string = if (RunMode.isDevelopment || RunMode.isTest) "// " + e.getMessage.replace("\n", "\n// ") else "// Internal server error"
 
         new StringResponse with CacheableResponse with CssMimeType with ErrorResponse {

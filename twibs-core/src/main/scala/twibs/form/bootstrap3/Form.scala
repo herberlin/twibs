@@ -48,7 +48,7 @@ abstract class Form(val name: String) extends BaseForm {
   def formHtml(modal: Boolean) = if (!accessAllowed) noAccessHtml
   else
     <form id={id} name={name} class={formCssClasses} action={actionLinkWithContextPath} method="post" enctype={enctype}>
-      {HiddenInputRenderer("form-id", id) ++ HiddenInputRenderer("form-modal", "" + modal)}
+      {HiddenInputRenderer(BaseForm.PN_ID, id) ++ HiddenInputRenderer(BaseForm.PN_MODAL, "" + modal) ++ HiddenInputRenderer(ApplicationSettings.PN_NAME, requestSettings.applicationSettings.name)}
       <div class="modal transfer-modal">
         <div class="modal-dialog">
           <div class="modal-content">

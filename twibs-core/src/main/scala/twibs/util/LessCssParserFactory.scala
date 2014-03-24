@@ -2,6 +2,7 @@ package twibs.util
 
 import java.io.{FileNotFoundException, InputStreamReader}
 import org.mozilla.javascript._
+import twibs.util.Predef._
 
 object LessCssParserFactory extends Loggable {
   private val scope = inContext {
@@ -13,20 +14,20 @@ object LessCssParserFactory extends Loggable {
       val scope = cx.initStandardObjects()
       ("env" :: "cssmin" :: "less" :: "parser" :: Nil)
         .map(fileName => getClass.getClassLoader.getResource(s"META-INF/less-css-parser/$fileName.js"))
-        .map(url => IOUtils.using(new InputStreamReader(url.openStream())) {cx.evaluateReader(scope, _, url.toString, 1, null)})
+        .map(url => new InputStreamReader(url.openStream()) useAndClose {cx.evaluateReader(scope, _, url.toString, 1, null)})
       scope
   }
 
-  private class Adapter(doLoad: (String) => String) {
-    def load(path: String): String =
-      try doLoad(path) catch {
-        case e: FileNotFoundException => throw new FileNotFoundException(path)
-      }
+  private class Adapter(doLoad: (String) => Option[String]) {
+    def load(path: String): String = doLoad(path) match {
+      case Some(string) => string
+      case None => throw new FileNotFoundException(path)
+    }
 
     def debug(string: String): Unit = logger.debug(string)
   }
 
-  class LessCssParser private[LessCssParserFactory](loadFunc: (String) => String) {
+  class LessCssParser private[LessCssParserFactory](loadFunc: (String) => Option[String]) {
     /** This method is synchronized on LessCssParserFactory because the less compiler in javascript is not thread safe */
     def parse(path: String, compress: Boolean = true, optimization: Int = 1) = scope.synchronized {
       inContext {
@@ -44,7 +45,7 @@ object LessCssParserFactory extends Loggable {
     }
   }
 
-  def createParser(loadFunc: (String) => String) = new LessCssParser(loadFunc)
+  def createParser(loadFunc: (String) => Option[String]) = new LessCssParser(loadFunc)
 
   private def inContext[R](f: (Context) => R): R = try f(Context.enter()) finally Context.exit()
 }

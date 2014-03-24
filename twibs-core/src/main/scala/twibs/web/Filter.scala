@@ -2,7 +2,7 @@ package twibs.web
 
 import javax.servlet._
 import javax.servlet.http._
-import twibs.util.{Settings, RunMode}
+import twibs.util.{SystemSettings, RunMode}
 import util.DynamicVariable
 
 class Filter extends javax.servlet.Filter {
@@ -21,8 +21,7 @@ class Filter extends javax.servlet.Filter {
     combiningResponderVar = createCombiningResponder()
   }
 
-  override def destroy(): Unit =
-    combiningResponderVar.destroy()
+  override def destroy(): Unit = combiningResponderVar.destroy()
 
   override def doFilter(request: ServletRequest, response: ServletResponse, filterChain: FilterChain): Unit =
     Filter._servletRequest.withValue(request) {
@@ -38,17 +37,20 @@ class Filter extends javax.servlet.Filter {
   def doFilter(httpRequest: HttpServletRequest, httpResponse: HttpServletResponse, filterChain: FilterChain): Unit = {
     httpRequest.setCharacterEncoding("UTF-8")
     httpResponse.setCharacterEncoding("UTF-8")
-    httpResponse.setHeader("X-Twibs", if (RunMode.isProduction) Settings.Twibs.version else Settings.Twibs.version + " - " + RunMode.name)
+    httpResponse.setHeader("X-Twibs", if (RunMode.isProduction) SystemSettings.Twibs.version else SystemSettings.Twibs.version + " - " + RunMode.name)
     val request = createRequest(httpRequest)
-    if (!doFilter(request, httpRequest, httpResponse)) filterChain.doFilter(httpRequest, httpResponse)
-  }
-
-  def doFilter(request: Request, httpRequest: HttpServletRequest, httpResponse: HttpServletResponse): Boolean = {
-    combiningResponderVar.useAndRespond(request) match {
-      case Some(response) =>
-        new HttpResponseRenderer(request, response, httpRequest, httpResponse).render()
-        true
-      case None => false
+    request.use {
+      combiningResponderVar.respond(request) match {
+        case Some(response) =>
+          new HttpResponseRenderer(request, response, httpRequest, httpResponse).render()
+        case None =>
+          new ApplicationResponder(new Responder() {
+            override def respond(request: Request): Option[Response] = {
+              filterChain.doFilter(httpRequest, httpResponse)
+              None
+            }
+          }).respond(request)
+      }
     }
   }
 

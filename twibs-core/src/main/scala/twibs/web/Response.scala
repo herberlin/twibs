@@ -5,8 +5,8 @@ import com.google.common.io.{CharStreams, ByteStreams}
 import concurrent.duration._
 import java.io._
 import java.util.zip.GZIPOutputStream
-import twibs.util.IOUtils._
-import twibs.util.{Environment, RunMode}
+import twibs.util.Predef._
+import twibs.util.{ApplicationSettings, RunMode}
 
 trait Response extends Serializable {
   def asInputStream: InputStream
@@ -31,8 +31,10 @@ trait Response extends Serializable {
 
   def isInMemory: Boolean
 
+  def useFileName: String = ""
+  
   lazy val gzippedOption: Option[Array[Byte]] = {
-    val bytes = using(asInputStream) {
+    val bytes = asInputStream useAndClose {
       is => compressWithGzip(is)
     }
     if (bytes.length < length)
@@ -42,7 +44,7 @@ trait Response extends Serializable {
 
   private def compressWithGzip(uncompressed: InputStream) = {
     val baos = new ByteArrayOutputStream()
-    using(new GZIPOutputStream(baos)) {
+    new GZIPOutputStream(baos) useAndClose {
       os => ByteStreams.copy(uncompressed, os)
     }
     baos.toByteArray
@@ -50,26 +52,28 @@ trait Response extends Serializable {
 
 }
 
-class ResponseWrapper(delegate: Response) extends Response {
-  def asInputStream: InputStream = delegate.asInputStream
+class ResponseWrapper(delegatee: Response) extends Response {
+  def asInputStream: InputStream = delegatee.asInputStream
 
-  def asBytes: Array[Byte] = delegate.asBytes
+  def asBytes: Array[Byte] = delegatee.asBytes
 
-  def asString: String = delegate.asString
+  def asString: String = delegatee.asString
 
-  def length: Long = delegate.length
+  def length: Long = delegatee.length
 
-  def lastModified: Long = delegate.lastModified
+  def lastModified: Long = delegatee.lastModified
 
-  def mimeType: String = delegate.mimeType
+  def mimeType: String = delegatee.mimeType
 
-  def isModified: Boolean = delegate.isModified
+  def isModified: Boolean = delegatee.isModified
 
-  def expiresOnClientAfter: Duration = delegate.expiresOnClientAfter
+  def expiresOnClientAfter: Duration = delegatee.expiresOnClientAfter
 
-  def isCacheable: Boolean = delegate.isCacheable
+  def isCacheable: Boolean = delegatee.isCacheable
 
-  def isInMemory: Boolean = delegate.isInMemory
+  def isInMemory: Boolean = delegatee.isInMemory
+  
+  override def useFileName: String = delegatee.useFileName
 }
 
 trait InputStreamResponse extends Response {
@@ -91,7 +95,7 @@ trait FileResponse extends InputStreamResponse {
 
   def isModified = !file.exists || file.lastModified() != lastModified
 
-  lazy val mimeType = Environment.tika.detect(file)
+  lazy val mimeType = ApplicationSettings.tika.detect(file)
 }
 
 trait StringResponse extends Response {

@@ -6,7 +6,7 @@ import org.apache.tika.Tika
 import scala.concurrent.duration._
 import twibs.TwibsTest
 import twibs.util.Parameters._
-import twibs.util.{Environment, Parameters}
+import twibs.util.{RequestSettings, Parameters}
 
 class ResponderTest extends TwibsTest {
   private implicit def toRequest(pathArg: String): Request = toRequest(pathArg, "localhost", Parameters())
@@ -230,18 +230,7 @@ class ResponderTest extends TwibsTest {
 
   test("class loader responder") {
     val responder = new ClassLoaderResponder(getClass.getClassLoader, "/db/migration")
-    responder.getResourceOption("/V1__empty.sql") should not be 'empty
-  }
-
-  test("Restrict locale responder") {
-    val localeStringResponder = new Responder() {
-      override def respond(request: Request): Option[Response] = Some(new StringResponse with VolatileResponse with TextMimeType {
-        override val asString: String = Environment.locale.toString + ": " + Environment.translator.translate("label", "NIX")
-      })
-    }
-
-    new RestrictLocaleResponder(ULocale.GERMAN :: ULocale.ENGLISH :: Nil, localeStringResponder).respond("/test.html").get.asString should be("de: Herr")
-    new RestrictLocaleResponder(ULocale.FRENCH :: Nil, localeStringResponder).respond("/test.html").get.asString should be("fr: Monsieur")
+    responder.getResourceOption("/V1_1__empty.sql") should not be 'empty
   }
 
   test("Tika mimetype for font") {

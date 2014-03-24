@@ -5,16 +5,41 @@ import com.ibm.icu.util.ULocale
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
-trait Translator {
-  def kind(kind: String): Translator
+abstract class Translator(id: String, usages: List[String], kinds: List[String]) {
+  private val cache = mutable.Map[String, String]()
+
+  def locale: ULocale
+
+  def prefixes = usages ::: kinds
+
+  def kind(kind: String) =
+    if (kind.isEmpty) this
+    else getTranslator(id + kind, usages, (kind + ".") :: kinds)
 
   def usage(appendedPrefixes: String*): Translator = usage(appendedPrefixes.toList)
 
-  def usage(appendedPrefixes: List[String]): Translator
+  def usage(appendedPrefixes: List[String]): Translator = appendedPrefixes.distinct.filterNot(_.isEmpty) match {
+    case Nil => this
+    case ps => getTranslator(id + ps.mkString, appendPrefixes(usages, ps), appendPrefixes(kinds, ps))
+  }
 
-  def translate(key: String, default: => String, args: Any*): String
+  private def appendPrefixes(from: List[String], ps: List[String]) = from.map(parent => ps.map(prefix => parent + prefix + ".")).flatten ::: from
 
-  def translateOrUseDefault(key: String, default: => String, args: Any*): String
+  def translate(key: String, default: => String, args: Any*): String =
+    translateOrUseDefault(key, callUnresolved(key, default), args: _*)
+
+  private def callUnresolved(key: String, default: => String) = {
+    unresolved(prefixes.head + key, default)
+    default
+  }
+
+  def unresolved(fullKey: String, default: String): Unit
+
+  def translateOrUseDefault(key: String, default: => String, args: Any*): String =
+    format(cache.getOrElseUpdate(key, resolve(prefixes, key) getOrElse default), args: _*)
+
+  private def resolve(prefixes: List[String], key: String): Option[String] =
+    prefixes.view.map(prefix => resolve(prefix + key)).collectFirst {case Some(x) => x}
 
   def translate(sc: StringContext, args: Any*): String = {
     sc.checkLengths(args)
@@ -39,6 +64,19 @@ trait Translator {
     sb.append(strings.last)
     translate(sa(0), sb.toString(), remainingArgs.toArray: _*)
   }
+
+  private def format(messageFormatString: String, args: Any*): String =
+    try {
+      new MessageFormat(messageFormatString, locale).format(args.toArray)
+    } catch {
+      case e: IllegalArgumentException =>
+        Translator.logger.error(s"Invalid format '$messageFormatString'", e)
+        throw e
+    }
+
+  protected def getTranslator(nid: String, usages: => List[String], kinds: => List[String]): Translator
+
+  protected def resolve(fullKey: String): Option[String]
 }
 
 trait TranslationSupport {
@@ -52,64 +90,31 @@ trait TranslationSupport {
 }
 
 object Translator extends Loggable {
-  implicit def unwrap(companion: Translator.type): Translator = Environment.current.translator
+  implicit def unwrap(companion: Translator.type): Translator = current
 
-  implicit def withTranslationFormatter(sc: StringContext)(implicit translator: Translator = Environment.current.translator) = new {
+  def current: Translator = RequestSettings.current.translator
+
+  implicit def withTranslationFormatter(sc: StringContext)(implicit translator: Translator = current) = new {
     def t(args: Any*): String = translator.translate(sc, args: _*)
   }
 }
 
-class TranslatorResolver(locale: ULocale, configuration: Configuration) {
-  val root: Translator = new TranslatorImpl("", List(""))
-
-  protected def unresolved(key: String, default: String, args: Any*): Unit = Translator.logger.info(s"Unresolved $key: $default")
-
-  protected def resolve(key: String): Option[String] = configuration.getString(key)
-
-  // TODO: Implement caching
-  private def resolve(prefixes: List[String], key: String, default: => String, args: Any*): String =
-    prefixes.view.map(prefix => resolve(prefix + key).flatMap(msg => formatChecked(msg, args: _*))).flatten.headOption getOrElse {
-      unresolved(prefixes(0) + key, default, args: _*)
-      formatUnchecked(default, args: _*)
-    }
-
-  // TODO: Implement caching
-  private def resolveSilent(prefixes: List[String], key: String, default: => String, args: Any*): String =
-    prefixes.view.map(prefix => resolve(prefix + key).flatMap(msg => formatChecked(msg, args: _*))).flatten.headOption getOrElse {
-      formatUnchecked(default, args: _*)
-    }
-
-  private def formatChecked(messageFormatString: String, args: Any*): Option[String] =
-    try {
-      Some(formatUnchecked(messageFormatString, args: _*))
-    } catch {
-      case e: IllegalArgumentException =>
-        Translator.logger.error("Invalid format", e)
-        None
-    }
-
-  private def formatUnchecked(messageFormatString: String, args: Any*): String = new MessageFormat(messageFormatString, locale).format(args.toArray)
+class TranslatorResolver(val locale: ULocale, configuration: Configuration) {
+  val root: Translator = createTranslator("", List(""), List())
 
   private val cache = mutable.Map[String, Translator]()
 
-  private def getTranslator(nid: String, prefixes: => List[String]): Translator =
-    cache.getOrElseUpdate(nid, new TranslatorImpl(nid, prefixes))
+  protected def resolve(fullKey: String): Option[String] = configuration.getString(fullKey)
 
-  private class TranslatorImpl(id: String, prefixes: List[String]) extends Translator {
-    def kind(kind: String): Translator =
-      if (kind.isEmpty) this
-      else getTranslator(id + kind, prefixes :+ (kind + "."))
+  protected def unresolved(fullKey: String, default: String): Unit = Translator.logger.info(s"Unresolved $fullKey: $default")
 
-    def usage(appendedPrefixes: List[String]): Translator = appendedPrefixes.distinct.filterNot(_.isEmpty) match {
-      case Nil => this
-      case ps => getTranslator(id + ps.mkString, appendPrefixes(ps))
-    }
+  def createTranslator(id: String, usages: List[String], kinds: List[String]): Translator = new Translator(id, usages, kinds) {
+    def locale = TranslatorResolver.this.locale
 
-    private def appendPrefixes(ps: List[String]) = prefixes.map(parent => ps.map(prefix => parent + prefix + ".")).flatten ::: prefixes
+    protected def getTranslator(nid: String, usages: => List[String], kinds: => List[String]): Translator = cache.getOrElseUpdate(nid, createTranslator(nid, usages, kinds))
 
-    def translate(key: String, default: => String, args: Any*): String = resolve(prefixes, key, default, args: _*)
+    protected def resolve(fullKey: String): Option[String] = TranslatorResolver.this.resolve(fullKey)
 
-    def translateOrUseDefault(key: String, default: => String, args: Any*): String = resolveSilent(prefixes, key, default, args: _*)
+    override def unresolved(fullKey: String, default: String): Unit = TranslatorResolver.this.unresolved(fullKey, default)
   }
-
 }

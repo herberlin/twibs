@@ -1,6 +1,7 @@
 package twibs.web
 
-import twibs.util.{Configuration, Environment, Parameters}
+import com.ibm.icu.util.ULocale
+import twibs.util.{ApplicationSettings, Parameters}
 
 class StaticRequest(val path: String,
                     val domain: String = "localhost",
@@ -28,7 +29,5 @@ class StaticRequest(val path: String,
 
   val session = new StaticSession
 
-  val locale = Environment.locale
-
-  val config = Configuration.current
+  val desiredLocale: ULocale = ApplicationSettings.locales.head
 }

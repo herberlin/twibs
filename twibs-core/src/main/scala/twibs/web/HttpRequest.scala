@@ -41,9 +41,7 @@ private[web] abstract class HttpRequest(httpServletRequest: HttpServletRequest) 
 
   val uri = httpServletRequest.getRequestURI
 
-  val locale = LocaleUtils.lookupLocale(Configuration.locales, ULocale.forLocale(httpServletRequest.getLocale))
-
-  val config = Configuration.current
+  val desiredLocale = ULocale.forLocale(httpServletRequest.getLocale)
 
   val parameters: Parameters = Parameters((urlParameters ++ multiPartParameters).toMap)
 
