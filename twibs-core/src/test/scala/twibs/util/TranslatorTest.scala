@@ -21,6 +21,7 @@ class TranslatorTest extends TwibsTest {
     }.root
 
     root.usage("FORM").usage("login").kind("INPUT").usage("username", "", "name", "name").kind("TEXT").usage("required").translate("message", "This field is required") should be("This field is required")
+    println("#\n" + checkedKeys.toList.mkString("\n"))
     checkedKeys.toList.mkString("\n") should be(
       """FORM.login.username.required.message
         |FORM.login.name.required.message
@@ -30,14 +31,10 @@ class TranslatorTest extends TwibsTest {
         |FORM.name.required.message
         |username.required.message
         |name.required.message
-        |INPUT.username.required.message
-        |INPUT.name.required.message
         |FORM.login.required.message
         |login.required.message
         |FORM.required.message
         |required.message
-        |INPUT.required.message
-        |TEXT.required.message
         |FORM.login.username.message
         |FORM.login.name.message
         |login.username.message
@@ -46,14 +43,18 @@ class TranslatorTest extends TwibsTest {
         |FORM.name.message
         |username.message
         |name.message
-        |INPUT.username.message
-        |INPUT.name.message
         |FORM.login.message
         |login.message
         |FORM.message
         |message
-        |INPUT.message
-        |TEXT.message""".stripMargin
+        |TEXT.required.message
+        |INPUT.username.required.message
+        |INPUT.name.required.message
+        |INPUT.required.message
+        |TEXT.message
+        |INPUT.username.message
+        |INPUT.name.message
+        |INPUT.message""".stripMargin
     )
     unresolvedKeys.toList should be(List("FORM.login.username.required.message This field is required"))
   }

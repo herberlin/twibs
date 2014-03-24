@@ -5,23 +5,25 @@ import com.ibm.icu.util.ULocale
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
-abstract class Translator(id: String, prefixes: List[String]) {
+abstract class Translator(id: String, usages: List[String], kinds: List[String]) {
   private val cache = mutable.Map[String, String]()
 
   def locale: ULocale
 
+  def prefixes = usages ::: kinds
+
   def kind(kind: String) =
     if (kind.isEmpty) this
-    else getTranslator(id + kind, prefixes :+ (kind + "."))
+    else getTranslator(id + kind, usages, (kind + ".") :: kinds)
 
   def usage(appendedPrefixes: String*): Translator = usage(appendedPrefixes.toList)
 
   def usage(appendedPrefixes: List[String]): Translator = appendedPrefixes.distinct.filterNot(_.isEmpty) match {
     case Nil => this
-    case ps => getTranslator(id + ps.mkString, appendPrefixes(ps))
+    case ps => getTranslator(id + ps.mkString, appendPrefixes(usages, ps), appendPrefixes(kinds, ps))
   }
 
-  private def appendPrefixes(ps: List[String]) = prefixes.map(parent => ps.map(prefix => parent + prefix + ".")).flatten ::: prefixes
+  private def appendPrefixes(from: List[String], ps: List[String]) = from.map(parent => ps.map(prefix => parent + prefix + ".")).flatten ::: from
 
   def translate(key: String, default: => String, args: Any*): String =
     translateOrUseDefault(key, callUnresolved(key, default), args: _*)
@@ -72,7 +74,7 @@ abstract class Translator(id: String, prefixes: List[String]) {
         throw e
     }
 
-  protected def getTranslator(nid: String, prefixes: => List[String]): Translator
+  protected def getTranslator(nid: String, usages: => List[String], kinds: => List[String]): Translator
 
   protected def resolve(fullKey: String): Option[String]
 }
@@ -98,7 +100,7 @@ object Translator extends Loggable {
 }
 
 class TranslatorResolver(val locale: ULocale, configuration: Configuration) {
-  val root: Translator = createTranslator("", List(""))
+  val root: Translator = createTranslator("", List(""), List())
 
   private val cache = mutable.Map[String, Translator]()
 
@@ -106,10 +108,10 @@ class TranslatorResolver(val locale: ULocale, configuration: Configuration) {
 
   protected def unresolved(fullKey: String, default: String): Unit = Translator.logger.info(s"Unresolved $fullKey: $default")
 
-  def createTranslator(id: String, prefixes: List[String]): Translator = new Translator(id, prefixes) {
+  def createTranslator(id: String, usages: List[String], kinds: List[String]): Translator = new Translator(id, usages, kinds) {
     def locale = TranslatorResolver.this.locale
 
-    protected def getTranslator(nid: String, prefixes: => List[String]): Translator = cache.getOrElseUpdate(nid, createTranslator(nid, prefixes))
+    protected def getTranslator(nid: String, usages: => List[String], kinds: => List[String]): Translator = cache.getOrElseUpdate(nid, createTranslator(nid, usages, kinds))
 
     protected def resolve(fullKey: String): Option[String] = TranslatorResolver.this.resolve(fullKey)
 
