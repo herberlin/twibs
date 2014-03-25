@@ -22,7 +22,7 @@ trait SimpleTable extends ItemContainer {
     </div>
 
   private val pageSizeField = new Field("page-size") with SingleSelectField with IntValues with Required with Inline with SubmitOnChange {
-    override def initialOptions: List[OptionI] = toOptions(10 :: 25 :: 50 :: 100 :: Int.MaxValue :: Nil)
+    override def initialOptions: List[OptionI] = toOptions(pageSizes)
 
     override def defaultValues = optionValues(1) :: Nil
 
@@ -31,6 +31,8 @@ trait SimpleTable extends ItemContainer {
       case _ => super.titleForValue(value)
     }
   }
+
+  def pageSizes = 10 :: 25 :: 50 :: 100 :: Int.MaxValue :: Nil
 
   private val queryStringField = new Field("search") with StringValues with SearchField with Inline with Result {
     override def inputCssClasses = "submit-while-typing" :: super.inputCssClasses
@@ -109,7 +111,7 @@ trait SimpleTable extends ItemContainer {
 
   def limit: Int = pageSizeField.value
 
-  def offset: Long = offsetField.value
+  def offset: Long = Math.min(offsetField.value, displayedElementCount - displayedElementCount % limit)
 
   final def tableId = id + "-table"
 
@@ -155,7 +157,7 @@ trait SimpleTable extends ItemContainer {
 
     def title: NodeSeq = titleString
 
-    def titleString =translator.usage("column").usage(name).translate("column-title", name)
+    def titleString = translator.usage("column").usage(name).translate("column-title", name)
 
     private def cssClasses = sortCssClass :: Nil
 

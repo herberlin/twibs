@@ -5,7 +5,6 @@ Twibs is a suite of utility classes to ease the development of internet applicat
 
 # Create a release
 
-
     git checkout develop
     mvn release:prepare
     mvn release:perform
@@ -19,6 +18,8 @@ Twibs is a suite of utility classes to ease the development of internet applicat
 ## More information
 
 [Maven Release Gitflow](http://vincent.demeester.fr/2012/07/maven-release-gitflow/)
+
+[git-flow cheatsheet](http://danielkummer.github.io/git-flow-cheatsheet/)
 
 [A successful Git branching model](http://nvie.com/posts/a-successful-git-branching-model/)
 
@@ -37,39 +38,3 @@ Two formats need to be defined:
 ## Deprecations
 
 The use of *joda-time* is deprecated. Use *threeten (backport)* instead. Will be removed soon.
-
-
-
-SystemSettings
-    host
-    starttime
-    systemusername
-    runmode
-    locale
-
-ApplicationSettingsFactory
-    defaultApplicationSettings (Reloadable)
-    applicationSettingForName(name)  (Reloadable in DEV)
-
-ApplicationSettings
-    name
-    configuration
-    locales
-    translators
-    defaultUserSettings
-
-UserSettings
-    name
-    locale
-
-RequestSettings
-    locale
-    translator
-    userSettings
-    applicationSettings
-
-
-
-
-
-

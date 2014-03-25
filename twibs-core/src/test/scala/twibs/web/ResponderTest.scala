@@ -1,12 +1,11 @@
 package twibs.web
 
-import com.ibm.icu.util.ULocale
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File}
 import org.apache.tika.Tika
 import scala.concurrent.duration._
 import twibs.TwibsTest
+import twibs.util.Parameters
 import twibs.util.Parameters._
-import twibs.util.{RequestSettings, Parameters}
 
 class ResponderTest extends TwibsTest {
   private implicit def toRequest(pathArg: String): Request = toRequest(pathArg, "localhost", Parameters())
@@ -93,6 +92,19 @@ class ResponderTest extends TwibsTest {
     load(responder, "/withErrors.html") should be( """<html <html <bo></</ bo>""")
 
     responder.respond("/a.html").get.mimeType should be(MimeTypes.HTML)
+  }
+
+  test("Delegate inherits properties") {
+    val mod: Response = new HtmlMinimizerResponder(www1FileResponder).respond("/a.html").get
+    mod.isContentFinal should beTrue
+    mod.isInMemory should beTrue
+
+    val org: Response = www1FileResponder.respond("/a.html").get
+    org.isContentFinal should beFalse
+    org.isInMemory should beFalse
+
+    org.expiresOnClientAfter should be(mod.expiresOnClientAfter)
+    org.lastModified should be(mod.lastModified)
   }
 
   test("less compiling include failed") {

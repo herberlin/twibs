@@ -5,7 +5,7 @@ class NotFoundResponder(contentResponder: Responder, fallbackContentResponder: R
     contentResponder.respond(request) match {
       case None => respondWithFilename(request) match {
         case None => None
-        case Some(response) => Some(new ResponseWrapper(response) with NotFoundResponse)
+        case Some(response) => Some(new DecoratableResponseWrapper(response) with NotFoundResponse)
       }
       case responseOption => responseOption
     }
