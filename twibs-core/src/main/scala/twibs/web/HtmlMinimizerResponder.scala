@@ -5,7 +5,7 @@ import com.googlecode.htmlcompressor.compressor.HtmlCompressor
 class HtmlMinimizerResponder(contentResponder: Responder) extends Responder {
   def respond(request: Request): Option[Response] =
     (if (request.path.toLowerCase.endsWith(".html")) contentResponder.respond(request) else None) match {
-      case Some(response) if response.isWrappable => Some(minimize(request, response))
+      case Some(response) if !response.isContentFinal => Some(minimize(request, response))
       case any => any
     }
 
@@ -16,6 +16,8 @@ class HtmlMinimizerResponder(contentResponder: Responder) extends Responder {
       override protected def delegatee = response
 
       val asString: String = compressor.compress(response.asString)
+
+      override def isContentFinal = true
     }
   }
 }

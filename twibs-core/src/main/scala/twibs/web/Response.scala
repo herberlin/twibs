@@ -27,11 +27,9 @@ trait Response extends Serializable {
 
   def expiresOnClientAfter: Duration
 
-  def isWrappable: Boolean = true
+  def isContentFinal: Boolean = false
 
   def isInMemory: Boolean
-
-  def useFileName: String = ""
 
   lazy val gzippedOption: Option[Array[Byte]] = {
     val bytes = asInputStream useAndClose {
@@ -105,7 +103,7 @@ class RedirectResponse(val asString: String) extends StringResponse {
 
   def expiresOnClientAfter: Duration = 8 hours
 
-  override def isWrappable: Boolean = false
+  override def isContentFinal: Boolean = true
 }
 
 trait ErrorResponse extends Response
@@ -155,21 +153,21 @@ trait SingleResponseWrapper extends Response {
 
   def isCacheable: Boolean = delegatee.isCacheable
 
-  override val isWrappable = delegatee.isWrappable
+  override def isContentFinal = delegatee.isContentFinal
 }
 
 trait MultiResponseWrapper extends Response {
   protected def delegatees: List[Response]
 
-  val lastModified: Long = delegatees.map(_.lastModified).max
+  lazy val lastModified: Long = delegatees.map(_.lastModified).max
 
   def isModified = delegatees.exists(_.isModified)
 
-  val expiresOnClientAfter = delegatees.map(_.expiresOnClientAfter).min
+  lazy val expiresOnClientAfter = delegatees.map(_.expiresOnClientAfter).min
 
-  val isCacheable = delegatees.forall(_.isCacheable)
+  lazy val isCacheable = delegatees.forall(_.isCacheable)
 
-  override val isWrappable = delegatees.forall(_.isWrappable)
+  override lazy val isContentFinal = delegatees.forall(_.isContentFinal)
 }
 
 class DecoratableResponseWrapper(val delegatee: Response) extends SingleResponseWrapper {
@@ -183,7 +181,9 @@ class DecoratableResponseWrapper(val delegatee: Response) extends SingleResponse
 
   def mimeType: String = delegatee.mimeType
 
-  override def useFileName: String = delegatee.useFileName
+  def isInMemory = delegatee.isInMemory
+}
 
-  override val isInMemory = delegatee.isInMemory
+trait AsAttachment extends Response {
+  def attachmentFileName: String
 }

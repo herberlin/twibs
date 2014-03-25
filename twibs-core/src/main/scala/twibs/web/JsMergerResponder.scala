@@ -12,7 +12,7 @@ class JsMergerResponder(contentResponder: Responder) extends Responder with Logg
 
   def respond(recursionLevel: Int, request: Request): Option[Response] =
     (if (recursionLevel < maxLevelOfRecursion && request.path.toLowerCase.endsWith(".js")) contentResponder.respond(request) else None) match {
-      case Some(response) if response.isWrappable => Some(merge(request, response, recursionLevel + 1))
+      case Some(response) if !response.isContentFinal => Some(merge(request, response, recursionLevel + 1))
       case any => any
     }
 

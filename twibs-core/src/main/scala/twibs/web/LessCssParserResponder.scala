@@ -11,7 +11,7 @@ class LessCssParserResponder(contentResponder: Responder, compress: Boolean = tr
         override def path = request.path.dropRight(3) + "less"
       }
       contentResponder.respond(request) orElse lessRequest.use {contentResponder.respond(lessRequest)} match {
-        case Some(response) if response.isWrappable => Some(compile(lessRequest, response))
+        case Some(response) if !response.isContentFinal => Some(compile(lessRequest, response))
         case any => any
       }
     } else None
@@ -40,6 +40,8 @@ class LessCssParserResponder(contentResponder: Responder, compress: Boolean = tr
         protected val delegatees: List[Response] = responsesBuffer.toList
 
         val asString: String = string
+
+        override lazy val isContentFinal = true
       }
     } catch {
       case e: LessCssParserException =>
@@ -51,6 +53,8 @@ class LessCssParserResponder(contentResponder: Responder, compress: Boolean = tr
           protected val delegatees: List[Response] = responsesBuffer.toList
 
           val asString: String = string
+
+          override lazy val isContentFinal = true
         }
     }
   }
