@@ -21,7 +21,6 @@ class TranslatorTest extends TwibsTest {
     }.root
 
     root.usage("FORM").usage("login").kind("INPUT").usage("username", "", "name", "name").kind("TEXT").usage("required").translate("message", "This field is required") should be("This field is required")
-    println("#\n" + checkedKeys.toList.mkString("\n"))
     checkedKeys.toList.mkString("\n") should be(
       """FORM.login.username.required.message
         |FORM.login.name.required.message

@@ -24,7 +24,7 @@
         </developer>
     </developers>
     <properties>
-        <scala.version>2.10.3</scala.version>
+        <scala.version>2.10.4</scala.version>
         <jetty.version>9.0.7.v20131107</jetty.version>
         <maven.test.skip>false</maven.test.skip>
     </properties>
@@ -93,13 +93,13 @@
                                 <goal>testCompile</goal>
                             </goals>
                         </execution>
-                        <!--<execution>-->
-                            <!--<id>scala-doc-deploy</id>-->
-                            <!--<phase>package</phase>-->
-                            <!--<goals>-->
-                                <!--<goal>doc-jar</goal>-->
-                            <!--</goals>-->
-                        <!--</execution>-->
+                        <execution>
+                            <id>scala-doc-deploy</id>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>doc-jar</goal>
+                            </goals>
+                        </execution>
                     </executions>
                     <configuration>
                         <recompileMode>incremental</recompileMode>
