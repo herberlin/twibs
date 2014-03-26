@@ -113,7 +113,7 @@ trait NotFoundResponse extends Response
 trait CacheableResponse extends Response {
   def isCacheable = true
 
-  def expiresOnClientAfter = if (RunMode.isDevelopment) 5 seconds else 8 hours
+  def expiresOnClientAfter = if (RunMode.isDevelopment) 1 seconds else 8 hours
 }
 
 trait NotCacheableResponse extends Response {
@@ -137,7 +137,7 @@ trait CalculatedLastModifiedResponse extends CacheableResponse {
 }
 
 trait CompilationTimeResponse extends CalculatedLastModifiedResponse {
-  def calculateModified: Long = if (RunMode.isDevelopment) System.currentTimeMillis() else compilationTime
+  def calculateModified: Long = compilationTime // if (RunMode.isDevelopment) System.currentTimeMillis() else compilationTime
 
   def compilationTime: Long
 }
