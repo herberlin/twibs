@@ -7,7 +7,7 @@ import twibs.util.JavaScript._
 import twibs.util.{Pagination, Translator}
 import twibs.web.Request
 
-trait SimpleTable extends ItemContainer {
+trait Table extends ItemContainer {
   def columns: List[Column]
 
   override def translator: Translator = super.translator.kind("TABLE")
@@ -179,7 +179,7 @@ trait SimpleTable extends ItemContainer {
 
     def sort: SortOrder = sortField.value
 
-    private[SimpleTable] val sortField = new HiddenInput("sort") with EnumerationValues[SortOrder.type] {
+    private[Table] val sortField = new HiddenInput("sort") with EnumerationValues[SortOrder.type] {
       override def enumeration = SortOrder
 
       override def defaultValues = (if (sortable) Unsorted else NotSortable) :: Nil
