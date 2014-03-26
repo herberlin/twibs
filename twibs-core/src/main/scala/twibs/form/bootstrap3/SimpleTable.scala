@@ -39,11 +39,9 @@ trait SimpleTable extends ItemContainer {
 
     override def formGroupCssClasses: List[String] = "pull-right" :: super.formGroupCssClasses
 
-    override def parse(request: Request): Unit = {
-      super.parse(request)
+    override def execute(request: Request): Unit =
       if (request.parameters.getStringsOption(name + "-submit-while-typing").isDefined)
         result = InsteadOfFormDisplay(refreshTableData)
-    }
 
     override def itemIsVisible: Boolean = searchable
   }
@@ -111,7 +109,7 @@ trait SimpleTable extends ItemContainer {
 
   def limit: Int = pageSizeField.value
 
-  def offset: Long = Math.min(offsetField.value, displayedElementCount - displayedElementCount % limit)
+  def offset: Long = offsetField.value
 
   final def tableId = id + "-table"
 
