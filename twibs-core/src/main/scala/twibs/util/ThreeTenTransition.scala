@@ -1,9 +1,9 @@
 package twibs.util
 
+import java.sql.Timestamp
 import java.util.{Date, Calendar}
 import org.joda.time.DateTime
 import org.threeten.bp._
-import java.sql.Timestamp
 
 object ThreeTenTransition {
   val zoneId = ZoneId.systemDefault()

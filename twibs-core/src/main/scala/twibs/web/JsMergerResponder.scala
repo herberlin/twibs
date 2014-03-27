@@ -1,7 +1,7 @@
 package twibs.web
 
 import collection.mutable.ListBuffer
-import twibs.util.{RunMode, Loggable}
+import twibs.util.Loggable
 import util.matching.Regex
 import util.matching.Regex.Match
 

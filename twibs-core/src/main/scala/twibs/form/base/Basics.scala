@@ -30,6 +30,7 @@ object Result {
   case class InsteadOfFormDisplay(js: JsCmd) extends Value
 
   case class UseResponse(response: Response) extends Value
+
 }
 
 trait Validatable {

@@ -15,10 +15,10 @@ trait Table extends ItemContainer {
   override def html: NodeSeq =
     <div>
       <nav class="form-inline table-controls-top">
-        {pageSizeField.enrichedHtml}<span class="display-text">
-        {pageSizeField.formGroupTitle}
-      </span>{queryStringField.enrichedHtml}
-      </nav>{tableHtml}
+        {pageSizeField.enrichedHtml}
+        <span class="display-text">{pageSizeField.formGroupTitle}</span>{queryStringField.enrichedHtml}
+      </nav>
+      {tableHtml}
     </div>
 
   private val pageSizeField = new Field("page-size") with SingleSelectField with IntValues with Required with Inline with SubmitOnChange {
@@ -116,19 +116,14 @@ trait Table extends ItemContainer {
   def tableHtml =
     <div id={tableId}>
       <table class={tableCssClasses}>
-        <thead>
-          {tableHead}
-        </thead>
-        <tbody>
-          {tableBody}
-        </tbody>
+        <thead>{tableHead}</thead>
+        <tbody>{tableBody}</tbody>
       </table>
-      <style>
-        {Unparsed(columnsStyle)}
-      </style>
+      <style>{Unparsed(columnsStyle)}</style>
       <nav class="form-inline clearfix">
         {offsetField.enrichedHtml}
-      </nav>{columns.map(_.sortField.enrichedHtml)}
+      </nav>
+      {columns.map(_.sortField.enrichedHtml)}
     </div>
 
   def tableCssClasses = "table" :: "table-bordered" :: "table-striped" :: "sortable" :: Nil
