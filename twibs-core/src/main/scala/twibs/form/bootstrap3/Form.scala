@@ -141,7 +141,7 @@ abstract class Field private(val ilk: String, val parent: BaseParentItem, unit: 
     case "" => NodeSeq.Empty
     case m =>
       val title = infoTitle
-      <span class="btn btn-default text-info" data-toggle="popover" data-placement="left" data-container="body" data-content={m} data-html="true"><span class="glyphicon glyphicon-info-sign"></span></span>
+      <span class="btn btn-default text-info" data-toggle="popover" data-placement="left" data-container={parent.form.id.toCssId} data-content={m} data-html="true"><span class="glyphicon glyphicon-info-sign"></span></span>
         .add(!title.isEmpty, "title", title)
         .add(!title.isEmpty, "data-title", title)
   }

@@ -260,6 +260,8 @@ trait NumberValues extends MinMaxValues {
   protected def parseString(string: String): ValueType
 
   override def titleForValue(value: ValueType): String = displayNumberFormat.format(value)
+
+  abstract override def translator: Translator = super.translator.kind("NUMBER")
 }
 
 trait IntValues extends NumberValues {

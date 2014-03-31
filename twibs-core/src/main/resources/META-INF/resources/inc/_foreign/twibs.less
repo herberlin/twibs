@@ -144,6 +144,15 @@ option:disabled {
   th.sort-desc:before {
     content: "\f0de";
   }
+
+  td {
+    .btn + .btn {
+      margin-left: 6px;
+    }
+    .btn:last-child {
+      margin-right: -8px;
+    }
+  }
 }
 
 .table-controls-top {
@@ -166,6 +175,10 @@ option:disabled {
   h3 {
     font-size: 16px;
     line-height: 25px;
+  }
+
+  aside.pull-right {
+    margin-top: -8px;
   }
 }
 

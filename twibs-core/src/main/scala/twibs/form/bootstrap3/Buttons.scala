@@ -65,11 +65,13 @@ trait BootstrapButtonRenderer extends ButtonRenderer {
 }
 
 trait PopoverButtonRenderer extends BootstrapButtonRenderer {
-  override def buttonAsEnrichedElem: Elem = <button type="button" class={popoverButtonCssClasses} data-container={popoverContainer} data-toggle="popover" data-html="true" data-placement={popoverPlacement} data-title={popoverTitle} data-content={popoverContent}>{buttonTitleWithIconHtml}</button>
+  override def buttonAsEnrichedElem: Elem = <button type="button" class={openPopoverButtonCssClasses} data-container={popoverContainer} data-toggle="popover" data-html="true" data-placement={popoverPlacement} data-title={openPopoverTitle} data-content={popoverContent}>{openPopoverButtonTitleWithIconHtml}</button>
 
-  def popoverButtonCssClasses = buttonCssClasses
+  def openPopoverButtonTitleWithIconHtml = buttonTitleWithIconHtml
 
-  def popoverTitle = translator.translateOrUseDefault("popover-title", buttonTitle)
+  def openPopoverButtonCssClasses = buttonCssClasses
+
+  def openPopoverTitle = translator.translateOrUseDefault("popover-title", buttonTitle)
 
   def popoverContent = enrichButtonElem(buttonAsElem)
 

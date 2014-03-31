@@ -96,14 +96,13 @@ trait Table extends ItemContainer {
 
     def fallbackName = name + "-fallback"
 
-    def pagination = new Pagination(value, displayedElementCount, totalElementCount, pageSizeField.value)
+    def pagination = new Pagination(value, displayedElementCount, totalElementCount, limit)
   }
+
 
   def totalElementCount: Long
 
   def displayedElementCount: Long
-
-  def tableBody: NodeSeq
 
   def queryString: String = queryStringField.string
 
@@ -133,6 +132,8 @@ trait Table extends ItemContainer {
   def columnsStyle: String = visibleColumns.zipWithIndex.map(e => e._1.style(e._2)).mkString("")
 
   def visibleColumns = columns.filter(_.visible)
+
+  def tableBody: NodeSeq
 
   trait Column {
     def name: String
