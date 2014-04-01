@@ -316,7 +316,7 @@ trait BaseField extends BaseChildItemWithName with Values {
 
   def valueOption = values.headOption
 
-  def valueOption_=(valueOption: Option[ValueType]) = valueOption.map(_ :: Nil) getOrElse Nil
+  def valueOption_=(valueOption: Option[ValueType]) = valueOption.map(v => values = v :: Nil)
 
   override def reset(): Unit = resetInputs()
 }

@@ -321,7 +321,7 @@ trait DoubleValues extends NumberValues {
 trait PercentValues extends NumberValues {
   type ValueType = Double
 
-  def editNumberFormat = Formatters.decimalFormat
+  def editNumberFormat = Formatters.percentFormatWithoutSuffix
 
   override def displayNumberFormat = Formatters.percentFormat
 
