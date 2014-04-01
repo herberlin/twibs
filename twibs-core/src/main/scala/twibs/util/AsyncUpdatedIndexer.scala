@@ -6,38 +6,26 @@ import scala.concurrent._
 import scala.concurrent.duration._
 
 abstract class AsyncUpdatedIndexer extends Indexer {
-  def waitForUpdateIndexDuration = 100 millis
+  def indexReaderCachingDuration = 1 hour
 
-  def indexReaderCachingDuration = 5 seconds
+  def recalculate() = calculateIndexCache.reset()
 
-  private def updateIndex() = updateIndexCache.value
+  private def recalculateIndex() = calculateIndexCache.value
 
-  private val updateIndexCache = {
-    LazyCache(indexReaderCachingDuration) {
-      try {
-        Await.result(updateIndexAsync(), waitForUpdateIndexDuration)
-      }
-      catch {
-        case e: TimeoutException => // ignored
-      }
-    }
-  }
+  private val calculateIndexCache = LazyCache(indexReaderCachingDuration) {calculateIndexAsync()}
 
   private var updateFuture = future {}
 
-  private def updateIndexAsync(): Future[Unit] = synchronized {
-    updateFuture = updateFuture map {
-      _ => write(update)
-    }
-    updateFuture
+  private def calculateIndexAsync(): Unit = synchronized {
+    updateFuture = updateFuture map {_ => write(update)}
   }
 
   protected def update(indexWriter: IndexWriter): Unit
 
   override def read[T](func: (IndexReader) => T): T = {
-    updateIndex()
+    recalculateIndex()
     super.read(func)
   }
 
-  updateIndex()
+  recalculateIndex()
 }
