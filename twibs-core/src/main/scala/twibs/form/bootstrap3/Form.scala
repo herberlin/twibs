@@ -79,7 +79,9 @@ abstract class Form(val name: String) extends BaseForm {
 
   def formHeaderContent: NodeSeq = formTitle
 
-  def formTitle = t"form-title: #$name" match {case "" => NodeSeq.Empty case s => <h3>{s}</h3> }
+  def formTitle = formTitleString match {case "" => NodeSeq.Empty case s => <h3>{s}</h3> }
+
+  def formTitleString = t"form-title: #$name"
 
   def refreshJs = replaceContentJs ~ javascript ~ focusJs
 

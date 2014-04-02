@@ -9,7 +9,7 @@ class SettingsTwibsAndRunModeTest extends TwibsTest {
       override val runMode: RunMode = RunMode.PRODUCTION
     }
     sys.Twibs.version should be("0")
-    SystemSettings.Twibs.version should be("0.5")
+    SystemSettings.Twibs.version should be("0.0")
   }
 
   test("Default Mode") {

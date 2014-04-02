@@ -64,7 +64,7 @@ class SystemSettings {
   private def isCalledFromTestClass = new Exception().getStackTrace.exists(_.getClassName == "org.scalatest.tools.Runner")
 
   object Twibs {
-    val fullVersion: String = "0.5"
+    val fullVersion: String = Option(getClass.getPackage.getSpecificationVersion) getOrElse "0.0"
 
     val majorVersion = fullVersion.split("\\.")(0)
 
