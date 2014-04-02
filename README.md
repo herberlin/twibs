@@ -1,7 +1,27 @@
-Twibs
-=====
+Utility classes to ease the development of internet applications with scala.
 
-Twibs is a suite of utility classes to ease the development of internet applications with scala.
+# License
+
+The license is Apache 2.0, see LICENSE-2.0.txt.
+
+# Binary Releases
+
+Can be found on Maven Central (Java 7 and Scala 2.10).
+
+    <dependency>
+        <groupId>net.twibs</groupId>
+        <artifactId>twibs-core</artifactId>
+        <version>0.6</version>
+    </dependency>
+
+# API docs
+
+Are published on Maven Central.
+
+# Build
+
+Is done with plain maven.
+
 
 # Create a release
 
@@ -26,9 +46,14 @@ Twibs is a suite of utility classes to ease the development of internet applicat
 [Git extensions to provide high-level repository operations for Vincent Driessen's branching model.](https://github.com/nvie/gitflow)
 
 
+## Used software
+
+* Configuration is done with [Typesafe Config](https://github.com/typesafehub/config)
+
+
 ## Date picker component
 
-Two formats need to be defined:
+Two formats need to be defined in configuration:
 
 1. "data-time-format": Java Format described [here](http://download.java.net/jdk8/docs/api/java/time/format/DateTimeFormatter.html). Example "dd.MM.yyy HH:mm"
 

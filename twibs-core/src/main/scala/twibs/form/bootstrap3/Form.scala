@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ */
+
 package twibs.form.bootstrap3
 
 import scala.xml.{Elem, Unparsed, NodeSeq}

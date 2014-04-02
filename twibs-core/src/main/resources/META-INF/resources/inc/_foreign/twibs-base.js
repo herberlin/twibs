@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ */
+
 includeFile("bootstrap/js/affix.js");
 includeFile("bootstrap/js/transition.js");
 includeFile("bootstrap/js/alert.js");
