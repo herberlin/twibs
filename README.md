@@ -1,5 +1,12 @@
 Utility classes to ease the development of internet applications with scala.
 
+# Overview
+
+* AJAX Forms defined in Scala
+* pure server side form validation
+* runtime server side JS/CSS Compression and LESS processing
+* complex inheritable translation mechanism
+
 # License
 
 The license is Apache 2.0, see LICENSE-2.0.txt.
@@ -22,6 +29,19 @@ Are published on Maven Central.
 
 Is done with plain maven.
 
+# Java and Scala version
+
+Currently the library is maintained against Java 7 and Scala 2.10.
+
+# Other software
+
+* Configuration is done with [Typesafe Config](https://github.com/typesafehub/config)
+
+# Run modes
+
+Specified with `java -Drun.mode=(development|test|staging|production) ...` at startup (default: `production`).
+
+`test` is used if Stacktrace contains `org.scalatest.tools.Runner` and no run mode defined.
 
 # Create a release
 
@@ -46,9 +66,6 @@ Is done with plain maven.
 [Git extensions to provide high-level repository operations for Vincent Driessen's branching model.](https://github.com/nvie/gitflow)
 
 
-## Used software
-
-* Configuration is done with [Typesafe Config](https://github.com/typesafehub/config)
 
 
 ## Date picker component
