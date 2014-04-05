@@ -9,17 +9,6 @@ import twibs.form.base.ButtonRenderer
 import twibs.util.{Translator, PrimaryDisplayType}
 import twibs.web.{Upload, Request}
 
-//trait IconButton extends Button {
-//  override def inputElem(input: InputValue) = <button type="submit" value={input.string} title={buttonTitle}>{buttonIconOrButtonTitleIfEmptyHtml}</button>
-//}
-//
-
-//trait ButtonWithInputOptions extends Button with OneInputElementPerOption {
-//  override def inputElem(input: InputValue): Elem = <button class={buttonCssClasses} type="submit" value={input.string}>{prefixWithButtonIconHtml(input.title)}</button>
-//
-//  override def titleForValue(value: ValueType): String = buttonTitle
-//}
-
 trait UploadButton extends Button with PrimaryDisplayType {
   override def buttonAsEnrichedElem =
     <span class={spanCssClasses}>
@@ -47,8 +36,8 @@ trait UploadButton extends Button with PrimaryDisplayType {
 }
 
 trait BootstrapButtonRenderer extends ButtonRenderer {
-  def buttonAsHtml(buttonValue: String): NodeSeq = {
-    _buttonValue = buttonValue
+  def buttonAsHtmlWithString(buttonStringValue: String): NodeSeq = {
+    _buttonStringValue = buttonStringValue
     buttonAsHtml
   }
 
@@ -61,11 +50,11 @@ trait BootstrapButtonRenderer extends ButtonRenderer {
       .add("name", name)
       .addClasses(buttonCssClasses)
 
-  def buttonAsElem = <button type="submit" value={buttonValue}>{buttonTitleWithIconHtml}</button>
+  def buttonAsElem = <button type="submit" value={buttonStringValue}>{buttonTitleWithIconHtml}</button>
 
-  def buttonValue = _buttonValue
+  def buttonStringValue = _buttonStringValue
 
-  private var _buttonValue: String = ""
+  private var _buttonStringValue: String = ""
 }
 
 trait PopoverButtonRenderer extends BootstrapButtonRenderer {
@@ -77,7 +66,7 @@ trait PopoverButtonRenderer extends BootstrapButtonRenderer {
 
   def openPopoverTitle = translator.translateOrUseDefault("popover-title", buttonTitle)
 
-  def popoverContent = enrichButtonElem(buttonAsElem)
+  def popoverContent: NodeSeq = enrichButtonElem(buttonAsElem)
 
   def popoverPlacement = "bottom"
 

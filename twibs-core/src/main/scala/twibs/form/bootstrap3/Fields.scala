@@ -252,7 +252,7 @@ trait FileEntryField extends Field with FileEntryValues with Result {
       case ValidInput(_, _, Some(fileEntry)) => fileEntry.path
       case _ => "#"
     }
-    <p class="form-control-static clearfix"><div class="pull-right">{deleteButton.buttonAsHtml(input.string)}</div><a href={link} target="_blank">{input.title}</a></p>
+    <p class="form-control-static clearfix"><div class="pull-right">{deleteButton.buttonAsHtmlWithString(input.string)}</div><a href={link} target="_blank">{input.title}</a></p>
   }
 
   override def minimumNumberOfInputs: Int = 0
@@ -342,8 +342,8 @@ trait UploadWithOverwrite extends BaseItemContainer {
       if (isDisabled) NodeSeq.Empty
       else
         <div class="pull-right btn-group">
-          {deleteButton.buttonAsHtml(string)}
-          {overwriteButton.buttonAsHtml(string)}
+          {deleteButton.buttonAsHtmlWithString(string)}
+          {overwriteButton.buttonAsHtmlWithString(string)}
         </div>
     }
 
