@@ -148,13 +148,17 @@ option:disabled {
   th.sort-desc:before {
     content: "\f0de";
   }
+}
 
-  td {
+.table.with-actions {
+  td:last-child {
+    width: 1%;
+    white-space: nowrap;
     .btn + .btn {
       margin-left: 6px;
     }
     .btn:last-child {
-      margin-right: -8px;
+      margin-right: -4px;
     }
   }
 }
