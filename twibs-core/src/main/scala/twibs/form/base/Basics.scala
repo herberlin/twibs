@@ -9,7 +9,7 @@ import scala.xml.{Text, Elem, NodeSeq}
 import twibs.util.JavaScript.JsCmd
 import twibs.util.Message
 import twibs.util.XmlUtils._
-import twibs.web.Response
+import twibs.web.{Request, Response}
 
 trait Result {
   var result: Result.Value = Result.Ignored
@@ -104,8 +104,30 @@ class Messages()(implicit val parent: BaseParentItem) extends BaseChildItem with
 abstract class HiddenInput(val ilk: String)(implicit val parent: BaseParentItem) extends BaseField with RenderedItem {
   override def html = inputs.map(input => HiddenInputRenderer(name, input.string))
 
-  // TODO: Check that this works
-  def executionLink(value: ValueType) = "" //bootstrapForm.actionLinkWithContextPath + "?" + parameterNameForExecution + "=" + valueToStringConverter(value)
+  def executionLink(value: ValueType) = parent.form.actionLinkWithContextPath + "?" + name + "=" + valueToStringConverter(value)
+}
+
+abstract class InitInput()(implicit val parent: BaseParentItem) extends BaseField {
+  def ilk: String = "init"
+
+  def link(value: ValueType): String = parent.form.actionLinkWithContextPath + "?" + name + "=" + valueToStringConverter(value)
+
+  override def execute(request: Request): Unit = valueOption.map(initWithVar)
+
+  def <<(initWith: (ValueType) => Unit) : (ValueType) => String = {
+    initWithVar = initWith
+    link
+  }
+
+  private var initWithVar:(ValueType) => Unit = (ValueType) => Unit
+}
+
+abstract class ActionButton(val ilk: String)(implicit val parent: BaseParentItem) extends BaseField {
+  def link(value: ValueType): String = parent.form.actionLinkWithContextPath + "?" + name + "=" + valueToStringConverter(value)
+
+  override def execute(request: Request): Unit = valueOption.map(execute)
+
+  def execute(value: ValueType): Unit
 }
 
 trait Renderer {
