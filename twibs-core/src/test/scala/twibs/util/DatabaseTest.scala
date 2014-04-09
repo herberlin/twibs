@@ -11,6 +11,7 @@ import slick.jdbc.StaticQuery.interpolation
 import scala.slick.jdbc.JdbcBackend.Database.dynamicSession
 import twibs.TwibsTest
 import twibs.util.Predef._
+import twibs.db.Database
 
 class DatabaseTest extends TwibsTest with BeforeAndAfterAll {
   var database: Database = null

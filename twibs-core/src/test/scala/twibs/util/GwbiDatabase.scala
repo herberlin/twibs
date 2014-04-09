@@ -4,6 +4,8 @@
 
 package twibs.util
 
+import twibs.db.Database
+
 class GwbiDatabase extends Database {
   def password: String = ""
 

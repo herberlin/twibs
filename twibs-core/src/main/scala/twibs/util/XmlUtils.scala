@@ -43,6 +43,18 @@ trait XmlUtils {
   implicit def cssClassesToAttributeValue(cssClasses: List[String]): Seq[Node] = Text(cssClasses.map(_.trim).filterNot(_.isEmpty).distinct.mkString(" "))
 
   implicit def toXmlText(string: String): Text = Text(string)
+
+  implicit def toCssClasses(baseCssClasses: List[String]) = new {
+    def addClass(condition: Boolean, cssClass: => String): List[String] = if (condition) addClasses(cssClass :: Nil) else baseCssClasses
+
+    def addClasses(condition: Boolean, cssClasses: => List[String]): List[String] = if (condition) addClasses(cssClasses) else baseCssClasses
+
+    def addClass(cssClass: String): List[String] = cleanup(cssClass :: baseCssClasses)
+
+    def addClasses(cssClasses: List[String]): List[String] = cleanup(cssClasses ::: baseCssClasses)
+
+    private def cleanup(cssClasses: List[String]) = cssClasses.filterNot(_.isEmpty).distinct
+  }
 }
 
 object XmlUtils extends XmlUtils

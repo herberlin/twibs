@@ -157,7 +157,7 @@ $(function () {
                 $form.ajaxForm(ajaxSubmitConfig($form, {beforeSubmit: disableForm}));
             });
 
-            $('textarea.form-control').each(function () {
+            $('textarea.hidden-print').each(function () {
                 var $this = $(this);
                 var $next = $this.next("div.textarea-print");
                 if( $next.length === 0 ) {

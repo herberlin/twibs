@@ -2,13 +2,14 @@
  * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
  */
 
-package twibs.util
+package twibs.db
 
 import com.googlecode.flyway.core.Flyway
 import concurrent.duration._
 import javax.sql.DataSource
 import org.apache.tomcat.jdbc.pool.{DataSource => TomcatDataSource, PoolProperties}
 import scala.slick.jdbc.JdbcBackend.{Database => SlickDatabase}
+import twibs.util.DynamicVariableWithDynamicDefault
 
 trait Database {
   def password: String

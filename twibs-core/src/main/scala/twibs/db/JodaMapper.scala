@@ -2,11 +2,11 @@
  * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
  */
 
-package twibs.util
+package twibs.db
 
 import java.sql.Timestamp
 import org.joda.time.DateTime
-import scala.slick.driver.PostgresDriver.simple._
+import scala.slick.driver.JdbcDriver.simple._
 import scala.slick.jdbc.{PositionedResult, PositionedParameters, SetParameter, GetResult}
 
 object JodaMapper {

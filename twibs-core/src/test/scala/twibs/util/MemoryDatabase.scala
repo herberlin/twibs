@@ -4,6 +4,8 @@
 
 package twibs.util
 
+import twibs.db.Database
+
 class MemoryDatabase extends Database {
   def username = "sa"
 

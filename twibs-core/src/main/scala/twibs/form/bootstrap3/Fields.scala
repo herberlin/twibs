@@ -127,6 +127,8 @@ trait PasswordField extends TextField {
 trait MultiLineField extends TextField {
   override def inputAsElem(input: Input) = <textarea rows={rows.toString} placeholder={placeholder}>{input.string}</textarea>
 
+  override def inputCssClasses: List[String] = "hidden-print" :: super.inputCssClasses
+
   def rows = 6
 }
 

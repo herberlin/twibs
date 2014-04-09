@@ -120,24 +120,40 @@ trait JavascriptItem extends BaseItem {
   def javascript: JsCmd
 }
 
-abstract class Field private(val ilk: String, val parent: BaseParentItem, unit: Unit = Unit) extends BaseField with RenderedItem {
-  def this(ilk: String)(implicit parent: BaseParentItem) = this(ilk, parent)
-
+trait FormGroupItem extends RenderedItem {
   override def html: NodeSeq =
     <div class={formGroupCssClasses}>
       <label class={formGroupTitleCssClasses} for={id}>{formGroupTitle}</label>
       <div class={controlContainerCssClasses}>{controlContainerHtml}</div>
-    </div>.addClass(required, "required")
+    </div>
 
-  def formGroupCssClasses = (messageDisplayTypeOption.map("has-" + _) getOrElse "") :: "form-group" :: Nil
+  def formGroupCssClasses = "form-group" :: Nil
 
   def formGroupTitleCssClasses = "col-sm-3" :: "control-label" :: Nil
+
+  def controlContainerCssClasses = "col-sm-9" :: "controls" :: Nil
+
+  def controlContainerHtml: NodeSeq
+
+  def formGroupTitle: String
+
+  def id: IdString
+}
+
+abstract class DisplayField private(val ilk: String, val parent: BaseParentItem, unit: Unit = Unit) extends BaseChildItemWithName with FormGroupItem {
+  def this(ilk: String)(implicit parent: BaseParentItem) = this(ilk, parent)
+
+  def formGroupTitle = t"field-title: #$ilk"
+}
+
+abstract class Field private(val ilk: String, val parent: BaseParentItem, unit: Unit = Unit) extends BaseField with FormGroupItem {
+  def this(ilk: String)(implicit parent: BaseParentItem) = this(ilk, parent)
+
+  override def formGroupCssClasses = (messageDisplayTypeOption.map("has-" + _) getOrElse "") :: super.formGroupCssClasses.addClass(required, "required")
 
   def formGroupTitle = fieldTitle
 
   def fieldTitle = t"field-title: #$ilk"
-
-  def controlContainerCssClasses = "col-sm-9" :: "controls" :: Nil
 
   def controlContainerHtml: NodeSeq = inputsAsHtml ++ messageHtml
 

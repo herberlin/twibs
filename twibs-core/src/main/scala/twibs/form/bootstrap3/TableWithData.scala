@@ -7,7 +7,7 @@ package twibs.form.bootstrap3
 import scala.xml.{Elem, NodeSeq}
 import twibs.form.bootstrap3.SortOrder._
 import twibs.util.Predef._
-import twibs.util.TableData
+import twibs.db.TableData
 
 trait TableWithData[T] extends Table {
   def tableBody: NodeSeq = tableData.rows.useAndClose {it => it.map(tableRow).toList}
