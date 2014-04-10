@@ -129,21 +129,27 @@ trait FormGroupItem extends RenderedItem {
 
   def formGroupCssClasses = "form-group" :: Nil
 
-  def formGroupTitleCssClasses = "col-sm-3" :: "control-label" :: Nil
+  def formGroupTitleCssClasses = s"col-$gridSize-3" :: "control-label" :: Nil
 
-  def controlContainerCssClasses = "col-sm-9" :: "controls" :: Nil
+  def controlContainerCssClasses = s"col-$gridSize-9" :: "controls" :: Nil
+
+  def gridSize = "sm"
 
   def controlContainerHtml: NodeSeq
 
-  def formGroupTitle: String
+  def formGroupTitle: NodeSeq
 
   def id: IdString
+}
+
+trait LargeGridSize extends FormGroupItem {
+  override def gridSize = "lg"
 }
 
 abstract class DisplayField private(val ilk: String, val parent: BaseParentItem, unit: Unit = Unit) extends BaseChildItemWithName with FormGroupItem {
   def this(ilk: String)(implicit parent: BaseParentItem) = this(ilk, parent)
 
-  def formGroupTitle = t"field-title: #$ilk"
+  def formGroupTitle: NodeSeq = t"field-title: #$ilk"
 }
 
 abstract class Field private(val ilk: String, val parent: BaseParentItem, unit: Unit = Unit) extends BaseField with FormGroupItem {
@@ -151,7 +157,7 @@ abstract class Field private(val ilk: String, val parent: BaseParentItem, unit: 
 
   override def formGroupCssClasses = (messageDisplayTypeOption.map("has-" + _) getOrElse "") :: super.formGroupCssClasses.addClass(required, "required")
 
-  def formGroupTitle = fieldTitle
+  def formGroupTitle: NodeSeq = fieldTitle
 
   def fieldTitle = t"field-title: #$ilk"
 
