@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ */
+
 package twibs.form.bootstrap3
 
 import org.threeten.bp.format.DateTimeFormatter
@@ -53,7 +57,10 @@ trait AbstractDateTimeField extends SingleLineField with JavascriptItem {
 
   def autoClose = true
 
-  override def javascript = if (submitOnChange) initDateTimeJs.call("on", "changeDate", JsCmd("$(this).reloadForm()")) else initDateTimeJs
+  override def javascript =
+    if (isEnabled)
+      if (submitOnChange) initDateTimeJs.call("on", "changeDate", JsCmd("$(this).reloadForm()")) else initDateTimeJs
+    else JsEmpty
 
   private def initDateTimeJs = jQuery(inputGroupId).call("datetimepicker", datePickerOptions)
 
@@ -62,7 +69,6 @@ trait AbstractDateTimeField extends SingleLineField with JavascriptItem {
   override def suffixes: List[NodeSeq] =
     if (isEnabled) <span class="glyphicon glyphicon-calendar"></span> :: super.suffixes
     else super.suffixes
-
 
   override def surroundWithInputGroup(input: Input, nodeSeq: NodeSeq): Elem =
     <div class="input-group date" id={inputGroupId} data-date={input.string} data-link-field={id} data-link-format={formatPatternForBrowser} data-date-format={formatPatternForBrowser} data-date-today-btn={todayButton} data-date-today-highlight={"" + todayHighlight}>{nodeSeq}</div>
@@ -122,6 +128,8 @@ trait PasswordField extends TextField {
 
 trait MultiLineField extends TextField {
   override def inputAsElem(input: Input) = <textarea rows={rows.toString} placeholder={placeholder}>{input.string}</textarea>
+
+  override def inputCssClasses: List[String] = "hidden-print" :: super.inputCssClasses
 
   def rows = 6
 }
@@ -219,7 +227,7 @@ trait RadioField extends CheckOrRadioField {
 trait BooleanCheckBoxField extends Field with BooleanValues with FloatingInfo {
   override def inputsAsHtml: NodeSeq = infoHtml ++ super.inputsAsHtml
 
-  override def formGroupTitle: String = ""
+  override def formGroupTitle = Unparsed("&nbsp;") // IE8 needs this to show empty divs after page break in print view.
 
   override def inputAsEnrichedHtml(value: Input, index: Int) =
       <div class="checkbox"><label>{super.inputAsEnrichedHtml(value, index)}{super.formGroupTitle}</label></div>
@@ -248,7 +256,7 @@ trait FileEntryField extends Field with FileEntryValues with Result {
       case ValidInput(_, _, Some(fileEntry)) => fileEntry.path
       case _ => "#"
     }
-    <p class="form-control-static clearfix"><div class="pull-right">{deleteButton.buttonAsHtml(input.string)}</div><a href={link} target="_blank">{input.title}</a></p>
+    <p class="form-control-static clearfix"><div class="pull-right">{deleteButton.buttonAsHtmlWithString(input.string)}</div><a href={link} target="_blank">{input.title}</a></p>
   }
 
   override def minimumNumberOfInputs: Int = 0
@@ -338,8 +346,8 @@ trait UploadWithOverwrite extends BaseItemContainer {
       if (isDisabled) NodeSeq.Empty
       else
         <div class="pull-right btn-group">
-          {deleteButton.buttonAsHtml(string)}
-          {overwriteButton.buttonAsHtml(string)}
+          {deleteButton.buttonAsHtmlWithString(string)}
+          {overwriteButton.buttonAsHtmlWithString(string)}
         </div>
     }
 

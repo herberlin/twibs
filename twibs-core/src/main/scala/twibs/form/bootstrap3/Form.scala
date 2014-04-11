@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ */
+
 package twibs.form.bootstrap3
 
 import scala.xml.{Elem, Unparsed, NodeSeq}
@@ -79,7 +83,9 @@ abstract class Form(val name: String) extends BaseForm {
 
   def formHeaderContent: NodeSeq = formTitle
 
-  def formTitle = t"form-title: #$name" match {case "" => NodeSeq.Empty case s => <h3>{s}</h3> }
+  def formTitle = formTitleString match {case "" => NodeSeq.Empty case s => <h3>{s}</h3> }
+
+  def formTitleString = t"form-title: #$name"
 
   def refreshJs = replaceContentJs ~ javascript ~ focusJs
 
@@ -114,24 +120,46 @@ trait JavascriptItem extends BaseItem {
   def javascript: JsCmd
 }
 
-abstract class Field private(val ilk: String, val parent: BaseParentItem, unit: Unit = Unit) extends BaseField with RenderedItem {
-  def this(ilk: String)(implicit parent: BaseParentItem) = this(ilk, parent)
-
+trait FormGroupItem extends RenderedItem {
   override def html: NodeSeq =
     <div class={formGroupCssClasses}>
       <label class={formGroupTitleCssClasses} for={id}>{formGroupTitle}</label>
       <div class={controlContainerCssClasses}>{controlContainerHtml}</div>
-    </div>.addClass(required, "required")
+    </div>
 
-  def formGroupCssClasses = (messageDisplayTypeOption.map("has-" + _) getOrElse "") :: "form-group" :: Nil
+  def formGroupCssClasses = "form-group" :: Nil
 
-  def formGroupTitleCssClasses = "col-sm-3" :: "control-label" :: Nil
+  def formGroupTitleCssClasses = s"col-$gridSize-3" :: "control-label" :: Nil
 
-  def formGroupTitle = fieldTitle
+  def controlContainerCssClasses = s"col-$gridSize-9" :: "controls" :: Nil
+
+  def gridSize = "sm"
+
+  def controlContainerHtml: NodeSeq
+
+  def formGroupTitle: NodeSeq
+
+  def id: IdString
+}
+
+trait LargeGridSize extends FormGroupItem {
+  override def gridSize = "lg"
+}
+
+abstract class DisplayField private(val ilk: String, val parent: BaseParentItem, unit: Unit = Unit) extends BaseChildItemWithName with FormGroupItem {
+  def this(ilk: String)(implicit parent: BaseParentItem) = this(ilk, parent)
+
+  def formGroupTitle: NodeSeq = t"field-title: #$ilk"
+}
+
+abstract class Field private(val ilk: String, val parent: BaseParentItem, unit: Unit = Unit) extends BaseField with FormGroupItem {
+  def this(ilk: String)(implicit parent: BaseParentItem) = this(ilk, parent)
+
+  override def formGroupCssClasses = (messageDisplayTypeOption.map("has-" + _) getOrElse "") :: super.formGroupCssClasses.addClass(required, "required")
+
+  def formGroupTitle: NodeSeq = fieldTitle
 
   def fieldTitle = t"field-title: #$ilk"
-
-  def controlContainerCssClasses = "col-sm-9" :: "controls" :: Nil
 
   def controlContainerHtml: NodeSeq = inputsAsHtml ++ messageHtml
 
@@ -141,7 +169,7 @@ abstract class Field private(val ilk: String, val parent: BaseParentItem, unit: 
     case "" => NodeSeq.Empty
     case m =>
       val title = infoTitle
-      <span class="btn btn-default text-info" data-toggle="popover" data-placement="left" data-container="body" data-content={m} data-html="true"><span class="glyphicon glyphicon-info-sign"></span></span>
+      <span class="btn btn-default text-info" data-toggle="popover" data-placement="left" data-container={parent.form.id.toCssId} data-content={m} data-html="true"><span class="glyphicon glyphicon-info-sign"></span></span>
         .add(!title.isEmpty, "title", title)
         .add(!title.isEmpty, "data-title", title)
   }

@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ */
+
 package twibs.web
 
 import twibs.util.Loggable
@@ -11,7 +15,7 @@ class StaticErrorResponder(contentResponder: Responder) extends Responder with L
       case e: Exception =>
         logger.error("Uncatched exception", e)
         Some(new StringResponse with CacheableResponse with ErrorResponse with HtmlMimeType {
-          def asString: String = "Fatal error"
+          def asString: String = "Internal Server Error"
 
           def lastModified: Long = System.currentTimeMillis()
 

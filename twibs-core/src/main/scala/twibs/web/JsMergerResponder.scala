@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ */
+
 package twibs.web
 
 import collection.mutable.ListBuffer
@@ -12,7 +16,7 @@ class JsMergerResponder(contentResponder: Responder) extends Responder with Logg
 
   def respond(recursionLevel: Int, request: Request): Option[Response] =
     (if (recursionLevel < maxLevelOfRecursion && request.path.toLowerCase.endsWith(".js")) contentResponder.respond(request) else None) match {
-      case Some(response) if response.isWrappable => Some(merge(request, response, recursionLevel + 1))
+      case Some(response) if !response.isContentFinal => Some(merge(request, response, recursionLevel + 1))
       case any => any
     }
 
@@ -33,14 +37,10 @@ class JsMergerResponder(contentResponder: Responder) extends Responder with Logg
 
     val merged = """(?<!// {0,99})includeFile\("(.*)"\)\s*;?""".r replaceAllIn(response.asString, (m: Match) => Regex.quoteReplacement(mergeURL(m.group(1))))
 
-    new StringResponse with CacheableResponse with JavaScriptMimeType {
-      private val responses: List[Response] = responsesBuffer.toList
+    new StringResponse with MultiResponseWrapper with JavaScriptMimeType {
+      protected val delegatees: List[Response] = responsesBuffer.toList
 
       val asString = merged
-
-      val lastModified: Long = responses.map(_.lastModified).max
-
-      def isModified = responses.exists(_.isModified)
     }
   }
 }

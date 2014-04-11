@@ -1,10 +1,14 @@
-package twibs.util
+/*
+ * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ */
 
-import ThreeTenTransition._
+package twibs.db
+
 import java.sql.Timestamp
 import org.threeten.bp.LocalDateTime
-import scala.slick.driver.PostgresDriver.simple._
+import scala.slick.driver.JdbcDriver.simple._
 import scala.slick.jdbc.{PositionedParameters, PositionedResult, SetParameter, GetResult}
+import twibs.util.ThreeTenTransition._
 
 object ThreeTenMapper {
   implicit val timestamp2dateTime = MappedColumnType.base[LocalDateTime, Timestamp](_.toTimestamp, _.toLocalDateTime)

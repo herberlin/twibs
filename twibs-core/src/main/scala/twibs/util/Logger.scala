@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ */
+
 package twibs.util
 
 import ch.qos.logback.classic.LoggerContext
@@ -84,6 +88,16 @@ trait Logger {
 
   def trace(msg: => String, t: Throwable): Unit =
     if (internalLogger.isTraceEnabled) internalLogger.trace(msg, t)
+
+  def debugWithTiming[A](msg: => String)(alwaysExecuted: => A) = {
+    if (isDebugEnabled) {
+      val now = System.nanoTime
+      val result = alwaysExecuted
+      val micros = ((System.nanoTime - now) / 1e6).floor.toLong
+      debug(s"$msg (in $micros ms)")
+      result
+    } else alwaysExecuted
+  }
 }
 
 private[util] final class DefaultLogger(override protected val internalLogger: org.slf4j.Logger) extends Logger

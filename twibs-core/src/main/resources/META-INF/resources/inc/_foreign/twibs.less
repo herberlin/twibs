@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ */
+
 @import "twibs-vars.less";
 @import "bootstrap/less/bootstrap.less";
 @import "font-awesome/less/font-awesome.less";
@@ -25,12 +29,6 @@
 
   .input-group-btn.field-info {
     vertical-align: top;
-  }
-
-  @media print {
-    div.textarea-print + textarea {
-      display: none;
-    }
   }
 
   div.textarea-print {
@@ -146,6 +144,19 @@ option:disabled {
   }
 }
 
+.table.with-actions {
+  td:last-child {
+    width: 1%;
+    white-space: nowrap;
+    .btn + .btn {
+      margin-left: 6px;
+    }
+    .btn:last-child {
+      margin-right: -4px;
+    }
+  }
+}
+
 .table-controls-top {
   margin-bottom: 1em;
   position: relative;
@@ -166,6 +177,10 @@ option:disabled {
   h3 {
     font-size: 16px;
     line-height: 25px;
+  }
+
+  aside.pull-right {
+    margin-top: -8px;
   }
 }
 

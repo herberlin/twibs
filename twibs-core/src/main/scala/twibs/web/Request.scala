@@ -1,9 +1,13 @@
+/*
+ * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ */
+
 package twibs.web
 
 import com.ibm.icu.util.ULocale
 import java.io.InputStream
 import java.net.URI
-import org.threeten.bp.{LocalDateTime, Clock}
+import org.threeten.bp.LocalDateTime
 import twibs.util._
 
 trait Request extends Serializable with AttributeContainer {

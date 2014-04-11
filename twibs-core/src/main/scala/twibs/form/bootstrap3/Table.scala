@@ -1,29 +1,32 @@
+/*
+ * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ */
+
 package twibs.form.bootstrap3
 
+import scala.xml.{Unparsed, Elem, NodeSeq}
 import twibs.form.base._
 import twibs.form.bootstrap3.SortOrder._
 import twibs.util.JavaScript._
-import twibs.util.{Translator, Pagination}
+import twibs.util.{Pagination, Translator}
 import twibs.web.Request
-import xml._
 
-trait Table[ElementType] extends ItemContainer {
-  override def prefixForChildNames: String = super.prefixForChildNames + name + "-"
+trait Table extends ItemContainer {
+  def columns: List[Column]
 
   override def translator: Translator = super.translator.kind("TABLE")
 
   override def html: NodeSeq =
     <div>
       <nav class="form-inline table-controls-top">
-        {pageSize.enrichedHtml}
-        <span class="display-text">{pageSize.formGroupTitle}</span>
-        {search.enrichedHtml}
+        {pageSizeField.enrichedHtml}
+        <span class="display-text">{pageSizeField.formGroupTitle}</span>{queryStringField.enrichedHtml}
       </nav>
       {tableHtml}
     </div>
 
-  val pageSize = new Field("page-size") with SingleSelectField with IntValues with Required with Inline with SubmitOnChange {
-    override def initialOptions: List[OptionI] = toOptions(10 :: 25 :: 50 :: 100 :: Int.MaxValue :: Nil)
+  private val pageSizeField = new Field("page-size") with SingleSelectField with IntValues with Required with Inline with SubmitOnChange {
+    override def initialOptions: List[OptionI] = toOptions(pageSizes)
 
     override def defaultValues = optionValues(1) :: Nil
 
@@ -33,19 +36,83 @@ trait Table[ElementType] extends ItemContainer {
     }
   }
 
-  val search = new Field("search") with StringValues with SearchField with Inline with Result {
+  def pageSizes = 10 :: 25 :: 50 :: 100 :: Int.MaxValue :: Nil
+
+  private val queryStringField = new Field("search") with StringValues with SearchField with Inline with Result {
     override def inputCssClasses = "submit-while-typing" :: super.inputCssClasses
 
     override def formGroupCssClasses: List[String] = "pull-right" :: super.formGroupCssClasses
 
-    override def parse(request: Request): Unit = {
-      super.parse(request)
+    override def execute(request: Request): Unit =
       if (request.parameters.getStringsOption(name + "-submit-while-typing").isDefined)
-        result = InsteadOfFormDisplay(updateTableData)
-    }
+        result = InsteadOfFormDisplay(refreshTableData)
+
+    override def itemIsVisible: Boolean = searchable
   }
 
-  def updateTableData = jQuery(tableId).call("html", NodeSeq.seqToNodeSeq(tableHtml.child))
+  def searchable = true
+
+  def refreshTableData = jQuery(tableId).call("html", NodeSeq.seqToNodeSeq(tableHtml.child))
+
+  private val offsetField = new Field("page-navigation") with LongValues {
+    override def html: NodeSeq = inputsAsHtml
+
+    override def inputAsEnrichedHtml(input: Input, index: Int): NodeSeq =
+      <div class="pagination">
+        {displayedElementsText}
+      </div> ++
+        <ul class="pagination pull-right">
+          {pagination.pages.map {
+          page =>
+            <li>
+              {if (page.disabled || isDisabled)
+              <span>
+                {page.title}
+              </span>
+            else
+              <a name={name} value={valueToStringConverter(page.firstElementNumber)} href="#">
+                {page.title}
+              </a>
+                .addClass(!isDisabled, "submit")}
+            </li>
+              .addClass(page.disabled, "disabled")
+              .addClass(page.active, "active")
+        }}
+        </ul> ++ HiddenInputRenderer(fallbackName, string)
+
+    private def displayedElementsText: String =
+      if (pagination.displayedElementCount < pagination.totalElementCount)
+        if (pagination.displayedElementCount == 0)
+          t"filtered-empty: Showing no entries (filtered from ${pagination.totalElementCount})"
+        else
+          t"filtered: Showing ${pagination.firstElementNumber + 1} to ${pagination.lastElementNumber + 1} of ${pagination.displayedElementCount} (filtered from ${pagination.totalElementCount})"
+      else if (pagination.displayedElementCount == 0)
+        t"empty: Showing no entries"
+      else
+        t"unfiltered: Showing ${pagination.firstElementNumber + 1} to ${pagination.lastElementNumber + 1} of ${pagination.displayedElementCount}"
+
+    override def defaultValues = 0L :: Nil
+
+    override def inputAsElem(input: Input): Elem = <span></span>
+
+    override def parse(request: Request): Unit =
+      (request.parameters.getStringsOption(name) orElse request.parameters.getStringsOption(fallbackName)).foreach(parse)
+
+    def fallbackName = name + "-fallback"
+
+    def pagination = new Pagination(value, displayedElementCount, totalElementCount, limit)
+  }
+
+
+  def totalElementCount: Long
+
+  def displayedElementCount: Long
+
+  def queryString: String = queryStringField.string
+
+  def limit: Int = pageSizeField.value
+
+  def offset: Long = offsetField.value
 
   final def tableId = id + "-table"
 
@@ -57,69 +124,51 @@ trait Table[ElementType] extends ItemContainer {
       </table>
       <style>{Unparsed(columnsStyle)}</style>
       <nav class="form-inline clearfix">
-        {displayedElementsNodeSeq}{pageNavigation.enrichedHtml}
+        {offsetField.enrichedHtml}
       </nav>
-      {columns.map(_.innerSort.enrichedHtml)}
+      {columns.map(_.sortField.enrichedHtml)}
     </div>
-
-  def columnsStyle = visibleColumns.zipWithIndex.map(e => e._1.style(e._2)).mkString("")
 
   def tableCssClasses = "table" :: "table-bordered" :: "table-striped" :: "sortable" :: Nil
 
-  def displayedElementsNodeSeq = <div class="pagination">{displayedElementsText}</div>
+  def tableHead: NodeSeq = <tr>{visibleColumns.map(_.tableHeader)}</tr>
 
-  def displayedElementsText: String =
-    if (pagination.displayedElementCount < pagination.totalElementCount)
-      if (pagination.displayedElementCount == 0)
-        t"pagination-filtered-empty: Showing no entries (filtered from ${pagination.totalElementCount})"
-      else
-        t"pagination-filtered: Showing ${pagination.firstElementNumber + 1} to ${pagination.lastElementNumber + 1} of ${pagination.displayedElementCount} (filtered from ${pagination.totalElementCount})"
-    else if (pagination.displayedElementCount == 0)
-      t"pagination-empty: Showing no entries"
-    else
-      t"pagination-unfiltered: Showing ${pagination.firstElementNumber + 1} to ${pagination.lastElementNumber + 1} of ${pagination.displayedElementCount}"
+  def columnsStyle: String = visibleColumns.zipWithIndex.map(e => e._1.style(e._2)).mkString("")
 
-  lazy val pagination = new Pagination(pageNavigation.value, displayedElementCount, totalElementCount, pageSize.value)
-
-  def tableHead: NodeSeq = <tr>{ visibleColumns.map(_.tableHeader) }</tr>
+  def visibleColumns = columns.filter(_.visible)
 
   def tableBody: NodeSeq
-
-  def totalElementCount: Long
-
-  def displayedElementCount: Long
 
   trait Column {
     def name: String
 
-    def title: NodeSeq
-
-    def value: (ElementType) => NodeSeq
-
-    def searchableString: String
-
-    def sortable: Boolean
-
-    def searchable: Boolean = true
-
-    def visible: Boolean = true
-
-    def titleNodeSeq = title
-
-    def orderName = name
-
-    def sortOrder: SortOrder = innerSort.value
+    def visible = true
 
     def wrap = true
 
-    def tableHeader = <th class={cssClasses}>{titleNodeSeq}</th>
+    def sortable = false
+
+    def tableHeader = <th class={cssClasses}>{title}</th>
       .set(sortable, "name", setSort.name)
-      .set(sortable, "value", innerSort.string)
+      .set(sortable, "value", sortField.string)
       .addClass(sortable, "submit")
+
+    def title: NodeSeq = titleString
+
+    def titleString = translator.usage("column").usage(name).translate("column-title", name)
 
     private def cssClasses = sortCssClass :: Nil
 
-    def style(index: Int) = wrapStyle(index) + (innerSort.value match {
+    private def sortCssClass = sortField.value match {
+      case NotSortable => ""
+      case Ascending => "sort-asc"
+      case Descending => "sort-desc"
+      case Unsorted => "sort"
+    }
+
+    import SortOrder._
+
+    def style(index: Int) = wrapStyle(index) + (sortField.value match {
       case Ascending | Descending =>
         s"#${tableId.string} > table > tbody > tr:nth-child(odd) > td:nth-child(${index + 1}) { background-color: #eaebff; }" +
           s"#${tableId.string} > table > tbody > tr:nth-child(even) > td:nth-child(${index + 1}) { background-color: #d3d6ff; }"
@@ -128,30 +177,16 @@ trait Table[ElementType] extends ItemContainer {
 
     def wrapStyle(index: Int) = if (wrap) "" else s"#${tableId.string} > table > tbody > tr > td:nth-child(${index + 1}) { white-space: nowrap; }"
 
-    import SortOrder._
+    def sort: SortOrder = sortField.value
 
-    private def sortCssClass = innerSort.value match {
-      case NotSortable => ""
-      case Ascending => "sort-asc"
-      case Descending => "sort-desc"
-      case Unsorted => "sort"
-    }
+    def sort_=(sortOrder: SortOrder) = sortField.value = sortOrder
 
-    val innerSort = new HiddenInput("sort") {
-      type ValueType = SortOrder
-
-      override def valueToStringConverter: ValueToStringConverter = value => value.id.toString
-
-      override def stringToValueConverter: StringToValueConverter = string => try {
-        Success(SortOrder(string.toInt))
-      } catch {
-        case e: NumberFormatException => Failure(string, t"format-message: Please enter a valid sort order.")
-      }
+    private[Table] val sortField = new HiddenInput("sort") with EnumerationValues[SortOrder.type] {
+      override def enumeration = SortOrder
 
       override def defaultValues = (if (sortable) Unsorted else NotSortable) :: Nil
 
       def toggle(): Unit = {
-        columns.filterNot(_.sort == this).foreach(_.sort.reset())
         value match {
           case NotSortable => // Ignored
           case Ascending => value = Descending
@@ -160,68 +195,14 @@ trait Table[ElementType] extends ItemContainer {
       }
     }
 
-    val setSort = new Executor("set-sort") {
-      override def execute(parameters: Seq[String]): Unit = innerSort.toggle()
+    private val setSort = new Executor("set-sort") {
+      override def execute(parameters: Seq[String]): Unit = {
+        columns.filterNot(_ == Column.this).foreach(_.sortField.reset())
+        sortField.toggle()
+      }
     }
-
-    def sort: HiddenInput = innerSort
   }
 
-  def columns: List[Column]
-
-  def visibleColumns = columns.filter(_.visible)
-
-  trait PageNavigationField extends Field with LongValues {
-    override def html: NodeSeq = inputsAsHtml
-
-    override def inputAsEnrichedHtml(input: Input, index: Int): NodeSeq =
-      <ul class="pagination pull-right">{
-        pagination.pages.map {
-          page =>
-            <li>{
-              if (page.disabled || isDisabled)
-                <span>{page.title}</span>
-              else
-                <a name={name} value={valueToStringConverter(page.firstElementNumber)} href="#">{page.title}</a>
-                  .addClass(!isDisabled, "submit")
-            }</li>
-              .addClass(page.disabled, "disabled")
-              .addClass(page.active, "active")
-        }
-      }</ul> ++ HiddenInputRenderer(fallbackName, string)
-
-    override def defaultValues = 0L :: Nil
-
-    override def inputAsElem(input: Input): Elem = <span></span>
-
-    override def parse(request: Request): Unit =
-      (request.parameters.getStringsOption(name) orElse request.parameters.getStringsOption(fallbackName)).foreach(parse)
-
-    def fallbackName = name + "-fallback"
-  }
-
-  val pageNavigation = new Field("page-navigation") with PageNavigationField
-
-  def limit = pagination.pageSize
-
-  def offset = pagination.firstElementNumber
-
-  def rows(element: ElementType): NodeSeq = row(element)
-
-  def row(element: ElementType): Elem = <tr>{visibleColumns.map(column => <td>{column.value(element)}</td>)}</tr>
-
-  case class StringColumn(name: String, title: NodeSeq, value: (ElementType) => NodeSeq, sortable: Boolean = true) extends Column {
-    def searchableString: String = name
-  }
-
-  case class TransientColumn(title: NodeSeq, value: (ElementType) => NodeSeq) extends Column {
-    def name: String = ""
-
-    def searchableString: String = ""
-
-    override def searchable: Boolean = false
-
-    def sortable: Boolean = false
-  }
+  case class NamedColumn(name: String) extends Column
 
 }

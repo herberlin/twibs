@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ */
+
 includeFile("bootstrap/js/affix.js");
 includeFile("bootstrap/js/transition.js");
 includeFile("bootstrap/js/alert.js");
@@ -153,7 +157,7 @@ $(function () {
                 $form.ajaxForm(ajaxSubmitConfig($form, {beforeSubmit: disableForm}));
             });
 
-            $('textarea.form-control').each(function () {
+            $('textarea.hidden-print').each(function () {
                 var $this = $(this);
                 var $next = $this.next("div.textarea-print");
                 if( $next.length === 0 ) {

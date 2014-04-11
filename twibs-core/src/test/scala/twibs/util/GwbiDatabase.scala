@@ -1,4 +1,10 @@
+/*
+ * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ */
+
 package twibs.util
+
+import twibs.db.Database
 
 class GwbiDatabase extends Database {
   def password: String = ""

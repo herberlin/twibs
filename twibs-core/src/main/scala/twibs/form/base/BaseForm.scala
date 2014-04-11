@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ */
+
 package twibs.form.base
 
 import scala.collection.mutable.ListBuffer
@@ -304,15 +308,19 @@ trait BaseField extends BaseChildItemWithName with Values {
   def parse(parameters: Seq[String]): Unit = strings = parameters
 
   /* Convenience methods */
-  def input = inputs(0)
+  def input = inputs.head
 
-  def string = strings(0)
+  def string = strings.head
 
   def string_=(string: String) = strings = string :: Nil
 
-  def value = values(0)
+  def value = values.head
 
   def value_=(value: ValueType) = values = value :: Nil
+
+  def valueOption = values.headOption
+
+  def valueOption_=(valueOption: Option[ValueType]) = valueOption.map(v => values = v :: Nil)
 
   override def reset(): Unit = resetInputs()
 }

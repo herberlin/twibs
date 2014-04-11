@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ */
+
 package twibs.web
 
 import com.google.common.base.Charsets
@@ -27,12 +31,10 @@ trait Response extends Serializable {
 
   def expiresOnClientAfter: Duration
 
-  def isWrappable: Boolean = true
+  def isContentFinal: Boolean = false
 
   def isInMemory: Boolean
 
-  def useFileName: String = ""
-  
   lazy val gzippedOption: Option[Array[Byte]] = {
     val bytes = asInputStream useAndClose {
       is => compressWithGzip(is)
@@ -50,30 +52,6 @@ trait Response extends Serializable {
     baos.toByteArray
   }
 
-}
-
-class ResponseWrapper(delegatee: Response) extends Response {
-  def asInputStream: InputStream = delegatee.asInputStream
-
-  def asBytes: Array[Byte] = delegatee.asBytes
-
-  def asString: String = delegatee.asString
-
-  def length: Long = delegatee.length
-
-  def lastModified: Long = delegatee.lastModified
-
-  def mimeType: String = delegatee.mimeType
-
-  def isModified: Boolean = delegatee.isModified
-
-  def expiresOnClientAfter: Duration = delegatee.expiresOnClientAfter
-
-  def isCacheable: Boolean = delegatee.isCacheable
-
-  def isInMemory: Boolean = delegatee.isInMemory
-  
-  override def useFileName: String = delegatee.useFileName
 }
 
 trait InputStreamResponse extends Response {
@@ -129,7 +107,7 @@ class RedirectResponse(val asString: String) extends StringResponse {
 
   def expiresOnClientAfter: Duration = 8 hours
 
-  override def isWrappable: Boolean = false
+  override def isContentFinal: Boolean = true
 }
 
 trait ErrorResponse extends Response
@@ -163,7 +141,53 @@ trait CalculatedLastModifiedResponse extends CacheableResponse {
 }
 
 trait CompilationTimeResponse extends CalculatedLastModifiedResponse {
-  def calculateModified: Long = if (RunMode.isDevelopment) System.currentTimeMillis() else compilationTime
+  def calculateModified: Long = compilationTime // if (RunMode.isDevelopment) System.currentTimeMillis() else compilationTime
 
   def compilationTime: Long
+}
+
+trait SingleResponseWrapper extends Response {
+  protected def delegatee: Response
+
+  def lastModified: Long = delegatee.lastModified
+
+  def isModified: Boolean = delegatee.isModified
+
+  def expiresOnClientAfter: Duration = delegatee.expiresOnClientAfter
+
+  def isCacheable: Boolean = delegatee.isCacheable
+
+  override def isContentFinal = delegatee.isContentFinal
+}
+
+trait MultiResponseWrapper extends Response {
+  protected def delegatees: List[Response]
+
+  lazy val lastModified: Long = delegatees.map(_.lastModified).max
+
+  def isModified = delegatees.exists(_.isModified)
+
+  lazy val expiresOnClientAfter = delegatees.map(_.expiresOnClientAfter).min
+
+  lazy val isCacheable = delegatees.forall(_.isCacheable)
+
+  override lazy val isContentFinal = delegatees.forall(_.isContentFinal)
+}
+
+class DecoratableResponseWrapper(val delegatee: Response) extends SingleResponseWrapper {
+  def asInputStream: InputStream = delegatee.asInputStream
+
+  def asBytes: Array[Byte] = delegatee.asBytes
+
+  def asString: String = delegatee.asString
+
+  def length: Long = delegatee.length
+
+  def mimeType: String = delegatee.mimeType
+
+  def isInMemory = delegatee.isInMemory
+}
+
+trait AsAttachment extends Response {
+  def attachmentFileName: String
 }

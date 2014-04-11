@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ */
+
 var parseLessCss = function (source, path, compress, optimization) {
     var error = null;
     var result = "";

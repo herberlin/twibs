@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ */
+
 package twibs.web
 
 import collection.mutable.ListBuffer
@@ -11,7 +15,7 @@ class LessCssParserResponder(contentResponder: Responder, compress: Boolean = tr
         override def path = request.path.dropRight(3) + "less"
       }
       contentResponder.respond(request) orElse lessRequest.use {contentResponder.respond(lessRequest)} match {
-        case Some(response) if response.isWrappable => Some(compile(lessRequest, response))
+        case Some(response) if !response.isContentFinal => Some(compile(lessRequest, response))
         case any => any
       }
     } else None
@@ -36,29 +40,25 @@ class LessCssParserResponder(contentResponder: Responder, compress: Boolean = tr
     try {
       val string = lessCssParser.parse(request.path, compress)
 
-      new StringResponse with CacheableResponse with CssMimeType {
-        private val responses: List[Response] = responsesBuffer.toList
+      new StringResponse with MultiResponseWrapper with CssMimeType {
+        protected val delegatees: List[Response] = responsesBuffer.toList
 
         val asString: String = string
 
-        val lastModified: Long = responses.map(_.lastModified).max
-
-        def isModified = responses.exists(_.isModified)
+        override lazy val isContentFinal = true
       }
     } catch {
       case e: LessCssParserException =>
         logger.error(e.getMessage, e)
 
-        val string = if (RunMode.isDevelopment || RunMode.isTest) "// " + e.getMessage.replace("\n", "\n// ") else "// Internal server error"
+        val string = if (RunMode.isDevelopment || RunMode.isTest) "// " + e.getMessage.replace("\n", "\n// ") else "// Internal Server Error"
 
-        new StringResponse with CacheableResponse with CssMimeType with ErrorResponse {
-          private val responses: List[Response] = responsesBuffer.toList
+        new StringResponse with MultiResponseWrapper with CssMimeType with ErrorResponse {
+          protected val delegatees: List[Response] = responsesBuffer.toList
 
           val asString: String = string
 
-          val lastModified: Long = responses.map(_.lastModified).max
-
-          def isModified = responses.exists(_.isModified)
+          override lazy val isContentFinal = true
         }
     }
   }

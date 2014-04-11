@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ */
+
 package twibs.form.base
 
 import com.google.common.cache.{CacheBuilder, Cache}
@@ -260,6 +264,8 @@ trait NumberValues extends MinMaxValues {
   protected def parseString(string: String): ValueType
 
   override def titleForValue(value: ValueType): String = displayNumberFormat.format(value)
+
+  abstract override def translator: Translator = super.translator.kind("NUMBER")
 }
 
 trait IntValues extends NumberValues {
@@ -319,7 +325,7 @@ trait DoubleValues extends NumberValues {
 trait PercentValues extends NumberValues {
   type ValueType = Double
 
-  def editNumberFormat = Formatters.decimalFormat
+  def editNumberFormat = Formatters.percentFormatWithoutSuffix
 
   override def displayNumberFormat = Formatters.percentFormat
 

@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ */
+
 package twibs.web
 
 import twibs.util.Loggable
@@ -13,7 +17,7 @@ class ErrorResponder(contentResponder: Responder, errorContentResponder: Respond
           case None => throw e
           case Some(response) =>
             logger.error("Internal Server Error", e)
-            Some(new ResponseWrapper(response) with ErrorResponse)
+            Some(new DecoratableResponseWrapper(response) with ErrorResponse)
         }
     }
 }

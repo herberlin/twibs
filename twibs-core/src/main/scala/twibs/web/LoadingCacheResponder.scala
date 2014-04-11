@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ */
+
 package twibs.web
 
 abstract class LoadingCacheResponder(delegate: Responder) extends CacheResponder {

@@ -1,9 +1,13 @@
+/*
+ * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ */
+
 package twibs.util
 
+import java.sql.Timestamp
 import java.util.{Date, Calendar}
 import org.joda.time.DateTime
 import org.threeten.bp._
-import java.sql.Timestamp
 
 object ThreeTenTransition {
   val zoneId = ZoneId.systemDefault()
@@ -30,20 +34,24 @@ object ThreeTenTransition {
   implicit def convertLocalDateTimeFromThreeTen(dateTime: LocalDateTime) = new {
     def toCalendar = {
       val ret = Calendar.getInstance()
-      ret.setTimeInMillis(dateTime.atZone(zoneId).toInstant.toEpochMilli)
+      ret.setTimeInMillis(toSystemEpochMillis)
       ret
     }
 
     def toTimestamp = new Timestamp(toCalendar.getTime.getTime)
+
+    def toSystemEpochMillis = dateTime.atZone(zoneId).toInstant.toEpochMilli
   }
 
   implicit def convertLocalDateFromThreeTen(date: LocalDate) = new {
     def toCalendar = {
       val ret = Calendar.getInstance()
-      ret.setTimeInMillis(date.atStartOfDay.atZone(zoneId).toInstant.toEpochMilli)
+      ret.setTimeInMillis(toSystemEpochMillis)
       ret
     }
 
     def toDate = new java.sql.Date(toCalendar.getTime.getTime)
+
+    def toSystemEpochMillis = date.atStartOfDay.atZone(zoneId).toInstant.toEpochMilli
   }
 }

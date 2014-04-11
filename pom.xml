@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>net.twibs</groupId>
     <artifactId>twibs-parent</artifactId>
-    <version>0.6</version>
+    <version>0.7</version>
     <inceptionYear>2013</inceptionYear>
     <packaging>pom</packaging>
     <name>Twibs: Maven Parent</name>
@@ -24,7 +24,7 @@
         </developer>
     </developers>
     <properties>
-        <scala.version>2.10.3</scala.version>
+        <scala.version>2.10.4</scala.version>
         <jetty.version>9.0.7.v20131107</jetty.version>
         <maven.test.skip>false</maven.test.skip>
     </properties>
@@ -45,7 +45,7 @@
         <url>https://github.com/hombre/twibs.git</url>
         <connection>scm:git:https://github.com/hombre/twibs.git</connection>
         <developerConnection>scm:git:https://github.com/hombre/twibs.git</developerConnection>
-        <tag>v0.6</tag>
+        <tag>v0.7</tag>
     </scm>
     <build>
         <defaultGoal>package</defaultGoal>
@@ -93,13 +93,13 @@
                                 <goal>testCompile</goal>
                             </goals>
                         </execution>
-                        <!--<execution>-->
-                            <!--<id>scala-doc-deploy</id>-->
-                            <!--<phase>package</phase>-->
-                            <!--<goals>-->
-                                <!--<goal>doc-jar</goal>-->
-                            <!--</goals>-->
-                        <!--</execution>-->
+                        <execution>
+                            <id>scala-doc-deploy</id>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>doc-jar</goal>
+                            </goals>
+                        </execution>
                     </executions>
                     <configuration>
                         <recompileMode>incremental</recompileMode>

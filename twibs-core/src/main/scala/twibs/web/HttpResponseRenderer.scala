@@ -1,15 +1,19 @@
+/*
+ * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ */
+
 package twibs.web
 
 import com.google.common.base.Charsets
 import com.google.common.io.ByteStreams
 import javax.servlet.http.{HttpServletRequest, HttpServletResponse}
-import org.threeten.bp.ZoneOffset
 import twibs.util.Predef._
+import twibs.util.ThreeTenTransition._
 
 private[web] class HttpResponseRenderer(request: Request, response: Response, httpRequest: HttpServletRequest, httpResponse: HttpServletResponse) {
   private val currentDateTime = Request.now()
 
-  private def currentDateTimeInMillis = currentDateTime.toInstant(ZoneOffset.UTC).toEpochMilli
+  private def currentDateTimeInMillis = currentDateTime.toSystemEpochMillis
 
   private def expiresInMillis = currentDateTimeInMillis + expiresAfterInMillis
 
@@ -39,9 +43,10 @@ private[web] class HttpResponseRenderer(request: Request, response: Response, ht
     httpResponse.setHeader("Vary", "Accept-Encoding")
     httpResponse.setDateHeader("Date", currentDateTimeInMillis)
     httpResponse.setDateHeader("Expires", expiresInMillis)
-    response.useFileName match {
-      case "" => ""
-      case s => httpResponse.setHeader("Content-Disposition", """attachment; filename="""" + s + '"')
+
+    response match {
+      case r: AsAttachment => httpResponse.setHeader("Content-Disposition", """attachment; filename="""" + r.attachmentFileName + '"')
+      case _ =>
     }
 
     if (response.mimeType.startsWith("text/"))
