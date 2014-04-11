@@ -57,7 +57,10 @@ trait AbstractDateTimeField extends SingleLineField with JavascriptItem {
 
   def autoClose = true
 
-  override def javascript = if (submitOnChange) initDateTimeJs.call("on", "changeDate", JsCmd("$(this).reloadForm()")) else initDateTimeJs
+  override def javascript =
+    if (isEnabled)
+      if (submitOnChange) initDateTimeJs.call("on", "changeDate", JsCmd("$(this).reloadForm()")) else initDateTimeJs
+    else JsEmpty
 
   private def initDateTimeJs = jQuery(inputGroupId).call("datetimepicker", datePickerOptions)
 
@@ -66,7 +69,6 @@ trait AbstractDateTimeField extends SingleLineField with JavascriptItem {
   override def suffixes: List[NodeSeq] =
     if (isEnabled) <span class="glyphicon glyphicon-calendar"></span> :: super.suffixes
     else super.suffixes
-
 
   override def surroundWithInputGroup(input: Input, nodeSeq: NodeSeq): Elem =
     <div class="input-group date" id={inputGroupId} data-date={input.string} data-link-field={id} data-link-format={formatPatternForBrowser} data-date-format={formatPatternForBrowser} data-date-today-btn={todayButton} data-date-today-highlight={"" + todayHighlight}>{nodeSeq}</div>
