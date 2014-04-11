@@ -8,7 +8,7 @@ import collection.JavaConversions._
 import com.ibm.icu.util.ULocale
 import com.typesafe.config.ConfigException.Missing
 import com.typesafe.config.{ConfigFactory, Config}
-import scala.collection.mutable
+import scala.collection.concurrent.TrieMap
 
 trait Configuration {
   def getStringList(key: String): Option[List[String]]
@@ -45,7 +45,7 @@ object Configuration {
 }
 
 class ConfigurationForTypesafeConfig(config: Config) extends Configuration {
-  private val cache = mutable.Map[String, Any]()
+  private val cache = TrieMap[String, Any]()
 
   private def store[T](key: String, f: => T): Option[T] = cache.getOrElseUpdate(key, tryo(key, f)).asInstanceOf[Option[T]]
 

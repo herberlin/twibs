@@ -6,11 +6,11 @@ package twibs.util
 
 import com.ibm.icu.text.MessageFormat
 import com.ibm.icu.util.ULocale
-import scala.collection.mutable
+import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.ArrayBuffer
 
 abstract class Translator(id: String, usages: List[String], kinds: List[String]) {
-  private val cache = mutable.Map[String, String]()
+  private val cache = TrieMap[String, String]()
 
   def locale: ULocale
 
@@ -106,7 +106,7 @@ object Translator extends Loggable {
 class TranslatorResolver(val locale: ULocale, configuration: Configuration) {
   val root: Translator = createTranslator("", List(""), List())
 
-  private val cache = mutable.Map[String, Translator]()
+  private val cache = TrieMap[String, Translator]()
 
   protected def resolve(fullKey: String): Option[String] = configuration.getString(fullKey)
 

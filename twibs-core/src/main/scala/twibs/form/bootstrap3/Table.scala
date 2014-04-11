@@ -182,7 +182,7 @@ trait Table extends ItemContainer {
     private[Table] val sortField = new HiddenInput("sort") with EnumerationValues[SortOrder.type] {
       override def enumeration = SortOrder
 
-      override def defaultValues = (if (sortable) Unsorted else NotSortable) :: Nil
+      override def defaultValues = (if (sortable) initialSortOrder else NotSortable) :: Nil
 
       def toggle(): Unit = {
         value match {
@@ -192,6 +192,8 @@ trait Table extends ItemContainer {
         }
       }
     }
+
+    def initialSortOrder = Unsorted
 
     private val setSort = new Executor("set-sort") {
       override def execute(parameters: Seq[String]): Unit = {
