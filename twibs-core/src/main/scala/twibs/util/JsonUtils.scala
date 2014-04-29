@@ -5,7 +5,6 @@
 package twibs.util
 
 import scala.collection.Map
-import scala.util.parsing.json.JSONFormat
 import xml.{NodeSeq, NodeBuffer}
 
 trait Json {
@@ -33,7 +32,7 @@ object JsonUtils {
     case other => stringToJsonString(other.toString)
   }
 
-  private def stringToJsonString(string: String) = "\"" + JSONFormat.quoteString(string) + "\""
+  private def stringToJsonString(string: String) = "\"" + quoteString(string) + "\""
 
   private def mapToJsonString(map: Map[_, _]): String =
     "{" + map.map(entry => stringToJsonString(entry._1.toString) + ":" + anyToJsonString(entry._2) + "").mkString(",") + "}"
@@ -44,4 +43,27 @@ object JsonUtils {
     } else {
       "{" + seq.asInstanceOf[Seq[(_, _)]].map(entry => stringToJsonString(entry._1.toString) + ":" + anyToJsonString(entry._2) + "").mkString(",") + "}"
     }
+
+  // From Scala 2.10 JSONFormat wich is deprecated in 2.11 (for what ever reason)
+  private def quoteString(s: String): String =
+    s.map {
+      case '"' => "\\\""
+      case '\\' => "\\\\"
+      case '/' => "\\/"
+      case '\b' => "\\b"
+      case '\f' => "\\f"
+      case '\n' => "\\n"
+      case '\r' => "\\r"
+      case '\t' => "\\t"
+      /* We'll unicode escape any control characters. These include:
+       * 0x0 -> 0x1f  : ASCII Control (C0 Control Codes)
+       * 0x7f         : ASCII DELETE
+       * 0x80 -> 0x9f : C1 Control Codes
+       *
+       * Per RFC4627, section 2.5, we're not technically required to
+       * encode the C1 codes, but we do to be safe.
+       */
+      case c if (c >= '\u0000' && c <= '\u001f') || (c >= '\u007f' && c <= '\u009f') => f"\\u${c.toInt}%04x"
+      case c => c
+    }.mkString
 }

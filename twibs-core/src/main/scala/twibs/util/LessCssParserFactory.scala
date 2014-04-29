@@ -59,12 +59,12 @@ class LessCssParserException(message: String) extends Exception(message) {
     val value: Scriptable = exception.getValue.asInstanceOf[Scriptable]
     val typ = ScriptableObject.getProperty(value, "type").toString + " Error"
     val message = ScriptableObject.getProperty(value, "message").toString
-    def fileName = getPropertyOption("filename").map(_.toString) getOrElse ""
-    def line = getPropertyOption("line").map(_.asInstanceOf[Double].intValue) getOrElse -1
-    def column = getPropertyOption("column").map(_.asInstanceOf[Double].intValue) getOrElse -1
+    def fileName = getPropertyOption("filename").fold("")(_.toString)
+    def line = getPropertyOption("line").fold(-1)(_.asInstanceOf[Double].intValue)
+    def column = getPropertyOption("column").fold(-1)(_.asInstanceOf[Double].intValue)
     def extract = getPropertyOption("extract").map(_.asInstanceOf[NativeArray]).map(extract =>
       for (i <- 0 until extract.getLength.toInt if extract.get(i, extract).isInstanceOf[String])
-      yield extract.get(i, extract).asInstanceOf[String].replace("\t", " ")).filterNot(_.isEmpty).map(" near\n" + _.mkString("\n")) getOrElse ""
+      yield extract.get(i, extract).asInstanceOf[String].replace("\t", " ")).filterNot(_.isEmpty).fold("")(" near\n" + _.mkString("\n"))
 
     def getPropertyOption(name: String): Option[Any] = {
       val property: AnyRef = ScriptableObject.getProperty(value, name)

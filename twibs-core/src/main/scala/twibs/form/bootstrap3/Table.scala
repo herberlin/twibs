@@ -26,7 +26,7 @@ trait Table extends ItemContainer {
     </div>
 
   private val pageSizeField = new Field("page-size") with SingleSelectField with IntValues with Required with Inline with SubmitOnChange {
-    override def initialOptions: List[OptionI] = toOptions(pageSizes)
+    override def computeOptions: List[OptionI] = toOptions(pageSizes)
 
     override def defaultValues = optionValues(1) :: Nil
 

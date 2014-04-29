@@ -116,7 +116,7 @@ trait UserSettings {
 class ApplicationSettings(val name: String) {
   lazy val configuration: Configuration = ConfigurationForTypesafeConfig.forSettings(name)
 
-  lazy val locales = configuration.getStringList("locales").map(_.map(localeId => new ULocale(localeId))) getOrElse List(SystemSettings.locale)
+  lazy val locales = configuration.getStringList("locales").fold(List(SystemSettings.locale))(_.map(localeId => new ULocale(localeId)))
 
   lazy val translators: Map[ULocale, Translator] = locales.map(locale => locale -> new TranslatorResolver(locale, configuration.configurationForLocale(locale)).root.usage(name)).toMap
 

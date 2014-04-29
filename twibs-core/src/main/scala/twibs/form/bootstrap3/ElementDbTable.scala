@@ -12,7 +12,7 @@ import twibs.form.base._
 import twibs.form.bootstrap3.SortOrder._
 import twibs.util.SqlUtils
 
-trait DbTable[ElementType] extends Table {
+trait ElementDbTable[ElementType] extends Table {
 
   trait DbColumn extends Column {
     def value: (ElementType) => NodeSeq
@@ -129,14 +129,12 @@ trait DbTable[ElementType] extends Table {
   def dateToString(column: DbColumn) = s"""to_char(${column.name}, 'dd.MM.yy')"""
 
   def timestampToString(column: DbColumn) = s"""to_char(${column.name}, 'dd.MM.yy HH24:MI:SS')"""
-}
 
-trait ElementDbTable[ElementType] extends DbTable[ElementType] {
   def tableBody: NodeSeq = elements.map(rows).flatten
 
   def elements: List[ElementType] = elementsCache
 
-  val elementsCache = new LazyCacheItem(query.as(toResult).list())
+  val elementsCache = new LazyCacheItem(query.as(toResult).list)
 
   def toResult: GetResult[ElementType]
 }

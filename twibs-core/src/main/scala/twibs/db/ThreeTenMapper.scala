@@ -6,7 +6,8 @@ package twibs.db
 
 import java.sql.Timestamp
 import org.threeten.bp.LocalDateTime
-import scala.slick.driver.JdbcDriver.simple._
+//TODO: Replace PostgresDriver with generic type once someone knows how ;)
+import scala.slick.driver.PostgresDriver.simple._
 import scala.slick.jdbc.{PositionedParameters, PositionedResult, SetParameter, GetResult}
 import twibs.util.ThreeTenTransition._
 

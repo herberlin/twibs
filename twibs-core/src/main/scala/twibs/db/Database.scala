@@ -4,7 +4,7 @@
 
 package twibs.db
 
-import com.googlecode.flyway.core.Flyway
+import org.flywaydb.core.Flyway
 import concurrent.duration._
 import javax.sql.DataSource
 import org.apache.tomcat.jdbc.pool.{DataSource => TomcatDataSource, PoolProperties}

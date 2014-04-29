@@ -418,7 +418,7 @@ trait EnumerationValues[E <: Enumeration] extends Options {
 
   override def valueToStringConverter: ValueToStringConverter = (value: ValueType) => value.id.toString
 
-  def initialOptions = enumeration.values.toList
+  def computeOptions = enumeration.values.toList
 }
 
 trait Required extends Values {
@@ -462,9 +462,9 @@ trait Options extends Values {
 
   final def optionStrings: List[String] = options.map(_.string)
 
-  private val _options = LazyCache(initialOptions)
+  private val _options = LazyCache(computeOptions)
 
-  def initialOptions: List[OptionI]
+  def computeOptions: List[OptionI]
 
   def resetOptions(): Unit = {
     _options.reset()
@@ -475,6 +475,11 @@ trait Options extends Values {
   override def valueProcessors = super.valueProcessors :+ checkIsInOptionValues
 
   def useEmptyOption(string: String) = !required || options.isEmpty || !optionStrings.contains(string)
+
+  override def stringToValueConverter: StringToValueConverter = (string:String) => {
+    val t: Option[Result[String,ValueType]] = options.collectFirst{ case o if o.string == string => Success(o.value)  }
+    t getOrElse Failure(string, t"format-message: Please choose a valid value.")
+  }
 }
 
 trait TranslatedOptions extends Options {

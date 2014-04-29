@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
  */
-
 @import "twibs-vars.less";
 @import "bootstrap/less/bootstrap.less";
 @import "font-awesome/less/font-awesome.less";
@@ -144,16 +143,19 @@ option:disabled {
   }
 }
 
-.table.with-actions {
-  td:last-child {
-    width: 1%;
-    white-space: nowrap;
-    .btn + .btn {
-      margin-left: 6px;
-    }
-    .btn:last-child {
-      margin-right: -4px;
-    }
+// Workaround: Bootstrap sets display: block; on collapse in.
+tr.collapse.in {
+  display: table-row;
+}
+
+.table.with-actions > tbody > tr > td:last-child {
+  width: 1%;
+  white-space: nowrap;
+  .btn + .btn {
+    margin-left: 6px;
+  }
+  .btn:last-child {
+    margin-right: -4px;
   }
 }
 

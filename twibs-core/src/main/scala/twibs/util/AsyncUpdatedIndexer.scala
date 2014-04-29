@@ -18,7 +18,7 @@ abstract class AsyncUpdatedIndexer extends Indexer {
 
   private val calculateIndexCache = LazyCache(indexReaderCachingDuration) {calculateIndexAsync()}
 
-  private var updateFuture = future {}
+  private var updateFuture = Future {}
 
   private def calculateIndexAsync(): Unit = synchronized {
     updateFuture = updateFuture map {_ => write(update)}

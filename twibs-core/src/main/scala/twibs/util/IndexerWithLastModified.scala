@@ -19,13 +19,13 @@ trait IndexerWithLastModified extends Indexer {
 
   //  def lastModified: DateTime = new DateTime(lastModifiedMillis)
 
-  def lastModifiedMillis: Long = getLastCommitUserData.get(LAST_COMMITTED_MILLIS).map(_.toLong) getOrElse 0
+  def lastModifiedMillis: Long = getLastCommitUserData.get(LAST_COMMITTED_MILLIS).fold(0L)(_.toLong)
 
   private def createCommitUserData(): java.util.Map[String, String] = createCommitUserData(System.currentTimeMillis).asJava
 
   private def getLastCommitUserData: Map[String, String] =
     try {
-      DirectoryReader.listCommits(directory).asScala.toList.lastOption.map(_.getUserData.asScala.toMap) getOrElse createCommitUserData(0)
+      DirectoryReader.listCommits(directory).asScala.toList.lastOption.fold(createCommitUserData(0))(_.getUserData.asScala.toMap)
     } catch {
       case e: IndexNotFoundException => createCommitUserData(0)
     }

@@ -10,11 +10,11 @@ import twibs.util.Predef._
 import twibs.db.TableData
 
 trait TableWithData[T] extends Table {
-  def tableBody: NodeSeq = tableData.rows.useAndClose {it => it.map(tableRow).toList}
+  def tableBody: NodeSeq = tableData.rows.useAndClose {it => it.map(tableRow).toList.flatten}
 
   def tableData: TableData[T]
 
-  def tableRow(entry: T): Elem
+  def tableRow(entry: T): NodeSeq
 
   override def displayedElementCount = tableData.displayed
 
@@ -29,5 +29,4 @@ trait TableWithData[T] extends Table {
   object DataColumn {
     def apply(name: String): DataColumn = DataColumn(name, name)
   }
-
 }

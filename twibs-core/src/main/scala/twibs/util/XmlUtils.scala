@@ -15,7 +15,7 @@ trait XmlUtils {
     def addClass(cssClass: String): Elem = addClasses(cssClass :: Nil)
 
     def addClasses(cssClasses: List[String]): Elem = {
-      val was = elem.attribute("class").map(_.toString()) getOrElse ""
+      val was = elem.attribute("class").fold("")(_.toString())
       val value = merge(was :: cssClasses)
       if (value.isEmpty)
         elem.copy(attributes = elem.attributes.remove("class"))
@@ -23,7 +23,7 @@ trait XmlUtils {
         set("class", value)
     }
 
-    def removeClass(cssClass: String) = set("class", merge((elem.attribute("class").map(_.toString()) getOrElse "").split(" ").toList.filterNot(_ == cssClass)))
+    def removeClass(cssClass: String) = set("class", merge(elem.attribute("class").fold("")(_.toString()).split(" ").toList.filterNot(_ == cssClass)))
 
     def merge(cssClasses: List[String]) = cssClasses.filterNot(_.isEmpty).distinct.mkString(" ")
 

@@ -170,7 +170,7 @@ trait SingleSelectField extends SelectField {
 }
 
 trait MultiSelectField extends SelectField {
-  override def inputsAsHtml: NodeSeq = inputs.headOption.map(input => inputAsEnrichedHtml(input, 0)) getOrElse NodeSeq.Empty
+  override def inputsAsHtml: NodeSeq = inputs.headOption.fold(NodeSeq.Empty)(input => inputAsEnrichedHtml(input, 0))
 
   override def inputAsElem(input: Input) =
     <select data-placeholder={t"placeholder: Please select some values"} multiple="multiple">{ optionsAsElems(input) }</select>

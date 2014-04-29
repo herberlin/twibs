@@ -155,7 +155,7 @@ abstract class DisplayField private(val ilk: String, val parent: BaseParentItem,
 abstract class Field private(val ilk: String, val parent: BaseParentItem, unit: Unit = Unit) extends BaseField with FormGroupItem {
   def this(ilk: String)(implicit parent: BaseParentItem) = this(ilk, parent)
 
-  override def formGroupCssClasses = (messageDisplayTypeOption.map("has-" + _) getOrElse "") :: super.formGroupCssClasses.addClass(required, "required")
+  override def formGroupCssClasses = messageDisplayTypeOption.fold("")("has-" + _) :: super.formGroupCssClasses.addClass(required, "required")
 
   def formGroupTitle: NodeSeq = fieldTitle
 
@@ -163,7 +163,9 @@ abstract class Field private(val ilk: String, val parent: BaseParentItem, unit: 
 
   def controlContainerHtml: NodeSeq = inputsAsHtml ++ messageHtml
 
-  def messageHtml: NodeSeq = inputsMessageOption.map(message => <div class="help-block">{message.text}</div>) getOrElse NodeSeq.Empty
+  def messageHtml: NodeSeq = inputsMessageOption.fold(NodeSeq.Empty)(message => <div class="help-block">
+    {message.text}
+  </div>)
 
   protected def infoHtml: NodeSeq = infoMessage match {
     case "" => NodeSeq.Empty

@@ -51,11 +51,11 @@ object JavaScript {
 
   implicit def toParameter(map: Map[_, _]): JsParameter = new JsParameter(map.toJsonString)
 
-  implicit def toParameterS(stringOption: Option[String]): JsParameter = stringOption.map(toParameter) getOrElse undefined
+  implicit def toParameterS(stringOption: Option[String]): JsParameter = stringOption.fold(undefined)(toParameter)
 
-  implicit def toParameterL(longOption: Option[Long]): JsParameter = longOption.map(toParameter) getOrElse undefined
+  implicit def toParameterL(longOption: Option[Long]): JsParameter = longOption.fold(undefined)(toParameter)
 
-  implicit def toParameterN(valueOption: Option[NodeSeq]): JsParameter = valueOption.map(toParameter) getOrElse undefined
+  implicit def toParameterN(valueOption: Option[NodeSeq]): JsParameter = valueOption.fold(undefined)(toParameter)
 
   implicit def joinJsCmds(seq: TraversableOnce[JsCmd]): JsCmd = new JsCmd(seq.filter(!_.toString.isEmpty).mkString(";"))
 

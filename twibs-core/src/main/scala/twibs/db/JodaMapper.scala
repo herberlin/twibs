@@ -6,7 +6,8 @@ package twibs.db
 
 import java.sql.Timestamp
 import org.joda.time.DateTime
-import scala.slick.driver.JdbcDriver.simple._
+//TODO: Replace PostgresDriver with generic type once someone knows how ;)
+import scala.slick.driver.PostgresDriver.simple._
 import scala.slick.jdbc.{PositionedResult, PositionedParameters, SetParameter, GetResult}
 
 object JodaMapper {

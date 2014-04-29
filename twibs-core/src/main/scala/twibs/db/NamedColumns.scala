@@ -4,7 +4,8 @@
 
 package twibs.db
 
-import scala.slick.driver.JdbcDriver.simple._
+//TODO: Replace PostgresDriver with generic type once someone knows how ;)
+import scala.slick.driver.PostgresDriver.simple._
 
 trait NamedColumns {
   def allColumns: Product
