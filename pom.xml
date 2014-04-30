@@ -105,7 +105,7 @@
                     </executions>
                     <configuration>
                         <!--<recompileMode>incremental</recompileMode>-->
-                        <recompileMode>modified-only</recompileMode>
+                        <recompileMode>all</recompileMode>
                         <scalaVersion>${scala.version}</scalaVersion>
                         <checkMultipleScalaVersions>false</checkMultipleScalaVersions>
                         <args>

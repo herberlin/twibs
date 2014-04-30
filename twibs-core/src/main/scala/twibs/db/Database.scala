@@ -9,7 +9,7 @@ import concurrent.duration._
 import javax.sql.DataSource
 import org.apache.tomcat.jdbc.pool.{DataSource => TomcatDataSource, PoolProperties}
 import scala.slick.jdbc.JdbcBackend.{Database => SlickDatabase}
-import twibs.util.DynamicVariableWithDynamicDefault
+import twibs.util.{RunMode, DynamicVariableWithDynamicDefault}
 
 trait Database {
   def password: String
