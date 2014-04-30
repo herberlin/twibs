@@ -58,7 +58,13 @@ trait BootstrapButtonRenderer extends ButtonRenderer {
 }
 
 trait PopoverButtonRenderer extends BootstrapButtonRenderer {
-  override def buttonAsEnrichedElem: Elem = <button type="button" class={openPopoverButtonCssClasses} data-container={popoverContainer} data-toggle="popover" data-html="true" data-placement={popoverPlacement} data-title={openPopoverTitle} data-content={popoverContent}>{openPopoverButtonTitleWithIconHtml}</button>
+  def isEnabled: Boolean
+
+  override def buttonAsEnrichedElem: Elem =
+    if (isEnabled)
+      <button type="button" class={openPopoverButtonCssClasses} data-container={popoverContainer} data-toggle="popover" data-html="true" data-placement={popoverPlacement} data-title={openPopoverTitle} data-content={popoverContent}>{openPopoverButtonTitleWithIconHtml}</button>
+    else
+      <span class={openPopoverButtonCssClasses}>{openPopoverButtonTitleWithIconHtml}</span>.addClass("disabled")
 
   def openPopoverButtonTitleWithIconHtml = buttonTitleWithIconHtml
 
