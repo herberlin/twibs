@@ -12,11 +12,9 @@ trait ButtonRenderer extends DisplayType with TranslationSupport {
 
   def name: String
 
-  def buttonTitleWithIconHtml: NodeSeq = prefixWithButtonIconHtml(buttonTitleHtml)
+  def buttonTitleWithIconHtml: NodeSeq = buttonIconHtml match {case NodeSeq.Empty => buttonTitleHtml case ns => ns ++ Text(" ") ++ buttonTitleHtml }
 
   def buttonIconOrButtonTitleIfEmptyHtml: NodeSeq = buttonIconHtml match {case NodeSeq.Empty => buttonTitleHtml case s => s }
-
-  def prefixWithButtonIconHtml(t: NodeSeq): NodeSeq = buttonIconHtml match {case NodeSeq.Empty => t case ns => ns ++ Text(" ") ++ t }
 
   def buttonIconHtml: NodeSeq = buttonIconName match {case "" => NodeSeq.Empty case s => <span class={s"glyphicon glyphicon-$s"}></span> }
 

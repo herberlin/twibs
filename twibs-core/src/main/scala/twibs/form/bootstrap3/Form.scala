@@ -268,3 +268,7 @@ trait FieldWithOptions extends Field with Options {
     resetOptions()
   }
 }
+
+trait UseLastParameterOnly extends Field {
+  override def parse(parameters: Seq[String]): Unit = super.parse(parameters.lastOption.map(_ :: Nil) getOrElse Nil)
+}

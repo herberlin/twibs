@@ -32,6 +32,8 @@ trait TableWithData[T] extends Table {
   def sortBy: List[(String, SortOrder)] = columns.collect {case c: DataColumn => (c.sortName, c.sort)}
 
   case class DataColumn(name: String, sortName: String) extends Column {
+    def this(name: String) = this(name, name)
+
     override def sortable: Boolean = true
   }
 

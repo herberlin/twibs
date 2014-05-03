@@ -129,7 +129,7 @@ trait Table extends ItemContainer {
       {columns.map(_.sortField.enrichedHtml)}
     </div>
 
-  def tableCssClasses = "table" :: "table-bordered" :: "table-striped" :: "sortable" :: Nil
+  def tableCssClasses = "table" :: "table-bordered" :: "table-striped" :: "data-table" :: Nil
 
   def tableHead: NodeSeq = <tr>{visibleColumns.map(_.tableHeader)}</tr>
 

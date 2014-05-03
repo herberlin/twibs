@@ -241,7 +241,7 @@ trait BooleanCheckBoxField extends Field with BooleanValues with FloatingInfo {
 }
 
 trait FileEntryField extends Field with FileEntryValues with Result {
-  val deleteButton = new SpecialButton("delete")(parent) with PopoverButtonRenderer with DangerDisplayType with Executable {
+  val deleteButton = new SpecialButton("delete")(parent) with PopoverButtonRenderer with DangerDisplayType with Executable with ButtonValue[String] {
     override def execute(parameters: Seq[String]) = processDeleteParameters(parameters)
 
     override def popoverPlacement: String = "auto right"
@@ -256,7 +256,7 @@ trait FileEntryField extends Field with FileEntryValues with Result {
       case ValidInput(_, _, Some(fileEntry)) => fileEntry.path
       case _ => "#"
     }
-    <p class="form-control-static clearfix"><div class="pull-right">{deleteButton.buttonAsHtmlWithString(input.string)}</div><a href={link} target="_blank">{input.title}</a></p>
+    <p class="form-control-static clearfix"><div class="pull-right">{deleteButton.buttonAsHtmlWithValue(input.string)}</div><a href={link} target="_blank">{input.title}</a></p>
   }
 
   override def minimumNumberOfInputs: Int = 0
@@ -326,7 +326,7 @@ trait UploadWithOverwrite extends BaseItemContainer {
     override def inputAsEnrichedHtml(input: Input, index: Int): NodeSeq =
       HiddenInputRenderer(name, input.string) ++ <p class="form-control-static clearfix">{actionButtonsHtml(input.string)}<a href="#">{input.title}</a></p>
 
-    private val deleteButton = new SpecialButton("delete") with PopoverButtonRenderer with DangerDisplayType with Executable {
+    private val deleteButton = new SpecialButton("delete") with PopoverButtonRenderer with DangerDisplayType with Executable with ButtonValue[String] {
       override def execute(parameters: Seq[String]) = processDeleteParameters(parameters)
 
       override def popoverPlacement: String = "auto right"
@@ -334,7 +334,7 @@ trait UploadWithOverwrite extends BaseItemContainer {
       override def popoverContainer: String = form.contentId.toCssId
     }
 
-    private val overwriteButton = new SpecialButton("overwrite") with PopoverButtonRenderer with InfoDisplayType with Executable {
+    private val overwriteButton = new SpecialButton("overwrite") with PopoverButtonRenderer with InfoDisplayType with Executable with ButtonValue[String] {
       override def execute(parameters: Seq[String]) = processOverwriteParameters(parameters)
 
       override def popoverPlacement: String = "auto right"
@@ -346,8 +346,8 @@ trait UploadWithOverwrite extends BaseItemContainer {
       if (isDisabled) NodeSeq.Empty
       else
         <div class="pull-right btn-group">
-          {deleteButton.buttonAsHtmlWithString(string)}
-          {overwriteButton.buttonAsHtmlWithString(string)}
+          {deleteButton.buttonAsHtmlWithValue(string)}
+          {overwriteButton.buttonAsHtmlWithValue(string)}
         </div>
     }
 

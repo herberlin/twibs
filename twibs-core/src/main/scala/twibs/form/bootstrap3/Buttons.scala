@@ -4,7 +4,7 @@
 
 package twibs.form.bootstrap3
 
-import scala.xml.{NodeSeq, Elem}
+import scala.xml.{NodeSeq, Elem,Unparsed, Text}
 import twibs.form.base.ButtonRenderer
 import twibs.util.{Translator, PrimaryDisplayType}
 import twibs.web.{Upload, Request}
@@ -36,11 +36,6 @@ trait UploadButton extends Button with PrimaryDisplayType {
 }
 
 trait BootstrapButtonRenderer extends ButtonRenderer {
-  def buttonAsHtmlWithString(buttonStringValue: String): NodeSeq = {
-    _buttonStringValue = buttonStringValue
-    buttonAsHtml
-  }
-
   def buttonAsHtml: NodeSeq = buttonAsEnrichedElem
 
   def buttonAsEnrichedElem: Elem = enrichButtonElem(buttonAsElem)
@@ -50,11 +45,25 @@ trait BootstrapButtonRenderer extends ButtonRenderer {
       .add("name", name)
       .addClasses(buttonCssClasses)
 
-  def buttonAsElem = <button type="submit" value={buttonStringValue}>{buttonTitleWithIconHtml}</button>
+  def buttonAsElem = <button type="submit" value={buttonValueAsString}>{buttonTitleWithIconHtml}</button>
 
-  def buttonStringValue = _buttonStringValue
+  def buttonValueAsString = ""
+}
 
-  private var _buttonStringValue: String = ""
+trait ButtonValue[T] extends BootstrapButtonRenderer {
+  def buttonAsHtmlWithValue(buttonValue: T): NodeSeq = {
+    val was = _buttonValue
+    _buttonValue = Some(buttonValue)
+    val ret = buttonAsHtml
+    _buttonValue = was
+    ret
+  }
+
+  def buttonValue = _buttonValue
+
+  override def buttonValueAsString = buttonValue.fold("")(_.toString)
+
+  private var _buttonValue: Option[T] = None
 }
 
 trait PopoverButtonRenderer extends BootstrapButtonRenderer {
@@ -62,15 +71,27 @@ trait PopoverButtonRenderer extends BootstrapButtonRenderer {
 
   override def buttonAsEnrichedElem: Elem =
     if (isEnabled)
-      <button type="button" class={openPopoverButtonCssClasses} data-container={popoverContainer} data-toggle="popover" data-html="true" data-placement={popoverPlacement} data-title={openPopoverTitle} data-content={popoverContent}>{openPopoverButtonTitleWithIconHtml}</button>
+      <button type="button" class={openPopoverButtonCssClasses} data-container={popoverContainer} data-toggle="popover" data-html="true" data-placement={popoverPlacement} data-title={popoverTitle} data-content={popoverContent}>{openPopoverButtonTitleWithIconHtml}</button>
     else
       <span class={openPopoverButtonCssClasses}>{openPopoverButtonTitleWithIconHtml}</span>.addClass("disabled")
 
-  def openPopoverButtonTitleWithIconHtml = buttonTitleWithIconHtml
+  def openPopoverButtonTitleWithIconHtml: NodeSeq = openPopoverButtonIconHtml match {case NodeSeq.Empty => openPopoverButtonTitleHtml case ns => ns ++ Text(" ") ++ openPopoverButtonTitleHtml }
+
+  def openPopoverButtonIconOrButtonTitleIfEmptyHtml: NodeSeq = openPopoverButtonIconHtml match {case NodeSeq.Empty => openPopoverButtonTitleHtml case s => s }
+
+  def openPopoverButtonIconHtml: NodeSeq = openPopoverButtonIconName match {case "" => NodeSeq.Empty case s => <span class={s"glyphicon glyphicon-$s"}></span> }
+
+  def openPopoverButtonTitleHtml = Unparsed(openPopoverButtonTitle)
+
+  def openPopoverButtonTitle = buttonTitle
+
+  def openPopoverButtonIconName = buttonIconName
 
   def openPopoverButtonCssClasses = buttonCssClasses
 
-  def openPopoverTitle = translator.translateOrUseDefault("popover-title", buttonTitle)
+  def openPopoverTitle = buttonTitle
+
+  def popoverTitle = translator.translateOrUseDefault("popover-title", buttonTitle)
 
   def popoverContent: NodeSeq = enrichButtonElem(buttonAsElem)
 

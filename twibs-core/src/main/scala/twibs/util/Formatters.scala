@@ -53,6 +53,8 @@ class Formatters(translator: Translator, locale: ULocale, currencyCode: String) 
     def formatAsPercent = percentFormat.format(value)
 
     def formatAsCurrency = currencyFormat.format(value)
+
+    def formatAsCurrencyWithCodeInsteadOfSymbol = currencyFormatWithCodeInsteadOfSymbol.format(value)
   }
 
   implicit def intToFormattable(value: Int) = new {
@@ -61,6 +63,8 @@ class Formatters(translator: Translator, locale: ULocale, currencyCode: String) 
     def formatAsPercent = percentFormat.format(value)
 
     def formatAsCurrency = currencyFormat.format(value)
+
+    def formatAsCurrencyWithCodeInsteadOfSymbol = currencyFormatWithCodeInsteadOfSymbol.format(value)
   }
 
   implicit def dateTimeToFormattable(dateTime: LocalDateTime) = new {
