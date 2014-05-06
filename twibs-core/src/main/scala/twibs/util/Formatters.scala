@@ -47,6 +47,8 @@ class Formatters(translator: Translator, locale: ULocale, currencyCode: String) 
 
   val mediumDateFormatter = new DateTimeFormatterBuilder().parseLenient().appendPattern(translator.translate("date-format", "dd.MM.yyyy")).toFormatter(locale.toLocale)
 
+  val shortDateFormatter = new DateTimeFormatterBuilder().parseLenient().appendPattern(translator.translate("date-short-format", "dd.MM.yy")).toFormatter(locale.toLocale)
+
   implicit def doubleToFormattable(value: Double) = new {
     def formatAsInteger = integerFormat.format(value)
 
@@ -73,6 +75,8 @@ class Formatters(translator: Translator, locale: ULocale, currencyCode: String) 
 
   implicit def dateToFormattable(date: LocalDate) = new {
     def formatAsMediumDate = mediumDateFormatter.format(date)
+
+    def formatAsShortDate = shortDateFormatter.format(date)
   }
 
   def getHumanReadableByteCountSi(bytes: Long): String = innerGetHumanReadableByteCount(bytes, 1000, "kMGTPE", "")

@@ -103,7 +103,6 @@ trait Table extends ItemContainer {
     def pagination = new Pagination(value, displayedElementCount, totalElementCount, limit)
   }
 
-
   def totalElementCount: Long
 
   def displayedElementCount: Long
@@ -205,4 +204,7 @@ trait Table extends ItemContainer {
 
   case class NamedColumn(name: String) extends Column
 
+  trait NormalWhiteSpace extends Column {
+    override def style(index: Int): String = super.style(index) + s"#${tableId.string} > table > tbody > tr > td:nth-child(${index + 1}) { white-space: normal; }"
+  }
 }

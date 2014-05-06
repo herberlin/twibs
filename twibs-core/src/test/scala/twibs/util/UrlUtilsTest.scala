@@ -17,20 +17,20 @@ class UrlUtilsTest extends FunSuite with Matchers {
     UrlUtils.isValidUrlPath("/a+a") should equal(true)
     UrlUtils.isValidUrlPath("/%2Fa+/b%2Fc") should equal(true)
 
-    evaluating {
+    intercept[NullPointerException] {
       UrlUtils.isValidUrlPath(null)
-    } should produce[NullPointerException]
+    }
     UrlUtils.isValidUrlPath("/a a") should equal(false)
     UrlUtils.isValidUrlPath(" ") should equal(false)
   }
 
   test("Test encode") {
-    evaluating {
+    intercept[NullPointerException] {
       UrlUtils.encodeUrl(null)
-    } should produce[NullPointerException]
-    evaluating {
+    }
+    intercept[NullPointerException] {
       UrlUtils.decodeUrl(null)
-    } should produce[NullPointerException]
+    }
     UrlUtils.encodeUrl("/a b/c") should be("%2Fa+b%2Fc")
     UrlUtils.decodeUrl("%2Fa+b%2Fc") should be("/a b/c")
   }

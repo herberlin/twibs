@@ -59,6 +59,7 @@ class SystemSettings {
   val runMode = Option(System.getProperty("run.mode")) match {
     case Some(DEVELOPMENT.name) => DEVELOPMENT
     case Some(STAGING.name) => STAGING
+    case Some(TEST.name) => TEST
     case None if isCalledFromTestClass => TEST
     case _ => PRODUCTION
   }

@@ -4,8 +4,8 @@
 
 package twibs.db
 
-import java.sql.Timestamp
-import org.threeten.bp.LocalDateTime
+import java.sql.{Date, Timestamp}
+import org.threeten.bp.{LocalDate, LocalDateTime}
 //TODO: Replace PostgresDriver with generic type once someone knows how ;)
 import scala.slick.driver.PostgresDriver.simple._
 import scala.slick.jdbc.{PositionedParameters, PositionedResult, SetParameter, GetResult}
@@ -13,6 +13,7 @@ import twibs.util.ThreeTenTransition._
 
 object ThreeTenMapper {
   implicit val timestamp2dateTime = MappedColumnType.base[LocalDateTime, Timestamp](_.toTimestamp, _.toLocalDateTime)
+  implicit val date2date = MappedColumnType.base[LocalDate, Date](_.toDate, _.toLocalDate)
 
   implicit object toDateTime extends GetResult[LocalDateTime] {
     def apply(rs: PositionedResult) = {
@@ -34,4 +35,23 @@ object ThreeTenMapper {
       p.setTimestampOption(d.map(dateTime => dateTime.toTimestamp))
   }
 
+  implicit object toDate extends GetResult[LocalDate] {
+    def apply(rs: PositionedResult) = {
+      val date = rs.nextDate()
+      if (date == null) null else date.toLocalDate
+    }
+  }
+
+  implicit object toDateOption extends GetResult[Option[LocalDate]] {
+    def apply(rs: PositionedResult) = rs.nextDateOption().map(date => date.toLocalDate)
+  }
+
+  implicit object setDateParameter extends SetParameter[LocalDate] {
+    def apply(d: LocalDate, p: PositionedParameters): Unit = p.setDate(d.toDate)
+  }
+
+  implicit object setDateOptionParameter extends SetParameter[Option[LocalDate]] {
+    def apply(d: Option[LocalDate], p: PositionedParameters): Unit =
+      p.setDateOption(d.map(date => date.toDate))
+  }
 }

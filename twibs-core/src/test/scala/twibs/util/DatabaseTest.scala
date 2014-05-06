@@ -16,7 +16,9 @@ class DatabaseTest extends TwibsTest with BeforeAndAfterAll {
   var database: Database = null
 
   override def beforeAll(): Unit =
-    database = new MemoryDatabase()
+    database = new MemoryDatabase() {
+      override def migrationLocations: List[String] = "memory-db/migration" :: Nil
+    }
 
   override def afterAll(): Unit =
     database.close()

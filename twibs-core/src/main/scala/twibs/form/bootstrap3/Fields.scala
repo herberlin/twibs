@@ -67,7 +67,7 @@ trait AbstractDateTimeField extends SingleLineField with JavascriptItem {
   private def inputGroupId = id + "_input_group"
 
   override def suffixes: List[NodeSeq] =
-    if (isEnabled) <span class="glyphicon glyphicon-calendar"></span> :: super.suffixes
+    if (isEnabled) clearButton :: <span class="glyphicon glyphicon-calendar"></span> :: super.suffixes
     else super.suffixes
 
   override def surroundWithInputGroup(input: Input, nodeSeq: NodeSeq): Elem =
@@ -75,17 +75,11 @@ trait AbstractDateTimeField extends SingleLineField with JavascriptItem {
       .add(!minimumFormattedForBrowser.isEmpty, "data-date-startdate", minimumFormattedForBrowser)
       .add(!maximumFormattedForBrowser.isEmpty, "data-date-enddate", maximumFormattedForBrowser)
 
-  override def inputAsEnrichedHtml(input: Input, index: Int) =
-    if (isDisabled)
-      super.inputAsEnrichedHtml(input, index)
-    else
-      super.inputAsEnrichedHtml(input, index) ++ clearButton
-
   override def inputAsEnrichedElem(input: Input, index: Int): Elem = super.inputAsEnrichedElem(input, index).removeClass("submit-on-change")
 
   def withClearButton = false
 
-  def clearButton = if (withClearButton) <span class="input-group-addon"><span class="glyphicon glyphicon-remove"></span></span> else NodeSeq.Empty
+  def clearButton = if (withClearButton) <span class="glyphicon glyphicon-remove"></span> else NodeSeq.Empty
 
   def formatPatternForBrowser: String
 

@@ -123,7 +123,7 @@ class ValuesTest extends TwibsTest {
     val field = new TestField with LongValues with Options with Required with TranslatedOptions {
       override def computeOptions: List[OptionI] = toOptions(1L :: Nil)
 
-      def optionShouldBe = OptionI("1", "One", 1L, true)
+      def optionShouldBe = OptionI("1", "One", 1L)
     }
 
     field.options should be(List(field.optionShouldBe))

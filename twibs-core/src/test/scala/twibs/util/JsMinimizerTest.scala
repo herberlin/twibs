@@ -16,9 +16,9 @@ class JsMinimizerTest extends TwibsTest {
   }
 
   test("With error") {
-    (evaluating {
+    intercept[JsMinimizerException] {
       pretty.minimize("/a.js", """var x = function() {   window.alert("Hello"); """)
-    } should produce[JsMinimizerException]).getMessage should be("/a.js:1: ERROR - Parse error. missing } after function body\nvar x = function() {   window.alert(\"Hello\"); \n                                             ^\n")
+    }.getMessage should be("/a.js:1: ERROR - Parse error. missing } after function body\nvar x = function() {   window.alert(\"Hello\"); \n                                             ^\n")
   }
 
   test("Preserve conditional comment") {
