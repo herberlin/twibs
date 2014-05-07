@@ -6,17 +6,15 @@ package twibs.util
 
 import java.sql.Timestamp
 import java.util.{Date, Calendar}
-import org.joda.time.DateTime
 import org.threeten.bp._
 
 object ThreeTenTransition {
   val zoneId = ZoneId.systemDefault()
 
-  // TODO; Switch to ThreeTen from Joda. Remove this function after done
-  implicit def convertJodaDateTimeToThreeTen(dateTime: DateTime) = new {
-    def toTTLocalDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(dateTime.getMillis), zoneId)
+  implicit def convertInstant(instant: Instant) = new {
+    def toLocalDateTime = LocalDateTime.ofInstant(instant, zoneId)
 
-    def toTTLocalDate = toTTLocalDateTime.toLocalDate
+    def toLocalDate = toLocalDateTime.toLocalDate
   }
 
   implicit def convertCalendarToThreeTen(calendar: Calendar) = new {
