@@ -23,7 +23,9 @@ trait XmlUtils {
         set("class", value)
     }
 
-    def removeClass(cssClass: String) = set("class", merge(elem.attribute("class").fold("")(_.toString()).split(" ").toList.filterNot(_ == cssClass)))
+    def removeClass(condition: Boolean, cssClass: => String): Elem = if (condition) removeClass(cssClass) else elem
+
+    def removeClass(cssClass: String): Elem = set("class", merge(elem.attribute("class").fold("")(_.toString()).split(" ").toList.filterNot(_ == cssClass)))
 
     def merge(cssClasses: List[String]) = cssClasses.filterNot(_.isEmpty).distinct.mkString(" ")
 

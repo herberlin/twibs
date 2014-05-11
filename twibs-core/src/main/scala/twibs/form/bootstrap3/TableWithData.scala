@@ -7,19 +7,9 @@ package twibs.form.bootstrap3
 import scala.xml.NodeSeq
 import twibs.db.TableData
 import twibs.form.bootstrap3.SortOrder._
-import java.io.Closeable
 
 trait TableWithData[T] extends Table {
-  def tableBody: NodeSeq = {
-    try {
-      tableData.rows.map(tableRow).toList.flatten
-    } finally {
-      tableData.rows match {
-        case closable: Closeable => closable.close()
-        case _ =>
-      }
-    }
-  }
+  def tableBody: NodeSeq = tableData.rows.map(tableRow).toList.flatten
 
   def tableData: TableData[T]
 
@@ -40,5 +30,4 @@ trait TableWithData[T] extends Table {
   object DataColumn {
     def apply(name: String): DataColumn = DataColumn(name, name)
   }
-
 }

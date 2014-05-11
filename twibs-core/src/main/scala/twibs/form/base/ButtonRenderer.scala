@@ -4,13 +4,18 @@
 
 package twibs.form.base
 
-import scala.xml.{Unparsed, Text, NodeSeq}
+import scala.xml.{Elem, Unparsed, Text, NodeSeq}
 import twibs.util.{TranslationSupport, DisplayType}
+import twibs.util.XmlUtils._
 
 trait ButtonRenderer extends DisplayType with TranslationSupport {
   def ilk: String
 
   def name: String
+
+  def renderButtonTitle = if (buttonUseIconOnly) buttonIconOrButtonTitleIfEmptyHtml else buttonTitleWithIconHtml
+
+  def buttonUseIconOnly = false
 
   def buttonTitleWithIconHtml: NodeSeq = buttonIconHtml match {case NodeSeq.Empty => buttonTitleHtml case ns => ns ++ Text(" ") ++ buttonTitleHtml }
 
@@ -25,6 +30,30 @@ trait ButtonRenderer extends DisplayType with TranslationSupport {
   def buttonIconName = t"button-icon:"
 
   def buttonCssClasses = "btn" :: "btn-" + displayTypeString :: Nil
+
+  def buttonAsHtml: NodeSeq = if (isVisible) buttonAsEnrichedElem else NodeSeq.Empty
+
+  def buttonAsEnrichedElem: Elem = enrichButtonElem(buttonAsElem)
+
+  def enrichButtonElem(elem: Elem) : Elem =
+    elem
+      .add("name", name)
+      .addClass(isActive, "active")
+      .addClasses(buttonCssClasses)
+      .addClass(isDisabled, "disabled")
+      .set(buttonUseIconOnly, "title", buttonTitle)
+
+  def buttonAsElem: Elem
+
+  def isVisible: Boolean
+
+  def isActive = false
+
+  def isInactive = !isActive
+
+  def isEnabled: Boolean
+
+  def isDisabled: Boolean
 }
 
 object HiddenInputRenderer {

@@ -15,7 +15,9 @@ abstract class Form(val name: String) extends BaseForm {
   abstract class OpenModalLink(implicit val parent: BaseParentItem) extends BaseChildItemWithName with ButtonRenderer {
     def ilk = "open-modal-link"
 
-    def html = <a href="#" class={buttonCssClasses} data-call={actionLinkWithContextPathAndParameters}>{buttonTitleWithIconHtml}</a>
+    def html = buttonAsHtml
+
+    override def buttonAsElem: Elem = <a href="#" data-call={actionLinkWithContextPathAndParameters}>{buttonTitleWithIconHtml}</a>
   }
 
   protected def enctype = "multipart/form-data"

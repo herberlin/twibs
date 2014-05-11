@@ -151,11 +151,14 @@ tr.collapse.in {
 .table.with-actions > tbody > tr > td:last-child {
   width: 1%;
   white-space: nowrap;
-  .btn + .btn {
+  > .btn + .btn, .btn + .btn-group, .btn-group + .btn {
     margin-left: 6px;
   }
-  .btn:last-child {
+  > .btn:last-child, .btn-group:last-child {
     margin-right: -4px;
+  }
+  > .btn-group .btn {
+    float: none;
   }
 }
 
@@ -209,6 +212,10 @@ tr.collapse.in {
 
 .cms-top-menu .btn img {
   width: 24px;
+}
+
+span.btn.active {
+  cursor: not-allowed;
 }
 
 span.placeholder {
