@@ -72,8 +72,8 @@ trait AbstractDateTimeField extends SingleLineField with JavascriptItem {
 
   override def surroundWithInputGroup(input: Input, nodeSeq: NodeSeq): Elem =
     <div class="input-group date" id={inputGroupId} data-date={input.string} data-link-field={id} data-link-format={formatPatternForBrowser} data-date-format={formatPatternForBrowser} data-date-today-btn={todayButton} data-date-today-highlight={"" + todayHighlight}>{nodeSeq}</div>
-      .add(!minimumFormattedForBrowser.isEmpty, "data-date-startdate", minimumFormattedForBrowser)
-      .add(!maximumFormattedForBrowser.isEmpty, "data-date-enddate", maximumFormattedForBrowser)
+      .setIfMissing(!minimumFormattedForBrowser.isEmpty, "data-date-startdate", minimumFormattedForBrowser)
+      .setIfMissing(!maximumFormattedForBrowser.isEmpty, "data-date-enddate", maximumFormattedForBrowser)
 
   override def inputAsEnrichedElem(input: Input, index: Int): Elem = super.inputAsEnrichedElem(input, index).removeClass("submit-on-change")
 
@@ -152,7 +152,7 @@ trait SingleSelectField extends SelectField {
 
   private def optionsAsElems(input: Input) =
     if (useEmptyOption(input.string))
-      optionAsElem("", "", "").add(required, "disabled", "disabled") :: elems(input)
+      optionAsElem("", "", "").setIfMissing(required, "disabled", "disabled") :: elems(input)
     else elems(input)
 
   private def elems(input: Input) = options.map(option => optionAsElem(option.string, option.title, input.string))
@@ -237,7 +237,7 @@ trait BooleanCheckBoxField extends Field with BooleanValues with FloatingInfo {
 }
 
 trait FileEntryField extends Field with FileEntryValues with Result {
-  val deleteButton = new SpecialButton("delete")(parent) with PopoverButtonRenderer with DangerDisplayType with Executable with ButtonValue[String] {
+  val deleteButton = new SpecialButton("delete")(parent) with BootstrapPopoverButton with DangerDisplayType with Executable with StringValues with ButtonValues {
     override def execute(parameters: Seq[String]) = processDeleteParameters(parameters)
 
     override def popoverPlacement: String = "auto right"
@@ -322,7 +322,7 @@ trait UploadWithOverwrite extends BaseItemContainer {
     override def inputAsEnrichedHtml(input: Input, index: Int): NodeSeq =
       HiddenInputRenderer(name, input.string) ++ <p class="form-control-static clearfix">{actionButtonsHtml(input.string)}<a href="#">{input.title}</a></p>
 
-    private val deleteButton = new SpecialButton("delete") with PopoverButtonRenderer with DangerDisplayType with Executable with ButtonValue[String] {
+    private val deleteButton = new SpecialButton("delete") with BootstrapPopoverButton with DangerDisplayType with Executable with StringValues with ButtonValues {
       override def execute(parameters: Seq[String]) = processDeleteParameters(parameters)
 
       override def popoverPlacement: String = "auto right"
@@ -330,7 +330,7 @@ trait UploadWithOverwrite extends BaseItemContainer {
       override def popoverContainer: String = form.contentId.toCssId
     }
 
-    private val overwriteButton = new SpecialButton("overwrite") with PopoverButtonRenderer with InfoDisplayType with Executable with ButtonValue[String] {
+    private val overwriteButton = new SpecialButton("overwrite") with BootstrapPopoverButton with InfoDisplayType with Executable with StringValues with ButtonValues {
       override def execute(parameters: Seq[String]) = processOverwriteParameters(parameters)
 
       override def popoverPlacement: String = "auto right"

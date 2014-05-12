@@ -18,13 +18,13 @@ import twibs.web.Upload
 trait Values extends TranslationSupport with Validatable {
   type ValueType
 
-  trait Result[I, O]
+  sealed trait ValidationResult[I, O]
 
-  case class Success[I, O](output: O) extends Result[I, O]
+  case class Success[I, O](output: O) extends ValidationResult[I, O]
 
-  case class SuccessAndTerminate[I, O](output: O) extends Result[I, O]
+  case class SuccessAndTerminate[I, O](output: O) extends ValidationResult[I, O]
 
-  case class Failure[I, O](input: I, message: String) extends Result[I, O]
+  case class Failure[I, O](input: I, message: String) extends ValidationResult[I, O]
 
   trait Input {
     def string: String
@@ -36,10 +36,11 @@ trait Values extends TranslationSupport with Validatable {
 
   case class InvalidInput(string: String, title: String, message: String, valueOption: Option[ValueType]) extends Input
 
-  type StringProcessor = (String) => Result[String, String]
-  type StringToValueConverter = (String) => Result[String, ValueType]
-  type ValueProcessor = ((ValueType) => Result[ValueType, ValueType])
-  type ValueToStringConverter = (ValueType) => String
+  type StringProcessor = (String) => ValidationResult[String, String]
+  type StringToValueConverter = (String) => ValidationResult[String, ValueType]
+  type StringToValueOption = (String) => Option[ValueType]
+  type ValueProcessor = ((ValueType) => ValidationResult[ValueType, ValueType])
+  type ValueToString = (ValueType) => String
 
   private var bufferedStrings: Option[Seq[String]] = None
 
@@ -144,13 +145,9 @@ trait Values extends TranslationSupport with Validatable {
 
   private def processString(string: String) = recursive(stringProcessors, string)
 
-  private def convertStringToValue(string: String): Result[String, ValueType] = stringToValueConverter(string)
-
-  private def convertValueToString(value: ValueType): String = valueToStringConverter(value)
-
   private def processValue(value: ValueType) = recursive(valueProcessors, value)
 
-  private def recursive[O](processors: Seq[(O) => Result[O, O]], in: O): Result[O, O] = {
+  private def recursive[O](processors: Seq[(O) => ValidationResult[O, O]], in: O): ValidationResult[O, O] = {
     if (processors.isEmpty) Success(in)
     else processors.head.apply(in) match {
       case v: SuccessAndTerminate[O, O] => v
@@ -161,9 +158,14 @@ trait Values extends TranslationSupport with Validatable {
 
   def stringProcessors: List[StringProcessor] = trimProcessor :: requiredProcessor :: minimumLengthProcessor :: maximumLengthProcessor :: regexProcessor :: Nil
 
-  def stringToValueConverter: StringToValueConverter
+  def stringToValueConverter: StringToValueConverter = (string) => stringToValueOption(string) match {
+    case Some(value) => Success(value)
+    case None => Failure(string, t"format-message: Invalid string '$string'.")
+  }
 
-  def valueToStringConverter: ValueToStringConverter
+  def stringToValueOption: StringToValueOption
+
+  def valueToString: ValueToString
 
   def valueProcessors: List[ValueProcessor] = Nil
 
@@ -171,7 +173,7 @@ trait Values extends TranslationSupport with Validatable {
     processString(string) match {
       case r: Failure[String, String] => InvalidInput(r.input, string, r.message, None)
       case r: SuccessAndTerminate[String, String] => ValidInput(r.output, string, None)
-      case r: Success[String, String] => convertStringToValue(r.output) match {
+      case r: Success[String, String] => stringToValueConverter(r.output) match {
         case r2: Failure[String, ValueType] => InvalidInput(r2.input, r2.input, r2.message, None)
         case r2: SuccessAndTerminate[String, ValueType] => validateValue(r2.output)
         case r2: Success[String, ValueType] => validateValue(r2.output)
@@ -180,22 +182,24 @@ trait Values extends TranslationSupport with Validatable {
 
   def validateValue(value: ValueType): Input =
     processValue(value) match {
-      case r: Failure[ValueType, ValueType] => InvalidInput(convertValueToString(r.input), titleForValue(r.input), r.message, Some(r.input))
-      case r: SuccessAndTerminate[ValueType, ValueType] => ValidInput(convertValueToString(r.output), titleForValue(r.output), Some(r.output))
-      case r: Success[ValueType, ValueType] => ValidInput(convertValueToString(r.output), titleForValue(r.output), Some(r.output))
+      case r: Failure[ValueType, ValueType] => InvalidInput(valueToString(r.input), titleForValue(r.input), r.message, Some(r.input))
+      case r: SuccessAndTerminate[ValueType, ValueType] => ValidInput(valueToString(r.output), titleForValue(r.output), Some(r.output))
+      case r: Success[ValueType, ValueType] => ValidInput(valueToString(r.output), titleForValue(r.output), Some(r.output))
     }
 
-  def titleForValue(value: ValueType): String = convertValueToString(value)
+  def titleForValue(value: ValueType): String = valueToString(value)
 
-  def toInput(value: ValueType): Input = ValidInput(valueToStringConverter(value), titleForValue(value), Some(value))
+  def toInput(value: ValueType): Input = ValidInput(valueToString(value), titleForValue(value), Some(value))
 
-  def toInput(value: ValueType, title: String): Input = ValidInput(valueToStringConverter(value), title, Some(value))
+  def toInput(value: ValueType, title: String): Input = ValidInput(valueToString(value), title, Some(value))
 }
 
 trait StringValues extends Values {
   type ValueType = String
 
-  override def valueToStringConverter: ValueToStringConverter = identity
+  override def valueToString: ValueToString = identity
+
+  override def stringToValueOption: StringToValueOption = (string) => Some(string)
 
   override def stringToValueConverter: StringToValueConverter = s => Success(s)
 
@@ -221,12 +225,12 @@ trait WebAddressValues extends StringValues {
 trait BooleanValues extends Values {
   type ValueType = Boolean
 
-  override def valueToStringConverter: ValueToStringConverter = value => value.toString
+  override def valueToString: ValueToString = value => value.toString
 
-  override def stringToValueConverter: StringToValueConverter = {
-    case "true" => Success(true)
-    case "false" => Success(false)
-    case string => Failure(string, t"format-message: Please enter a boolean value.")
+  override def stringToValueOption: StringToValueOption = {
+    case "true" => Some(true)
+    case "false" => Some(false)
+    case string => None
   }
 
   abstract override def translator: Translator = super.translator.kind("BOOLEAN")
@@ -253,12 +257,12 @@ trait NumberValues extends MinMaxValues {
 
   def displayNumberFormat: NumberFormat = editNumberFormat
 
-  override def valueToStringConverter: ValueToStringConverter = value => editNumberFormat.format(value)
+  override def valueToString: ValueToString = value => editNumberFormat.format(value)
 
-  override def stringToValueConverter: StringToValueConverter = string => try {
-    Success(parseString(string))
+  override def stringToValueOption: StringToValueOption = string => try {
+    Some(parseString(string))
   } catch {
-    case e: ParseException => Failure(string, t"format-message: Please enter a valid number.")
+    case e: ParseException => None
   }
 
   protected def parseString(string: String): ValueType
@@ -345,9 +349,9 @@ trait PercentValues extends NumberValues {
 trait UploadValues extends Values {
   type ValueType = Upload
 
-  override def stringToValueConverter: StringToValueConverter = string => Uploads.get(string).map(value => Success[String, ValueType](value)).getOrElse(Failure[String, ValueType](string, t"format-message: Referenced upload does not exist"))
+  override def stringToValueOption: StringToValueOption = string => Uploads.get(string)
 
-  override def valueToStringConverter: ValueToStringConverter = value => value.id
+  override def valueToString: ValueToString = value => value.id
 
   override def titleForValue(value: ValueType): String = value.name + " (" + value.sizeAsHumanReadableString + ")"
 
@@ -369,15 +373,15 @@ trait DateTimeValues extends MinMaxValues {
 
   override protected def isGreaterOrEqualMinimum(value: ValueType): Boolean = !value.isBefore(minimum)
 
-  override def stringToValueConverter: StringToValueConverter = string => try {
-    Success(LocalDateTime.parse(string, editDateTimeFormat))
+  override def stringToValueOption: StringToValueOption = string => try {
+    Some(LocalDateTime.parse(string, editDateTimeFormat))
   } catch {
-    case e: DateTimeParseException => Failure(string, t"format-message: Please enter a valid date time")
+    case e: DateTimeParseException => None
   }
 
   abstract override def translator: Translator = super.translator.kind("DATE-TIME")
 
-  override def valueToStringConverter: ValueToStringConverter = value => editDateTimeFormat.format(value)
+  override def valueToString: ValueToString = value => editDateTimeFormat.format(value)
 }
 
 trait DateValues extends MinMaxValues {
@@ -395,15 +399,15 @@ trait DateValues extends MinMaxValues {
 
   override protected def isGreaterOrEqualMinimum(value: ValueType): Boolean = !value.isBefore(minimum)
 
-  override def stringToValueConverter: StringToValueConverter = string => try {
-    Success(LocalDate.parse(string, editDateFormat))
+  override def stringToValueOption: StringToValueOption = string => try {
+    Some(LocalDate.parse(string, editDateFormat))
   } catch {
-    case e: DateTimeParseException => Failure(string, t"format-message: Please enter a valid date time")
+    case e: DateTimeParseException => None
   }
 
   abstract override def translator: Translator = super.translator.kind("DATE")
 
-  override def valueToStringConverter: ValueToStringConverter = value => editDateFormat.format(value)
+  override def valueToString: ValueToString = value => editDateFormat.format(value)
 }
 
 trait EnumerationValues[E <: Enumeration] extends Options {
@@ -411,12 +415,13 @@ trait EnumerationValues[E <: Enumeration] extends Options {
 
   def enumeration: E
 
-  override def stringToValueConverter: StringToValueConverter = (string: String) =>
-    try Success(enumeration.apply(string.toInt)) catch {
-      case _: NoSuchElementException | _: NumberFormatException => Failure(string, t"format-message: Illegal format for $string")
-    }
+  override def stringToValueOption: StringToValueOption = string => try {
+    Some(enumeration.apply(string.toInt))
+  } catch {
+    case _: NoSuchElementException | _: NumberFormatException => None
+  }
 
-  override def valueToStringConverter: ValueToStringConverter = (value: ValueType) => value.id.toString
+  override def valueToString: ValueToString = value => value.id.toString
 
   def computeOptions = enumeration.values.toList
 }
@@ -450,11 +455,11 @@ trait Options extends Values {
 
   implicit def toOptions[V <: ValueType](values: List[ValueType]): List[OptionI] = values.map(toOption)
 
-  def toOption(value: ValueType) = OptionI(valueToStringConverter(value), titleForOption(value), value)
+  def toOption(value: ValueType) = OptionI(valueToString(value), titleForOption(value), value)
 
   def titleForOption(value: ValueType) = titleForValue(value)
 
-  def toOption(value: ValueType, title: String, enabled: Boolean = true) = OptionI(valueToStringConverter(value), title, value, enabled)
+  def toOption(value: ValueType, title: String, enabled: Boolean = true) = OptionI(valueToString(value), title, value, enabled)
 
   final def options: List[OptionI] = _options.value
 
@@ -466,9 +471,7 @@ trait Options extends Values {
 
   def computeOptions: List[OptionI]
 
-  def resetOptions(): Unit = {
-    _options.reset()
-  }
+  def resetOptions(): Unit = _options.reset()
 
   protected def checkIsInOptionValues: ValueProcessor = (value: ValueType) => if (optionValues.contains(value)) Success(value) else Failure(value, t"is-no-option-message: Please choose a valid value.")
 
@@ -476,14 +479,11 @@ trait Options extends Values {
 
   def useEmptyOption(string: String) = !required || options.isEmpty || !optionStrings.contains(string)
 
-  override def stringToValueConverter: StringToValueConverter = (string:String) => {
-    val t: Option[Result[String,ValueType]] = options.collectFirst{ case o if o.string == string => Success(o.value)  }
-    t getOrElse Failure(string, t"format-message: Please choose a valid value.")
-  }
+  override def stringToValueOption: StringToValueOption = string => options.collectFirst{ case o if o.string == string => o.value }
 }
 
 trait TranslatedOptions extends Options {
-  override def titleForOption(value: ValueType): String = translator.translate("option-title." + valueToStringConverter(value), titleForValue(value))
+  override def titleForOption(value: ValueType): String = translator.translate("option-title." + valueToString(value), titleForValue(value))
 }
 
 trait FileEntry {
@@ -508,12 +508,9 @@ trait FileEntry {
 trait FileEntryValues extends Values {
   type ValueType = FileEntry
 
-  override def valueToStringConverter: ValueToStringConverter = value => value.path
+  override def valueToString: ValueToString = value => value.path
 
-  override def stringToValueConverter: StringToValueConverter = string => defaultValues.find(_.path == string) match {
-    case Some(e) => Success(e)
-    case _ => Failure(string, t"format-message: Invalid file entry '$string'")
-  }
+  override def stringToValueOption: StringToValueOption = string => defaultValues.find(_.path == string)
 
   override def titleForValue(value: ValueType): String = value.title
 }

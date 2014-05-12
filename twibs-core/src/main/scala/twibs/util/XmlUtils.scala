@@ -37,9 +37,9 @@ trait XmlUtils {
 
     def set(condition: Boolean, name: => String): Elem = set(condition, name, name)
 
-    def add(name: String, value: String): Elem = if (elem.attribute(name).isEmpty) elem % Attribute(name, Text(value), Null) else elem
+    def setIfMissing(name: String, value: String): Elem = if (elem.attribute(name).isEmpty) elem % Attribute(name, Text(value), Null) else elem
 
-    def add(condition: Boolean, name: => String, value: => String): Elem = if (condition) add(name, value) else elem
+    def setIfMissing(condition: Boolean, name: => String, value: => String): Elem = if (condition) setIfMissing(name, value) else elem
   }
 
   implicit def cssClassesToAttributeValue(cssClasses: List[String]): Seq[Node] = Text(cssClasses.map(_.trim).filterNot(_.isEmpty).distinct.mkString(" "))

@@ -5,7 +5,7 @@
 package twibs.form.bootstrap3
 
 import scala.xml.{NodeSeq, Elem}
-import twibs.form.base.{BaseChildItemWithName, Result, Executor, ButtonRenderer}
+import twibs.form.base._
 import twibs.util.JavaScript._
 import twibs.util.{Translator, PrimaryDisplayType}
 import twibs.web.{Upload, Request}
@@ -36,54 +36,38 @@ trait UploadButton extends Button with PrimaryDisplayType {
   override def translator: Translator = super.translator.kind("UPLOAD-BUTTON")
 }
 
-trait BootstrapButtonRenderer extends ButtonRenderer {
+trait BootstrapButton extends BaseButton {
   def buttonAsElem =
     if (isEnabled)
       <button type="submit" value={buttonValueAsString}>{renderButtonTitle}</button>
     else
       <span>{renderButtonTitle}</span>
-
-  def buttonValueAsString = ""
 }
 
-trait ButtonValue[T] extends BootstrapButtonRenderer {
-  def buttonAsHtmlWithValue(buttonValue: T): NodeSeq = {
-    val was = _buttonValue
-    _buttonValue = Some(buttonValue)
-    val ret = buttonAsHtml
-    _buttonValue = was
-    ret
-  }
-
-  def buttonValue = _buttonValue
-
-  override def buttonValueAsString = buttonValue.fold("")(_.toString)
-
-  private var _buttonValue: Option[T] = None
-}
-
-trait PopoverButtonRenderer extends BootstrapButtonRenderer with BaseChildItemWithName {
+trait BootstrapPopoverButton extends BootstrapButton with ButtonValues {
   self =>
   def usePopover = true
 
   override def buttonAsEnrichedElem: Elem = if (usePopover) openPopoverButton.buttonAsEnrichedElem else super.buttonAsEnrichedElem
 
-  class OpenPopoverButton extends BootstrapButtonRenderer {
+  class OpenPopoverButton extends BootstrapButton with Executable with Result {
+    override def parent = self.parent
+
     override def isActive = self.isActive
 
-    override def isVisible = self.isVisible
+    override def itemIsVisible = self.itemIsVisible
 
-    override def isEnabled = self.isEnabled
+    override def itemIsRevealed = self.itemIsRevealed
 
-    override def isDisabled = self.isDisabled
+    override def itemIsEnabled = self.itemIsEnabled
 
-    override def name = openPopoverButtonName
-
-    override def ilk = self.ilk
+    override def ilk = self.ilk + "-popover"
 
     override def translator = self.translator.usage("open-popover")
 
     override def displayTypeString = self.displayTypeString
+
+    override def buttonValueAsString: String = self.buttonValueAsString
 
     override def buttonAsElem: Elem =
       if (isEnabled)
@@ -94,31 +78,27 @@ trait PopoverButtonRenderer extends BootstrapButtonRenderer with BaseChildItemWi
       else
         <span>{renderButtonTitle}</span>
 
-    def openPopoverJs = jQuery(id).call("popover", popoverOptions).call("addClass", "popover-by-script").call("popover", "show")
-
-    def popoverOptions = Map(
-      "html" -> true,
-      "title" -> popoverTitle,
-      "content" -> popoverContent,
-      "placement" -> popoverPlacement,
-      "container" -> popoverContainer
-    )
-  }
-
-  new Executor(openPopoverButtonName)(parent) with Result {
     override def execute(strings: Seq[String]): Unit = {
-
-
-
-      result = AfterFormDisplay(openPopoverButton.openPopoverJs)
+      self.strings = strings
+      result = AfterFormDisplay(openPopoverJs)
     }
+
+    def openPopoverJs = jQuery(id).call("popover", popoverOptions).call("addClass", "popover-by-script").call("popover", "show")
   }
+
+  final val openPopoverButton = computeOpenPopoverButton
 
   def popoverNeedsCalculation = false
 
-  def openPopoverButtonName = self.name + "-popover"
+  def popoverOptions = Map(
+    "html" -> true,
+    "title" -> popoverTitle,
+    "content" -> popoverContent,
+    "placement" -> popoverPlacement,
+    "container" -> popoverContainer
+  )
 
-  def openPopoverButton = new OpenPopoverButton
+  def computeOpenPopoverButton = new OpenPopoverButton
 
   def popoverTitle = translator.translateOrUseDefault("popover-title", buttonTitle)
 

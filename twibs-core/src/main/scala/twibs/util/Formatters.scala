@@ -56,6 +56,8 @@ class Formatters(translator: Translator, locale: ULocale, currencyCode: String) 
 
     def formatAsCurrency = currencyFormat.format(value)
 
+    def formatAsCurrencyWithoutSymbol = currencyFormatWithoutSymbol.format(value)
+
     def formatAsCurrencyWithCodeInsteadOfSymbol = currencyFormatWithCodeInsteadOfSymbol.format(value)
   }
 

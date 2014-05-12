@@ -7,12 +7,9 @@ package twibs.form.base
 import scala.xml.{Elem, Unparsed, Text, NodeSeq}
 import twibs.util.{TranslationSupport, DisplayType}
 import twibs.util.XmlUtils._
+import twibs.web.Request
 
-trait ButtonRenderer extends DisplayType with TranslationSupport {
-  def ilk: String
-
-  def name: String
-
+trait BaseButton extends BaseChildItemWithName with DisplayType {
   def renderButtonTitle = if (buttonUseIconOnly) buttonIconOrButtonTitleIfEmptyHtml else buttonTitleWithIconHtml
 
   def buttonUseIconOnly = false
@@ -35,27 +32,40 @@ trait ButtonRenderer extends DisplayType with TranslationSupport {
 
   def buttonAsEnrichedElem: Elem = enrichButtonElem(buttonAsElem)
 
+  def buttonValueAsString: String = ""
+
   def enrichButtonElem(elem: Elem) : Elem =
     elem
-      .add("name", name)
+      .setIfMissing("name", name)
+      .setIfMissing("id", id.string)
       .addClass(isActive, "active")
       .addClasses(buttonCssClasses)
       .addClass(isDisabled, "disabled")
-      .set(buttonUseIconOnly, "title", buttonTitle)
+      .addClass(!isDisabled, "can-be-disabled")
+      .setIfMissing(buttonUseIconOnly, "title", buttonTitle)
 
   def buttonAsElem: Elem
-
-  def isVisible: Boolean
 
   def isActive = false
 
   def isInactive = !isActive
-
-  def isEnabled: Boolean
-
-  def isDisabled: Boolean
 }
 
-object HiddenInputRenderer {
-  def apply(name: String, value: String) = <input type="hidden" autocomplete="off" name={name} value={value} />
+trait ButtonValues extends BaseButton with Values {
+  def buttonAsHtmlWithValue(buttonValue: ValueType): NodeSeq = {
+    val was = values
+    values = buttonValue :: Nil
+    val ret = buttonAsHtml
+    values = was
+    ret
+  }
+
+  override def buttonValueAsString = strings.headOption getOrElse ""
+
+  def value = values.head
+
+  override def parse(request: Request): Unit = request.parameters.getStringsOption(name).foreach(parse)
+
+  def parse(parameters: Seq[String]): Unit = strings = parameters
 }
+

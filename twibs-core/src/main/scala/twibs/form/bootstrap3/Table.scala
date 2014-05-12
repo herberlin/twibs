@@ -70,7 +70,7 @@ trait Table extends ItemContainer {
                 {page.title}
               </span>
             else
-              <a name={name} value={valueToStringConverter(page.firstElementNumber)} href="#">
+              <a name={name} value={valueToString(page.firstElementNumber)} href="#">
                 {page.title}
               </a>
                 .addClass(!isDisabled, "submit")}

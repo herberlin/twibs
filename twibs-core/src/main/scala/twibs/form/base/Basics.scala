@@ -104,13 +104,13 @@ class Messages()(implicit val parent: BaseParentItem) extends BaseChildItem with
 abstract class HiddenInput(val ilk: String)(implicit val parent: BaseParentItem) extends BaseField with RenderedItem {
   override def html = inputs.map(input => HiddenInputRenderer(name, input.string))
 
-  def executionLink(value: ValueType) = parent.form.actionLinkWithContextPath + "?" + name + "=" + valueToStringConverter(value)
+  def executionLink(value: ValueType) = parent.form.actionLinkWithContextPath + "?" + name + "=" + valueToString(value)
 }
 
 abstract class InitInput()(implicit val parent: BaseParentItem) extends BaseField {
   def ilk: String = "init"
 
-  def link(value: ValueType): String = parent.form.actionLinkWithContextPath + "?" + name + "=" + valueToStringConverter(value)
+  def link(value: ValueType): String = parent.form.actionLinkWithContextPath + "?" + name + "=" + valueToString(value)
 
   override def execute(request: Request): Unit = valueOption.map(initWithVar)
 
@@ -122,14 +122,18 @@ abstract class InitInput()(implicit val parent: BaseParentItem) extends BaseFiel
   private var initWithVar:(ValueType) => Unit = (ValueType) => Unit
 }
 
-abstract class ActionButton(val ilk: String)(implicit val parent: BaseParentItem) extends BaseField {
-  def link(value: ValueType): String = parent.form.actionLinkWithContextPath + "?" + name + "=" + valueToStringConverter(value)
+abstract class ActionButton(val ilk: String)(implicit val parent: BaseParentItem) extends ButtonValues {
+  def link(value: ValueType): String = parent.form.actionLinkWithContextPath + "?" + name + "=" + valueToString(value)
 
-  override def execute(request: Request): Unit = valueOption.map(execute)
+  override def execute(request: Request): Unit = values.headOption.map(execute)
 
   def execute(value: ValueType): Unit
 }
 
 trait Renderer {
   def renderMessage(message: Message): NodeSeq
+}
+
+object HiddenInputRenderer {
+  def apply(name: String, value: String) = <input type="hidden" autocomplete="off" name={name} value={value} />
 }

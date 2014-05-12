@@ -29,7 +29,7 @@ object TableDataProducer {
 
     var ret = whereQuery
 
-    sortBy.foreach {
+    sortBy.reverse.foreach {
       case (name, SortOrder.Ascending) => ret = ret.sortBy(_.findColumnByName(name).asc)
       case (name, SortOrder.Descending) => ret = ret.sortBy(_.findColumnByName(name).desc)
       case _ =>
