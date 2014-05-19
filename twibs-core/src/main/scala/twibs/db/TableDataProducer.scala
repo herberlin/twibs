@@ -7,18 +7,18 @@ package twibs.db
 //TODO: Replace PostgresDriver with generic type once someone knows how ;)
 import scala.slick.driver.PostgresDriver.simple._
 import scala.slick.jdbc.JdbcBackend.Database.dynamicSession
-import scala.slick.lifted.Query
+import scala.slick.lifted.{Query => SlickQuery}
 import twibs.form.bootstrap3.SortOrder
 import twibs.form.bootstrap3.SortOrder.SortOrder
 import twibs.util.SqlUtils
 
 object TableDataProducer {
-  def apply[T <: NamedColumns, E, C[_]](query: Query[T, E, C], queryString: String, offset: Long, limit: Int, sortBy: List[(String, SortOrder)], whereLike: (String) => Query[T, E, C]) = {
-    val total = Query(query.length).first
+  def apply[T <: NamedColumns, E, C[_]](query: SlickQuery[T, E, C], queryString: String, offset: Long, limit: Int, sortBy: List[(String, SortOrder)], whereLike: (String) => SlickQuery[T, E, C]) = {
+    val total = SlickQuery(query.length).first
 
     val (displayed, whereQuery) = if (!queryString.trim.isEmpty) {
       val ret = whereLike("%" + SqlUtils.escapeForLike(queryString.trim).toLowerCase + "%")
-      (Query(ret.length).first, ret)
+      (SlickQuery(ret.length).first, ret)
     } else {
       (total, query)
     }
