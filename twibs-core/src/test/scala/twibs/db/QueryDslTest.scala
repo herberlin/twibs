@@ -1,7 +1,6 @@
 package twibs.db
 
 import twibs.TwibsTest
-import twibs.db.{MemoryDatabase, Table, QueryDsl, Database}
 
 class QueryDslTest extends TwibsTest {
   val userTable = new Table("users") {
@@ -47,7 +46,7 @@ class QueryDslTest extends TwibsTest {
       Database.withStaticTransaction { implicit connection =>
         userTable.size should be(3)
         query(userTable.lastName).where(userTable.firstName like "Frank").size should be(1)
-        query(userTable.firstName, userTable.lastName).insert("Frank", "appa")
+        query(userTable.firstName, userTable.lastName).insertAndReturn("Frank", "appa")(userTable.id) should be(4L)
         userTable.size should be(4)
         query(userTable.lastName).where(userTable.firstName like "Frank").size should be(2)
         query(userTable.firstName, userTable.lastName).where(userTable.lastName === "appa").update("Dweezil", "Zappa") should be(1)

@@ -1,8 +1,9 @@
 package twibs.db
 
 import com.google.common.base.Stopwatch
-import java.sql.{Types, Connection, PreparedStatement, ResultSet}
+import java.sql._
 import org.threeten.bp.{LocalDate, LocalDateTime}
+import scala.Some
 import twibs.util.Loggable
 import twibs.util.Predef._
 import twibs.util.ThreeTenTransition._
@@ -13,15 +14,15 @@ class Table(val tableName: String) {
   protected implicit def table: Table = this
 
   case class StringColumn(name: String) extends Column[String] {
-    def get(rs: ResultSet) = rs.getString(name)
+    def get(rs: ResultSet, pos: Int) = rs.getString(pos)
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setString(pos, value.asInstanceOf[String])
 
     def like(right: String): Where = new ColumnWhere("LIKE", right)
   }
 
-  case class StringOptionColumn(name: String) extends Column[Option[String]] {
-    def get(rs: ResultSet) = Option(rs.getString(name))
+  case class StringOptionColumn(name: String) extends Column[Option[String]] with OptionalColumn {
+    def get(rs: ResultSet, pos: Int) = Option(rs.getString(pos))
 
     def set(ps: PreparedStatement, pos: Int, valueOption: Any) = valueOption.asInstanceOf[Option[String]] match {
       case Some(value) => ps.setString(pos, value)
@@ -30,13 +31,13 @@ class Table(val tableName: String) {
   }
 
   case class LongColumn(name: String) extends Column[Long] {
-    def get(rs: ResultSet) = rs.getLong(name)
+    def get(rs: ResultSet, pos: Int) = rs.getLong(pos)
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setLong(pos, value.asInstanceOf[Long])
   }
 
-  case class LongOptionColumn(name: String) extends Column[Option[Long]] {
-    def get(rs: ResultSet) = Option(rs.getLong(name))
+  case class LongOptionColumn(name: String) extends Column[Option[Long]] with OptionalColumn {
+    def get(rs: ResultSet, pos: Int) = Option(rs.getLong(pos))
 
     def set(ps: PreparedStatement, pos: Int, valueOption: Any) = valueOption.asInstanceOf[Option[Long]] match {
       case Some(value) => ps.setLong(pos, value)
@@ -45,19 +46,19 @@ class Table(val tableName: String) {
   }
 
   case class BooleanColumn(name: String) extends Column[Boolean] {
-    def get(rs: ResultSet) = rs.getBoolean(name)
+    def get(rs: ResultSet, pos: Int) = rs.getBoolean(pos)
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setBoolean(pos, value.asInstanceOf[Boolean])
   }
 
   case class DoubleColumn(name: String) extends Column[Double] {
-    def get(rs: ResultSet) = rs.getDouble(name)
+    def get(rs: ResultSet, pos: Int) = rs.getDouble(pos)
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setDouble(pos, value.asInstanceOf[Double])
   }
 
-  case class DoubleOptionColumn(name: String) extends Column[Option[Double]] {
-    def get(rs: ResultSet) = Option(rs.getDouble(name))
+  case class DoubleOptionColumn(name: String) extends Column[Option[Double]] with OptionalColumn {
+    def get(rs: ResultSet, pos: Int) = Option(rs.getDouble(pos))
 
     def set(ps: PreparedStatement, pos: Int, valueOption: Any) = valueOption.asInstanceOf[Option[Double]] match {
       case Some(value) => ps.setDouble(pos, value)
@@ -66,13 +67,13 @@ class Table(val tableName: String) {
   }
 
   case class LocalDateTimeColumn(name: String) extends Column[LocalDateTime] {
-    def get(rs: ResultSet) = rs.getTimestamp(name).toLocalDateTime
+    def get(rs: ResultSet, pos: Int) = rs.getTimestamp(pos).toLocalDateTime
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setTimestamp(pos, value.asInstanceOf[LocalDateTime].toTimestamp)
   }
 
-  case class LocalDateTimeOptionColumn(name: String) extends Column[Option[LocalDateTime]] {
-    def get(rs: ResultSet) = Option(rs.getTimestamp(name).toLocalDateTime)
+  case class LocalDateTimeOptionColumn(name: String) extends Column[Option[LocalDateTime]] with OptionalColumn {
+    def get(rs: ResultSet, pos: Int) = Option(rs.getTimestamp(pos).toLocalDateTime)
 
     def set(ps: PreparedStatement, pos: Int, valueOption: Any) = valueOption.asInstanceOf[Option[LocalDateTime]] match {
       case Some(value) => ps.setTimestamp(pos, value.toTimestamp)
@@ -81,13 +82,13 @@ class Table(val tableName: String) {
   }
 
   case class LocalDateColumn(name: String) extends Column[LocalDate] {
-    def get(rs: ResultSet) = rs.getDate(name).toLocalDate
+    def get(rs: ResultSet, pos: Int) = rs.getDate(pos).toLocalDate
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setDate(pos, value.asInstanceOf[LocalDate].toDate)
   }
 
-  case class LocalDateOptionColumn(name: String) extends Column[Option[LocalDate]] {
-    def get(rs: ResultSet) = Option(rs.getDate(name).toLocalDate)
+  case class LocalDateOptionColumn(name: String) extends Column[Option[LocalDate]] with OptionalColumn {
+    def get(rs: ResultSet, pos: Int) = Option(rs.getDate(pos).toLocalDate)
 
     def set(ps: PreparedStatement, pos: Int, valueOption: Any) = valueOption.asInstanceOf[Option[LocalDate]] match {
       case Some(value) => ps.setDate(pos, value.toDate)
@@ -96,9 +97,18 @@ class Table(val tableName: String) {
   }
 
   case class EnumColumn[T <: Enumeration](name: String, enum: T) extends Column[T#Value] {
-    def get(rs: ResultSet) = enum(rs.getInt(name))
+    def get(rs: ResultSet, pos: Int) = enum(rs.getInt(pos))
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setInt(pos, value.asInstanceOf[T#Value].id)
+  }
+
+  case class EnumOptionColumn[T <: Enumeration](name: String, enum: T) extends Column[Option[T#Value]] {
+    def get(rs: ResultSet, pos: Int) = Option(rs.getInt(pos)).map(t => enum(t))
+
+    def set(ps: PreparedStatement, pos: Int, valueOption: Any) = valueOption.asInstanceOf[Option[T#Value]] match {
+      case Some(value) => ps.setInt(pos, value.id)
+      case None => ps.setNull(pos, Types.INTEGER)
+    }
   }
 
   def size(implicit connection: Connection) = Statement(s"SELECT count(*) FROM $tableName").size(connection)
@@ -137,9 +147,16 @@ abstract class Column[T](implicit val table: Table) {
     override def toStatement = Statement(s"$fullName DESC")
   }
 
-  def get(rs: ResultSet): T
+  def get(rs: ResultSet, pos: Int): T
 
   def set(ps: PreparedStatement, pos: Int, value: Any): Unit
+}
+
+trait OptionalColumn {
+  self: Column[_] =>
+  def isNotNull = new Where {
+    private[db] override def toStatement = Statement(s"$fullName IS NOT NULL")
+  }
 }
 
 trait Where {
@@ -181,16 +198,32 @@ trait OrderBy {
 private case class Statement(sql: String, parameters: List[(Column[_], Any)] = Nil) {
   def ~(right: Statement) = Statement(sql + right.sql, parameters ::: right.parameters)
 
-  def execute(connection: Connection): Unit = timed {preparedStatement(connection).useAndClose {_.execute()}}
+  def insert(connection: Connection): Unit = timed {preparedStatement(connection).useAndClose {_.execute()}}
 
-  def executeUpdate(connection: Connection): Long = timed {preparedStatement(connection).useAndClose {_.executeUpdate()}}
+  def insertAndReturn[R](connection: Connection)(column: Column[R]): R = timed {
+    returningStatement(connection).useAndClose { ps =>
+      ps.execute()
+      ps.getGeneratedKeys useAndClose { generatedKeys =>
+        if (generatedKeys.next()) {
+          column.get(generatedKeys, 1)
+        } else {
+          throw new SQLException("No generated key returned")
+        }
+      }
+    }
+  }
 
-  def executeQuery(connection: Connection): ResultSet = timed {preparedStatement(connection).executeQuery()}
+  def update(connection: Connection): Long = timed {preparedStatement(connection).useAndClose {_.executeUpdate()}}
+
+  def select(connection: Connection): ResultSet = timed {preparedStatement(connection).executeQuery()}
 
   def size(connection: Connection) = timed {preparedStatement(connection).useAndClose {_.executeQuery().useAndClose { rs => rs.next(); rs.getLong(1)}}}
 
-  private def preparedStatement(connection: Connection) = {
-    val ps = connection.prepareStatement(sql)
+  private def preparedStatement(connection: Connection) = setParameters(connection.prepareStatement(sql))
+
+  private def returningStatement(connection: Connection) = setParameters(connection.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS))
+
+  private def setParameters(ps: PreparedStatement) = {
     parameters.view.zipWithIndex.foreach { case ((column, value), index) => column.set(ps, index + 1, value)}
     ps
   }
@@ -225,7 +258,19 @@ trait Query[T <: Product] {
 
   def select(implicit connection: Connection): TraversableOnce[T] with AutoCloseable
 
+  def firstOption(implicit connection: Connection): Option[T] = {
+    val s = select(connection)
+    val it = s.toIterator
+    val ret = if (it.hasNext) Some(it.next()) else None
+    s.close()
+    ret
+  }
+
+  def first(implicit connection: Connection): T = firstOption(connection).get
+
   def insert(value: T)(implicit connection: Connection): Unit
+
+  def insertAndReturn[R](value: T)(column: Column[R])(implicit connection: Connection): R
 
   def update(value: T)(implicit connection: Connection): Long
 
@@ -237,7 +282,18 @@ trait Query[T <: Product] {
 
   def size(implicit connection: Connection): Long
 
-  def from(rs: ResultSet): T
+  def isEmpty(implicit connection: Connection): Boolean = size(connection) == 0
+
+  private[db] def from(rs: ResultSet, autoCounter: AutoCounter): T
+}
+
+private[db] class AutoCounter {
+  private var count = 0
+
+  def apply() = {
+    count += 1
+    count
+  }
 }
 
 trait DeleteFrom {
