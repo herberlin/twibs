@@ -205,7 +205,9 @@ private case class Statement(sql: String, parameters: List[(Column[_], Any)] = N
       ps.execute()
       ps.getGeneratedKeys useAndClose { generatedKeys =>
         if (generatedKeys.next()) {
-          column.get(generatedKeys, 1)
+          val md = generatedKeys.getMetaData
+          val pos = (for( i <- 1 to md.getColumnCount if md.getColumnName(i) == column.name) yield i).headOption getOrElse 1
+          column.get(generatedKeys, pos)
         } else {
           throw new SQLException("No generated key returned")
         }
