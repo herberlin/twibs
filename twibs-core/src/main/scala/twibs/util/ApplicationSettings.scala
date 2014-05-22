@@ -66,7 +66,7 @@ class SystemSettings {
 
   val locale = ULocale.getDefault
 
-  private def isCalledFromTestClass = new Exception().getStackTrace.exists(_.getClassName == "org.scalatest.tools.Runner")
+  private def isCalledFromTestClass = new Exception().getStackTrace.exists(_.getClassName.startsWith("org.scalatest"))
 
   object Twibs {
     val fullVersion: String = Option(getClass.getPackage.getSpecificationVersion) getOrElse "0.0"
