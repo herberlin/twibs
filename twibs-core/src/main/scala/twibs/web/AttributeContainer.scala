@@ -12,13 +12,13 @@ trait AttributeContainer {
   def getAttribute(name: String): Option[Any]
 
   def getAttribute[T <: Any](attributeName: String, default: => T): T =
-    getAttribute(attributeName).map(_.asInstanceOf[T]) getOrElse default
+    getAttribute(attributeName).fold(default)(_.asInstanceOf[T])
 
   def getAttributeOrStoreDefault[T <: Any](attributeName: String, default: => T): T = {
-    getAttribute(attributeName).map(_.asInstanceOf[T]) getOrElse {
+    getAttribute(attributeName).fold({
       val ret = default
       setAttribute(attributeName, ret)
       ret
-    }
+    })(_.asInstanceOf[T])
   }
 }

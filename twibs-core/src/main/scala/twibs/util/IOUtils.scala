@@ -15,9 +15,9 @@ object IOUtils {
 }
 
 object Predef {
-  type Closable = {def close(): Unit}
+  type WithCloseMethod = {def close(): Unit}
 
-  implicit def toRichClosable[C <: Closable](closable: C) = new {
+  implicit def toRichClosable[C <: WithCloseMethod](closable: C) = new {
     def useAndClose[T](f: (C) => T): T = try f(closable) finally {closable.close()}
 
     def closeAfter[T](f: => T): T = try f finally {closable.close()}

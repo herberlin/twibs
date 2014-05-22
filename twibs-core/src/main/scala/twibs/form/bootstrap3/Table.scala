@@ -26,7 +26,7 @@ trait Table extends ItemContainer {
     </div>
 
   private val pageSizeField = new Field("page-size") with SingleSelectField with IntValues with Required with Inline with SubmitOnChange {
-    override def initialOptions: List[OptionI] = toOptions(pageSizes)
+    override def computeOptions: List[OptionI] = toOptions(pageSizes)
 
     override def defaultValues = optionValues(1) :: Nil
 
@@ -70,7 +70,7 @@ trait Table extends ItemContainer {
                 {page.title}
               </span>
             else
-              <a name={name} value={valueToStringConverter(page.firstElementNumber)} href="#">
+              <a name={name} value={valueToString(page.firstElementNumber)} href="#">
                 {page.title}
               </a>
                 .addClass(!isDisabled, "submit")}
@@ -103,7 +103,6 @@ trait Table extends ItemContainer {
     def pagination = new Pagination(value, displayedElementCount, totalElementCount, limit)
   }
 
-
   def totalElementCount: Long
 
   def displayedElementCount: Long
@@ -129,7 +128,7 @@ trait Table extends ItemContainer {
       {columns.map(_.sortField.enrichedHtml)}
     </div>
 
-  def tableCssClasses = "table" :: "table-bordered" :: "table-striped" :: "sortable" :: Nil
+  def tableCssClasses = "table" :: "table-bordered" :: "table-striped" :: "data-table" :: Nil
 
   def tableHead: NodeSeq = <tr>{visibleColumns.map(_.tableHeader)}</tr>
 
@@ -205,4 +204,7 @@ trait Table extends ItemContainer {
 
   case class NamedColumn(name: String) extends Column
 
+  trait NormalWhiteSpace extends Column {
+    override def style(index: Int): String = super.style(index) + s"#${tableId.string} > table > tbody > tr > td:nth-child(${index + 1}) { white-space: normal; }"
+  }
 }

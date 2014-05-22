@@ -41,7 +41,7 @@ case class GermanIban(str: String) {
 object GermanIban {
   private def inUrl = new URL("http://www.bundesbank.de/Redaktion/DE/Downloads/Kerngeschaeftsfelder/Unbarer_Zahlungsverkehr/Bankleitzahlen/2013_09_08/blz_2013_06_03_txt_zip.zip?__blob=publicationFile")
 
-  private def outfile = new File("twibs/src/main/resources/twibs/util/de_blz.ser")
+  private def outfile = new File("src/main/resources/twibs/util/de_blz.ser")
 
   def isValidBlz(blzString: String) = blzToBicAndName.contains(blzString)
 

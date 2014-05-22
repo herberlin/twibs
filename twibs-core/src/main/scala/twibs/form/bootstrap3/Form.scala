@@ -12,10 +12,12 @@ import twibs.web.{PostMethod, GetMethod, Request}
 
 abstract class Form(val name: String) extends BaseForm {
 
-  abstract class OpenModalLink(implicit val parent: BaseParentItem) extends BaseChildItemWithName with ButtonRenderer {
+  abstract class OpenModalLink(implicit val parent: BaseParentItem) extends BaseChildItemWithName with BaseButton {
     def ilk = "open-modal-link"
 
-    def html = <a href="#" class={buttonCssClasses} data-call={actionLinkWithContextPathAndParameters}>{buttonTitleWithIconHtml}</a>
+    def html = buttonAsHtml
+
+    override def buttonAsElem: Elem = <a href="#" data-call={actionLinkWithContextPathAndParameters}>{buttonTitleWithIconHtml}</a>
   }
 
   protected def enctype = "multipart/form-data"
@@ -155,7 +157,7 @@ abstract class DisplayField private(val ilk: String, val parent: BaseParentItem,
 abstract class Field private(val ilk: String, val parent: BaseParentItem, unit: Unit = Unit) extends BaseField with FormGroupItem {
   def this(ilk: String)(implicit parent: BaseParentItem) = this(ilk, parent)
 
-  override def formGroupCssClasses = (messageDisplayTypeOption.map("has-" + _) getOrElse "") :: super.formGroupCssClasses.addClass(required, "required")
+  override def formGroupCssClasses = messageDisplayTypeOption.fold("")("has-" + _) :: super.formGroupCssClasses.addClass(required, "required")
 
   def formGroupTitle: NodeSeq = fieldTitle
 
@@ -163,15 +165,17 @@ abstract class Field private(val ilk: String, val parent: BaseParentItem, unit: 
 
   def controlContainerHtml: NodeSeq = inputsAsHtml ++ messageHtml
 
-  def messageHtml: NodeSeq = inputsMessageOption.map(message => <div class="help-block">{message.text}</div>) getOrElse NodeSeq.Empty
+  def messageHtml: NodeSeq = inputsMessageOption.fold(NodeSeq.Empty)(message => <div class="help-block">
+    {message.text}
+  </div>)
 
   protected def infoHtml: NodeSeq = infoMessage match {
     case "" => NodeSeq.Empty
     case m =>
       val title = infoTitle
       <span class="btn btn-default text-info" data-toggle="popover" data-placement="left" data-container={parent.form.id.toCssId} data-content={m} data-html="true"><span class="glyphicon glyphicon-info-sign"></span></span>
-        .add(!title.isEmpty, "title", title)
-        .add(!title.isEmpty, "data-title", title)
+        .setIfMissing(!title.isEmpty, "title", title)
+        .setIfMissing(!title.isEmpty, "data-title", title)
   }
 
   def infoTitle = translator.translateOrUseDefault("info-title", fieldTitle)
@@ -192,14 +196,14 @@ abstract class Field private(val ilk: String, val parent: BaseParentItem, unit: 
   def inputAsEnrichedElem(input: Input, index: Int): Elem = enrichInputElem(inputAsElem(input), index)
 
   def enrichInputElem(elem: Elem, index: Int): Elem =
-    elem.add("name", name)
-      .add("id", idForIndex(index))
+    elem.setIfMissing("name", name)
+      .setIfMissing("id", idForIndex(index))
       .addClasses(inputCssClasses)
       .addClass(isDisabled, "disabled")
       .addClass(!isDisabled, "can-be-disabled")
       .addClass(submitOnChange, "submit-on-change")
-      .add(isDisabled, "disabled", "disabled")
-      .add(name != ilk, "data-ilk", ilk)
+      .setIfMissing(isDisabled, "disabled", "disabled")
+      .setIfMissing(name != ilk, "data-ilk", ilk)
 
   private def idForIndex(index: Int): String = id + (if (index > 0) index.toString else "")
 
@@ -226,7 +230,7 @@ trait Inline extends Field {
   override def formGroupTitleCssClasses = "sr-only" :: Nil
 }
 
-trait DefaultButton extends ButtonRenderer with Executable {
+trait DefaultButton extends BaseButton with Executable {
   def renderAsDefault = <input type="submit" class="concealed" tabindex="-1" name={name} value="" />
 }
 
@@ -237,7 +241,7 @@ object Bootstrap {
     </div>
 }
 
-abstract class Button(val ilk: String)(implicit val parent: BaseParentItem) extends Executable with BootstrapButtonRenderer with RenderedItem {
+abstract class Button(val ilk: String)(implicit val parent: BaseParentItem) extends Executable with BootstrapButton with RenderedItem {
   override def html: NodeSeq =
     <div class={formGroupCssClasses}>
       <div class={controlContainerCssClasses}>{buttonAsHtml}</div>
@@ -249,20 +253,24 @@ abstract class Button(val ilk: String)(implicit val parent: BaseParentItem) exte
 
   override def enrichButtonElem(elem: Elem) =
     super.enrichButtonElem(elem)
-      .add("name", name)
-      .add(name != ilk, "data-ilk", ilk)
+      .setIfMissing("name", name)
+      .setIfMissing(name != ilk, "data-ilk", ilk)
       .addClass(isDisabled, "disabled")
       .addClass(!isDisabled, "can-be-disabled")
-      .add(isDisabled, "disabled", "disabled")
+      .setIfMissing(isDisabled, "disabled", "disabled")
 
   override def translator: Translator = super.translator.kind("BUTTON")
 }
 
-abstract class SpecialButton(val ilk: String)(implicit val parent: BaseParentItem) extends BaseChildItemWithName with BootstrapButtonRenderer
+abstract class SpecialButton(val ilk: String)(implicit val parent: BaseParentItem) extends BootstrapButton
 
 trait FieldWithOptions extends Field with Options {
   override def reset(): Unit = {
     super.reset()
     resetOptions()
   }
+}
+
+trait UseLastParameterOnly extends Field {
+  override def parse(parameters: Seq[String]): Unit = super.parse(parameters.lastOption.map(_ :: Nil) getOrElse Nil)
 }

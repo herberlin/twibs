@@ -108,7 +108,7 @@ class ValuesTest extends TwibsTest {
 
   test("Options validation") {
     val field = new TestField with LongValues with Options with Required {
-      override def initialOptions: List[OptionI] = toOptions(1L :: 3L :: 8L :: Nil)
+      override def computeOptions: List[OptionI] = toOptions(1L :: 3L :: 8L :: Nil)
     }
 
     field.strings = "1" :: "2" :: "3" :: Nil
@@ -121,9 +121,9 @@ class ValuesTest extends TwibsTest {
 
   test("Options with titles") {
     val field = new TestField with LongValues with Options with Required with TranslatedOptions {
-      override def initialOptions: List[OptionI] = toOptions(1L :: Nil)
+      override def computeOptions: List[OptionI] = toOptions(1L :: Nil)
 
-      def optionShouldBe = OptionI("1", "One", 1L, true)
+      def optionShouldBe = OptionI("1", "One", 1L)
     }
 
     field.options should be(List(field.optionShouldBe))

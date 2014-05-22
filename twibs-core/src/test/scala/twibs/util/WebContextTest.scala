@@ -8,18 +8,18 @@ import twibs.TwibsTest
 
 class WebContextTest extends TwibsTest {
   test("Validate context path") {
-    evaluating {
+    intercept[NullPointerException] {
       WebContext.assertThatContextPathIsValid(null)
-    } should produce[NullPointerException]
-    (evaluating {
+    }
+    intercept[AssertionError] {
       WebContext.assertThatContextPathIsValid("/")
-    } should produce[AssertionError]).getMessage should include("not be /")
-    (evaluating {
+    }.getMessage should include("not be /")
+    intercept[AssertionError] {
       WebContext.assertThatContextPathIsValid("nix")
-    } should produce[AssertionError]).getMessage should include("start with /")
-    (evaluating {
+    }.getMessage should include("start with /")
+    intercept[AssertionError] {
       WebContext.assertThatContextPathIsValid("/x x")
-    } should produce[AssertionError]).getMessage should include("invalid")
+    }.getMessage should include("invalid")
     WebContext.assertThatContextPathIsValid("") should equal("")
   }
 }

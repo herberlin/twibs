@@ -5,8 +5,8 @@
 package twibs.web
 
 import org.threeten.bp.Duration
-import org.threeten.bp.format.DateTimeFormatter
 import twibs.util.{WebContext, Loggable}
+import twibs.util.Formatters._
 
 class LoggingResponder(delegate: Responder) extends Responder with Loggable {
   def respond(request: Request) = {
@@ -26,7 +26,7 @@ class LoggingResponder(delegate: Responder) extends Responder with Loggable {
     //
     //    def remoteUserString = request.remoteUserOption getOrElse "-"
     //
-    def timestampString = DateTimeFormatter.ISO_DATE_TIME.format(timestamp)
+    def timestampString = timestamp.formatAsIso
 
     def status = response match {
       case r: RedirectResponse => "Redirect"

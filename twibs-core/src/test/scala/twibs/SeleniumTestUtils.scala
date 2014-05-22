@@ -41,7 +41,7 @@ trait SeleniumTestUtils {
   protected def find(selector: String) = driver.findElement(By.cssSelector(selector))
 
   protected def waitForModal(): Unit =
-    findCompletelyVisible(".modal")
+    findCompletelyVisible(".modal.in")
 
   protected def findCompletelyVisible(selector: String) = {
     new WebDriverWait(driver, 5).until(

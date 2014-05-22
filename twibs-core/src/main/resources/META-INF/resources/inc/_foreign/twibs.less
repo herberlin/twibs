@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
  */
-
 @import "twibs-vars.less";
 @import "bootstrap/less/bootstrap.less";
 @import "font-awesome/less/font-awesome.less";
@@ -122,7 +121,7 @@ option:disabled {
   }
 }
 
-.table.sortable {
+.data-table {
   th.sort, th.sort-asc, th.sort-desc {
     cursor: pointer;
     white-space: nowrap;
@@ -144,16 +143,22 @@ option:disabled {
   }
 }
 
-.table.with-actions {
-  td:last-child {
-    width: 1%;
-    white-space: nowrap;
-    .btn + .btn {
-      margin-left: 6px;
-    }
-    .btn:last-child {
-      margin-right: -4px;
-    }
+// Workaround: Bootstrap sets display: block; on collapse in.
+tr.collapse.in {
+  display: table-row;
+}
+
+.table.with-actions > tbody > tr > td:last-child {
+  width: 1%;
+  white-space: nowrap;
+  > .btn + .btn, .btn + .btn-group, .btn-group + .btn {
+    margin-left: 6px;
+  }
+  > .btn:last-child, .btn-group:last-child {
+    margin-right: -4px;
+  }
+  > .btn-group .btn {
+    float: none;
   }
 }
 
@@ -207,6 +212,10 @@ option:disabled {
 
 .cms-top-menu .btn img {
   width: 24px;
+}
+
+span.btn.active {
+  cursor: not-allowed;
 }
 
 span.placeholder {

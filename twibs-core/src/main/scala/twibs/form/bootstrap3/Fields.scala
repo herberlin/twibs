@@ -67,25 +67,19 @@ trait AbstractDateTimeField extends SingleLineField with JavascriptItem {
   private def inputGroupId = id + "_input_group"
 
   override def suffixes: List[NodeSeq] =
-    if (isEnabled) <span class="glyphicon glyphicon-calendar"></span> :: super.suffixes
+    if (isEnabled) clearButton :: <span class="glyphicon glyphicon-calendar"></span> :: super.suffixes
     else super.suffixes
 
   override def surroundWithInputGroup(input: Input, nodeSeq: NodeSeq): Elem =
     <div class="input-group date" id={inputGroupId} data-date={input.string} data-link-field={id} data-link-format={formatPatternForBrowser} data-date-format={formatPatternForBrowser} data-date-today-btn={todayButton} data-date-today-highlight={"" + todayHighlight}>{nodeSeq}</div>
-      .add(!minimumFormattedForBrowser.isEmpty, "data-date-startdate", minimumFormattedForBrowser)
-      .add(!maximumFormattedForBrowser.isEmpty, "data-date-enddate", maximumFormattedForBrowser)
-
-  override def inputAsEnrichedHtml(input: Input, index: Int) =
-    if (isDisabled)
-      super.inputAsEnrichedHtml(input, index)
-    else
-      super.inputAsEnrichedHtml(input, index) ++ clearButton
+      .setIfMissing(!minimumFormattedForBrowser.isEmpty, "data-date-startdate", minimumFormattedForBrowser)
+      .setIfMissing(!maximumFormattedForBrowser.isEmpty, "data-date-enddate", maximumFormattedForBrowser)
 
   override def inputAsEnrichedElem(input: Input, index: Int): Elem = super.inputAsEnrichedElem(input, index).removeClass("submit-on-change")
 
   def withClearButton = false
 
-  def clearButton = if (withClearButton) <span class="input-group-addon"><span class="glyphicon glyphicon-remove"></span></span> else NodeSeq.Empty
+  def clearButton = if (withClearButton) <span class="glyphicon glyphicon-remove"></span> else NodeSeq.Empty
 
   def formatPatternForBrowser: String
 
@@ -158,7 +152,7 @@ trait SingleSelectField extends SelectField {
 
   private def optionsAsElems(input: Input) =
     if (useEmptyOption(input.string))
-      optionAsElem("", "", "").add(required, "disabled", "disabled") :: elems(input)
+      optionAsElem("", "", "").setIfMissing(required, "disabled", "disabled") :: elems(input)
     else elems(input)
 
   private def elems(input: Input) = options.map(option => optionAsElem(option.string, option.title, input.string))
@@ -170,7 +164,7 @@ trait SingleSelectField extends SelectField {
 }
 
 trait MultiSelectField extends SelectField {
-  override def inputsAsHtml: NodeSeq = inputs.headOption.map(input => inputAsEnrichedHtml(input, 0)) getOrElse NodeSeq.Empty
+  override def inputsAsHtml: NodeSeq = inputs.headOption.fold(NodeSeq.Empty)(input => inputAsEnrichedHtml(input, 0))
 
   override def inputAsElem(input: Input) =
     <select data-placeholder={t"placeholder: Please select some values"} multiple="multiple">{ optionsAsElems(input) }</select>
@@ -193,11 +187,13 @@ trait CheckOrRadioField extends FieldWithOptions with FloatingInfo {
   override def inputsAsHtml: NodeSeq = infoHtml ++ options.zipWithIndex.map({
     case (option, index) =>
       if (inlineField) {
-      <label class={checkOrRadioType + "-inline"}>{enrichInputElem(optionAsElem(option), index)}{option.title}</label>
+      <label class={checkOrRadioType + "-inline"}>{enrichedOptionAsElem(option, index)}{option.title}</label>
     } else {
-      <div class={checkOrRadioType}><label>{enrichInputElem(optionAsElem(option), index)}{option.title}</label></div>
+      <div class={checkOrRadioType}><label>{enrichedOptionAsElem(option, index)}{option.title}</label></div>
     }
   })
+
+  def enrichedOptionAsElem(option: OptionI, index: Int) = enrichInputElem(optionAsElem(option), index)
 
   def optionAsElem(option: OptionI) = <input type={checkOrRadioType} value={option.string} />.set(strings.contains(option.string), "checked")
 
@@ -241,7 +237,7 @@ trait BooleanCheckBoxField extends Field with BooleanValues with FloatingInfo {
 }
 
 trait FileEntryField extends Field with FileEntryValues with Result {
-  val deleteButton = new SpecialButton("delete")(parent) with PopoverButtonRenderer with DangerDisplayType with Executable {
+  val deleteButton = new SpecialButton("delete")(parent) with BootstrapPopoverButton with DangerDisplayType with Executable with StringValues with ButtonValues {
     override def execute(parameters: Seq[String]) = processDeleteParameters(parameters)
 
     override def popoverPlacement: String = "auto right"
@@ -256,7 +252,7 @@ trait FileEntryField extends Field with FileEntryValues with Result {
       case ValidInput(_, _, Some(fileEntry)) => fileEntry.path
       case _ => "#"
     }
-    <p class="form-control-static clearfix"><div class="pull-right">{deleteButton.buttonAsHtmlWithString(input.string)}</div><a href={link} target="_blank">{input.title}</a></p>
+    <p class="form-control-static clearfix"><div class="pull-right">{deleteButton.buttonAsHtmlWithValue(input.string)}</div><a href={link} target="_blank">{input.title}</a></p>
   }
 
   override def minimumNumberOfInputs: Int = 0
@@ -326,7 +322,7 @@ trait UploadWithOverwrite extends BaseItemContainer {
     override def inputAsEnrichedHtml(input: Input, index: Int): NodeSeq =
       HiddenInputRenderer(name, input.string) ++ <p class="form-control-static clearfix">{actionButtonsHtml(input.string)}<a href="#">{input.title}</a></p>
 
-    private val deleteButton = new SpecialButton("delete") with PopoverButtonRenderer with DangerDisplayType with Executable {
+    private val deleteButton = new SpecialButton("delete") with BootstrapPopoverButton with DangerDisplayType with Executable with StringValues with ButtonValues {
       override def execute(parameters: Seq[String]) = processDeleteParameters(parameters)
 
       override def popoverPlacement: String = "auto right"
@@ -334,7 +330,7 @@ trait UploadWithOverwrite extends BaseItemContainer {
       override def popoverContainer: String = form.contentId.toCssId
     }
 
-    private val overwriteButton = new SpecialButton("overwrite") with PopoverButtonRenderer with InfoDisplayType with Executable {
+    private val overwriteButton = new SpecialButton("overwrite") with BootstrapPopoverButton with InfoDisplayType with Executable with StringValues with ButtonValues {
       override def execute(parameters: Seq[String]) = processOverwriteParameters(parameters)
 
       override def popoverPlacement: String = "auto right"
@@ -346,8 +342,8 @@ trait UploadWithOverwrite extends BaseItemContainer {
       if (isDisabled) NodeSeq.Empty
       else
         <div class="pull-right btn-group">
-          {deleteButton.buttonAsHtmlWithString(string)}
-          {overwriteButton.buttonAsHtmlWithString(string)}
+          {deleteButton.buttonAsHtmlWithValue(string)}
+          {overwriteButton.buttonAsHtmlWithValue(string)}
         </div>
     }
 

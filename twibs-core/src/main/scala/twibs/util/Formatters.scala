@@ -8,7 +8,7 @@ import com.ibm.icu.text.{DecimalFormat, NumberFormat}
 import com.ibm.icu.util.Currency
 import com.ibm.icu.util.ULocale
 import org.threeten.bp.format.{DateTimeFormatterBuilder, DateTimeFormatter}
-import org.threeten.bp.{ZonedDateTime, LocalDate, LocalDateTime}
+import org.threeten.bp._
 
 class Formatters(translator: Translator, locale: ULocale, currencyCode: String) {
   val decimalFormat = {
@@ -47,12 +47,18 @@ class Formatters(translator: Translator, locale: ULocale, currencyCode: String) 
 
   val mediumDateFormatter = new DateTimeFormatterBuilder().parseLenient().appendPattern(translator.translate("date-format", "dd.MM.yyyy")).toFormatter(locale.toLocale)
 
+  val shortDateFormatter = new DateTimeFormatterBuilder().parseLenient().appendPattern(translator.translate("date-short-format", "dd.MM.yy")).toFormatter(locale.toLocale)
+
   implicit def doubleToFormattable(value: Double) = new {
     def formatAsInteger = integerFormat.format(value)
 
     def formatAsPercent = percentFormat.format(value)
 
     def formatAsCurrency = currencyFormat.format(value)
+
+    def formatAsCurrencyWithoutSymbol = currencyFormatWithoutSymbol.format(value)
+
+    def formatAsCurrencyWithCodeInsteadOfSymbol = currencyFormatWithCodeInsteadOfSymbol.format(value)
   }
 
   implicit def intToFormattable(value: Int) = new {
@@ -61,14 +67,24 @@ class Formatters(translator: Translator, locale: ULocale, currencyCode: String) 
     def formatAsPercent = percentFormat.format(value)
 
     def formatAsCurrency = currencyFormat.format(value)
+
+    def formatAsCurrencyWithCodeInsteadOfSymbol = currencyFormatWithCodeInsteadOfSymbol.format(value)
   }
 
   implicit def dateTimeToFormattable(dateTime: LocalDateTime) = new {
     def formatAsMediumDateTime = mediumDateTimeFormatter.format(dateTime)
+
+    def formatAsIso = DateTimeFormatter.ISO_DATE_TIME.format(dateTime)
+
+    def formatAsIsoWithOffset = DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(withSystemZoneId)
+
+    def withSystemZoneId = ZonedDateTime.of(dateTime, ZoneId.systemDefault())
   }
 
   implicit def dateToFormattable(date: LocalDate) = new {
     def formatAsMediumDate = mediumDateFormatter.format(date)
+
+    def formatAsShortDate = shortDateFormatter.format(date)
   }
 
   def getHumanReadableByteCountSi(bytes: Long): String = innerGetHumanReadableByteCount(bytes, 1000, "kMGTPE", "")
@@ -87,6 +103,8 @@ class Formatters(translator: Translator, locale: ULocale, currencyCode: String) 
 }
 
 object Formatters {
+  val systemZoneOffset = OffsetDateTime.now().getOffset
+
   implicit def unwrap(companion: Formatters.type): Formatters = current
 
   def current = RequestSettings.current.formatters
@@ -98,8 +116,4 @@ object Formatters {
   implicit def dateTimeToFormattable(dateTime: LocalDateTime) = current.dateTimeToFormattable(dateTime)
 
   implicit def dateToFormattable(date: LocalDate) = current.dateToFormattable(date)
-
-  lazy val sitemapDateTimeFormatter = DateTimeFormatter.ISO_DATE_TIME
-
-  def formatSitemapDateTime(dateTime: ZonedDateTime) = sitemapDateTimeFormatter.format(dateTime)
 }

@@ -245,7 +245,7 @@ class ResponderTest extends TwibsTest {
   }
 
   test("class loader responder") {
-    val responder = new ClassLoaderResponder(getClass.getClassLoader, "/db/migration")
+    val responder = new ClassLoaderResponder(getClass.getClassLoader, "/memory-db/migration")
     responder.getResourceOption("/V1_1__empty.sql") should not be 'empty
   }
 

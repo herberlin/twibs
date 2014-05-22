@@ -4,10 +4,11 @@
 
 package twibs.db
 
-import com.googlecode.flyway.core.Flyway
 import concurrent.duration._
+import java.sql.Connection
 import javax.sql.DataSource
 import org.apache.tomcat.jdbc.pool.{DataSource => TomcatDataSource, PoolProperties}
+import org.flywaydb.core.Flyway
 import scala.slick.jdbc.JdbcBackend.{Database => SlickDatabase}
 import twibs.util.DynamicVariableWithDynamicDefault
 
@@ -22,9 +23,9 @@ trait Database {
 
   def migrationLocations = "db/migration" :: Nil
 
-  def withSession[R](func: => R): R = database.withDynSession(func)
-
   def withTransaction[R](func: => R): R = database.withDynTransaction(func)
+
+  def withStaticTransaction[R](func: (Connection) => R): R = database.withTransaction(session => func(session.conn))
 
   def withSavepoint[T](f: => T): T = {
     var ok = false
@@ -87,4 +88,6 @@ trait Database {
   }
 }
 
-object Database extends DynamicVariableWithDynamicDefault[Database](null)
+object Database extends DynamicVariableWithDynamicDefault[Database](null) {
+  implicit def connection: Connection = SlickDatabase.dynamicSession.conn
+}

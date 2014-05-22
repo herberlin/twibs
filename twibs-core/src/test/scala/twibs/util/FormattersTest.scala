@@ -6,8 +6,7 @@ package twibs.util
 
 import com.ibm.icu.util.ULocale
 import org.scalatest.{FunSuite, Matchers}
-import org.threeten.bp.{ZoneId, LocalDateTime}
-import scala.concurrent.duration._
+import org.threeten.bp._
 
 class FormattersTest extends FunSuite with Matchers {
   val ukFormatter = new Formatters(ApplicationSettings.translators(ULocale.ENGLISH), ULocale.ENGLISH, "USD")
@@ -45,13 +44,15 @@ class FormattersTest extends FunSuite with Matchers {
     deFormatter.percentFormatWithoutSuffix.format(-0.015) should equal("-2")
   }
 
-  test("Format sitemap date time") {
-    val timeOffset = (2 hours).toMillis.toInt
-    Formatters.formatSitemapDateTime(LocalDateTime.of(2012, 4, 16, 12, 13, 14, 15000000).atZone(ZoneId.of("UTC+02:00"))) should equal("2012-04-16T12:13:14.015+02:00")
-    Formatters.formatSitemapDateTime(LocalDateTime.of(2012, 4, 16, 15, 13, 14, 15000000).atZone(ZoneId.of("UTC"))) should equal("2012-04-16T15:13:14.015Z")
+  import Formatters._
+
+  test("Format as iso") {
+    LocalDateTime.of(2012, 4, 16, 12, 13, 14, 15000000).formatAsIso should equal("2012-04-16T12:13:14.015")
   }
 
-  import Formatters._
+  test("Format zoned") {
+    LocalDateTime.of(2012, 4, 16, 12, 13, 14, 15000000).formatAsIsoWithOffset should equal("2012-04-16T12:13:14.015" + OffsetDateTime.now().getOffset)
+  }
 
   test("Implicit percent") {
     0.1.formatAsPercent should equal("10 %")

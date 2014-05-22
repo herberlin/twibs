@@ -59,6 +59,7 @@ class SystemSettings {
   val runMode = Option(System.getProperty("run.mode")) match {
     case Some(DEVELOPMENT.name) => DEVELOPMENT
     case Some(STAGING.name) => STAGING
+    case Some(TEST.name) => TEST
     case None if isCalledFromTestClass => TEST
     case _ => PRODUCTION
   }
@@ -116,7 +117,7 @@ trait UserSettings {
 class ApplicationSettings(val name: String) {
   lazy val configuration: Configuration = ConfigurationForTypesafeConfig.forSettings(name)
 
-  lazy val locales = configuration.getStringList("locales").map(_.map(localeId => new ULocale(localeId))) getOrElse List(SystemSettings.locale)
+  lazy val locales = configuration.getStringList("locales").fold(List(SystemSettings.locale))(_.map(localeId => new ULocale(localeId)))
 
   lazy val translators: Map[ULocale, Translator] = locales.map(locale => locale -> new TranslatorResolver(locale, configuration.configurationForLocale(locale)).root.usage(name)).toMap
 

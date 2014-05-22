@@ -4,7 +4,7 @@
 
 package twibs.util
 
-import com.google.common.base.{Stopwatch, Charsets}
+import com.google.common.base.Charsets
 import com.google.common.io.Files
 import java.io.{FileNotFoundException, File}
 import twibs.TwibsTest
@@ -25,44 +25,36 @@ class LessCssParserFactoryTest extends TwibsTest {
   }
 
   test("Does not exists") {
-    (evaluating {
+    intercept[LessCssParserException] {
       parser.parse("/does-not-exists.less")
-    } should produce[LessCssParserException]).getMessage should be("java.io.FileNotFoundException: /does-not-exists.less")
+    }.getMessage should be("java.io.FileNotFoundException: /does-not-exists.less")
   }
 
   test("Syntax error") {
-    (evaluating {
+    intercept[LessCssParserException] {
       parser.parse("/syntax-error.less")
-    } should produce[LessCssParserException]).getMessage should be("Parse Error: missing closing `}` in '/syntax-error.less' (line 1, column 2) near\na {\n  color: red;")
-    (evaluating {
+    }.getMessage should be("Parse Error: missing closing `}` in '/syntax-error.less' (line 1, column 2) near\na {\n  color: red;")
+    intercept[LessCssParserException] {
       parser.parse("/import-syntax-error.less")
-    } should produce[LessCssParserException]).getMessage should be("Parse Error: missing closing `}` in '/syntax-error.less' (line 1, column 2) near\na {\n  color: red;")
+    }.getMessage should be("Parse Error: missing closing `}` in '/syntax-error.less' (line 1, column 2) near\na {\n  color: red;")
   }
 
   test("Missing variable") {
-    (evaluating {
+    intercept[LessCssParserException] {
       parser.parse("/missing-variable.less")
-    } should produce[LessCssParserException]).getMessage should be("Name Error: variable @color-red is undefined in '/missing-variable.less' (line 2, column 9) near\na {\n  color: @color-red; // Missing variable\n}")
-    (evaluating {
+    }.getMessage should be("Name Error: variable @color-red is undefined in '/missing-variable.less' (line 2, column 9) near\na {\n  color: @color-red; // Missing variable\n}")
+    intercept[LessCssParserException] {
       parser.parse("/import-missing-variable.less")
-    } should produce[LessCssParserException]).getMessage should be("Name Error: variable @color-red is undefined in '/missing-variable.less' (line 2, column 9) near\na {\n  color: @color-red; // Missing variable\n}")
+    }.getMessage should be("Name Error: variable @color-red is undefined in '/missing-variable.less' (line 2, column 9) near\na {\n  color: @color-red; // Missing variable\n}")
   }
 
   test("Import simple") {
     parser.parse("/import-simple.less") should be("div{width:3}")
   }
 
-//  test("Run 100 simple") {
-//    val sw = Stopwatch.createStarted()
-//    for (i <- 0 until 10) {
-//      parser.parse("/bootstrap.less")
-//    }
-//    println(sw.toString)
-//  }
-
   test("Imported file does not exists") {
-    (evaluating {
+    intercept[LessCssParserException] {
       parser.parse("/subdir/import-missing-file.less")
-    } should produce[LessCssParserException]).getMessage should be("java.io.FileNotFoundException: /subdir/../../missing-file.less")
+    }.getMessage should be("java.io.FileNotFoundException: /subdir/../../missing-file.less")
   }
 }

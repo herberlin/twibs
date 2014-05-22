@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>net.twibs</groupId>
     <artifactId>twibs-parent</artifactId>
-    <version>0.7</version>
+    <version>0.8</version>
     <inceptionYear>2013</inceptionYear>
     <packaging>pom</packaging>
     <name>Twibs: Maven Parent</name>
@@ -24,7 +24,8 @@
         </developer>
     </developers>
     <properties>
-        <scala.version>2.10.4</scala.version>
+        <scala.main.version>2.11</scala.main.version>
+        <scala.version>${scala.main.version}.0</scala.version>
         <jetty.version>9.0.7.v20131107</jetty.version>
         <maven.test.skip>false</maven.test.skip>
     </properties>
@@ -45,7 +46,7 @@
         <url>https://github.com/hombre/twibs.git</url>
         <connection>scm:git:https://github.com/hombre/twibs.git</connection>
         <developerConnection>scm:git:https://github.com/hombre/twibs.git</developerConnection>
-        <tag>v0.7</tag>
+        <tag>v0.8</tag>
     </scm>
     <build>
         <defaultGoal>package</defaultGoal>
@@ -72,6 +73,13 @@
                         <localCheckout>true</localCheckout>
                         <goals>deploy</goals>
                     </configuration>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.apache.maven.scm</groupId>
+                            <artifactId>maven-scm-provider-gitexe</artifactId>
+                            <version>1.9</version>
+                        </dependency>
+                    </dependencies>
                 </plugin>
                 <plugin>
                     <groupId>net.alchim31.maven</groupId>
@@ -102,7 +110,8 @@
                         </execution>
                     </executions>
                     <configuration>
-                        <recompileMode>incremental</recompileMode>
+                        <!--<recompileMode>incremental</recompileMode>-->
+                        <recompileMode>all</recompileMode>
                         <scalaVersion>${scala.version}</scalaVersion>
                         <checkMultipleScalaVersions>false</checkMultipleScalaVersions>
                         <args>
@@ -247,11 +256,20 @@
                 <artifactId>scala-actors</artifactId>
                 <version>${scala.version}</version>
             </dependency>
-
+            <dependency>
+                <groupId>org.scala-lang.modules</groupId>
+                <artifactId>scala-xml_${scala.main.version}</artifactId>
+                <version>1.0.1</version>
+            </dependency>
+            <dependency>
+                <groupId>org.scala-lang.modules</groupId>
+                <artifactId>scala-parser-combinators_${scala.main.version}</artifactId>
+                <version>1.0.1</version>
+            </dependency>
             <dependency>
                 <groupId>org.scalatest</groupId>
-                <artifactId>scalatest_2.10</artifactId>
-                <version>2.0</version>
+                <artifactId>scalatest_${scala.main.version}</artifactId>
+                <version>2.1.4</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
@@ -269,7 +287,7 @@
             <dependency>
                 <groupId>org.seleniumhq.selenium</groupId>
                 <artifactId>selenium-java</artifactId>
-                <version>2.39.0</version>
+                <version>2.41.0</version>
                 <scope>test</scope>
             </dependency>
 
