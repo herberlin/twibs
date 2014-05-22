@@ -10,7 +10,12 @@ class QueryDslTest extends TwibsTest {
     val sort = new LongColumn("sort")
   }
 
-  import QueryDsl._
+  val newsTable = new Table("ns") {
+    val id = new LongColumn("id")
+    val userId = new LongColumn("user_id")
+  }
+
+    import QueryDsl._
 
   test("Select simple sql") {
     query(userTable.firstName, userTable.lastName).toSelectSql should be("SELECT users.first_name,users.last_name FROM users")
@@ -41,6 +46,16 @@ class QueryDslTest extends TwibsTest {
     q.toDeleteSql should be("DELETE FROM users WHERE users.first_name <> ?")
   }
 
+  test("Group by sql statement") {
+    val q = query(userTable.firstName, userTable.id.max).join(userTable.id, newsTable.userId).groupBy(userTable.firstName).offset(10).limit(20)
+    q.toSelectSql should be("SELECT users.first_name,max(users.id) FROM users JOIN ns ON ns.user_id = users.id GROUP BY users.first_name OFFSET 10 LIMIT 20")
+  }
+
+  test("Empty order by") {
+    val q = query(userTable.firstName).orderBy(Nil)
+    q.toSelectSql should be("SELECT users.first_name FROM users")
+  }
+
   test("Modifiy database") {
     Database.use(new MemoryDatabase()) {
       Database.withStaticTransaction { implicit connection =>
@@ -48,7 +63,8 @@ class QueryDslTest extends TwibsTest {
         query(userTable.lastName).where(userTable.firstName like "Frank").size should be(1)
         query(userTable.firstName, userTable.lastName).insertAndReturn("Frank", "appa")(userTable.id) should be(4L)
         userTable.size should be(4)
-        query(userTable.lastName).where(userTable.firstName like "Frank").size should be(2)
+        query(userTable.firstName).where(userTable.firstName like "Frank").size should be(2)
+        query(userTable.firstName).where(userTable.firstName like "Frank").distinct.size should be(1)
         query(userTable.firstName, userTable.lastName).where(userTable.lastName === "appa").update("Dweezil", "Zappa") should be(1)
         query(userTable.sort).where(userTable.lastName === "Zappa").update(1L) should be(2)
         deleteFrom(userTable).where(userTable.firstName === "Dweezil").delete should be(1)

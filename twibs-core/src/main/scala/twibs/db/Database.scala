@@ -71,6 +71,7 @@ trait Database {
       flyway.setInitOnMigrate(true)
       flyway.setLocations(migrationLocations: _*)
       flyway.setDataSource(dataSource)
+      flyway.setValidateOnMigrate(false)
       flyway.migrate()
     }
 
