@@ -14,10 +14,3 @@ trait FormUtils extends XmlUtils {
   }
 }
 
-object SortOrder extends Enumeration {
-  type SortOrder = Value
-  val NotSortable = Value
-  val Unsorted = Value
-  val Ascending = Value
-  val Descending = Value
-}

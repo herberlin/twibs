@@ -6,6 +6,7 @@ import org.threeten.bp.{LocalDate, LocalDateTime}
 import scala.Some
 import twibs.util.Loggable
 import twibs.util.Predef._
+import twibs.util.SortOrder.SortOrder
 import twibs.util.ThreeTenTransition._
 
 object Sql extends Loggable
@@ -114,17 +115,31 @@ class Table(val tableName: String) {
   def size(implicit connection: Connection) = Statement(s"SELECT count(*) FROM $tableName").size(connection)
 }
 
+class AggregateColumn[T](delegatee: Column[T]) extends Column[T]()(delegatee.table) {
+  override def set(ps: PreparedStatement, pos: Int, value: Any): Unit =
+    throw new IllegalArgumentException("Aggregate columns can not be set")
+
+  override def name: String = delegatee.name
+
+  override def get(rs: ResultSet, pos: Int): T = delegatee.get(rs, pos)
+}
+
 abstract class Column[T](implicit val table: Table) {
+  self =>
   def name: String
 
   def fullName: String = table.tableName + "." + name
 
+  def get(rs: ResultSet, pos: Int): T
+
+  def set(ps: PreparedStatement, pos: Int, value: Any): Unit
+
   protected class ColumnWhere(operator: String, right: T) extends Where {
-    private[db] override def toStatement = Statement(s"$fullName $operator ?", (Column.this, right) :: Nil)
+    private[db] override def toStatement = Statement(s"$fullName $operator ?", (self, right) :: Nil)
   }
 
   protected class ColumnSeqWhere(operator: String, right: Seq[T]) extends Where {
-    private[db] override def toStatement = Statement(s"$fullName $operator ?", (Column.this, right) :: Nil)
+    private[db] override def toStatement = Statement(s"$fullName $operator ?", (self, right) :: Nil)
   }
 
   def >(right: T): Where = new ColumnWhere(">", right)
@@ -136,7 +151,7 @@ abstract class Column[T](implicit val table: Table) {
   def ===(right: T): Where = new ColumnWhere("=", right)
 
   def in(vals: List[T]): Where = new Where {
-    private[db] override def toStatement = Statement(s"$fullName in (${vals.map(_ => "?").mkString(",")})", vals.map(right => (Column.this, right)))
+    private[db] override def toStatement = Statement(s"$fullName in (${vals.map(_ => "?").mkString(",")})", vals.map(right => (self, right)))
   }
 
   def asc: OrderBy = new OrderBy {
@@ -147,9 +162,13 @@ abstract class Column[T](implicit val table: Table) {
     override def toStatement = Statement(s"$fullName DESC")
   }
 
-  def get(rs: ResultSet, pos: Int): T
+  def max: Column[T] = new AggregateColumn[T](this) {
+    override def fullName = s"max(${super.fullName})"
+  }
 
-  def set(ps: PreparedStatement, pos: Int, value: Any): Unit
+  def sum: Column[T] = new AggregateColumn[T](this) {
+    override def fullName = s"sum(${super.fullName})"
+  }
 }
 
 trait OptionalColumn {
@@ -206,7 +225,7 @@ private case class Statement(sql: String, parameters: List[(Column[_], Any)] = N
       ps.getGeneratedKeys useAndClose { generatedKeys =>
         if (generatedKeys.next()) {
           val md = generatedKeys.getMetaData
-          val pos = (for( i <- 1 to md.getColumnCount if md.getColumnName(i) == column.name) yield i).headOption getOrElse 1
+          val pos = (for (i <- 1 to md.getColumnCount if md.getColumnName(i) == column.name) yield i).headOption getOrElse 1
           column.get(generatedKeys, pos)
         } else {
           throw new SQLException("No generated key returned")
@@ -252,13 +271,27 @@ trait Query[T <: Product] {
 
   def orderBy(orderBy: OrderBy): Query[T]
 
+  def orderBy(orderBys: List[OrderBy]) : Query[T]
+
+  def orderByName(orderBy: List[(String, SortOrder)]): Query[T]
+
+  def join(left: Column[_], right: Column[_]): Query[T]
+
+  def groupBy(column: Column[_]): Query[T]
+
+  def offset(offset: Long): Query[T]
+
+  def limit(limit: Long): Query[T]
+
+  def distinct: Query[T]
+
   def columns: List[Column[_]]
 
   def where: Where
 
   def orderBy: OrderBy
 
-  def select(implicit connection: Connection): TraversableOnce[T] with AutoCloseable
+  def select(implicit connection: Connection): Iterator[T] with AutoCloseable
 
   def firstOption(implicit connection: Connection): Option[T] = {
     val s = select(connection)
@@ -285,8 +318,6 @@ trait Query[T <: Product] {
   def size(implicit connection: Connection): Long
 
   def isEmpty(implicit connection: Connection): Boolean = size(connection) == 0
-
-  private[db] def from(rs: ResultSet, autoCounter: AutoCounter): T
 }
 
 private[db] class AutoCounter {

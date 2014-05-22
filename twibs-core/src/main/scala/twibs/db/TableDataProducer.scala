@@ -8,9 +8,8 @@ package twibs.db
 import scala.slick.driver.PostgresDriver.simple._
 import scala.slick.jdbc.JdbcBackend.Database.dynamicSession
 import scala.slick.lifted.{Query => SlickQuery}
-import twibs.form.bootstrap3.SortOrder
-import twibs.form.bootstrap3.SortOrder.SortOrder
-import twibs.util.SqlUtils
+import twibs.util.SortOrder.SortOrder
+import twibs.util.{SortOrder, SqlUtils}
 
 object TableDataProducer {
   def apply[T <: NamedColumns, E, C[_]](query: SlickQuery[T, E, C], queryString: String, offset: Long, limit: Int, sortBy: List[(String, SortOrder)], whereLike: (String) => SlickQuery[T, E, C]) = {
@@ -37,6 +36,6 @@ object TableDataProducer {
 
     ret = ret.drop(start.toInt).take(limit)
 
-    new TableData(limit, start, end, displayed, total, ret.iterator)
+    TableData(limit, start, end, displayed, total, ret.iterator)
   }
 }

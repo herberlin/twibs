@@ -4,14 +4,16 @@
 
 package twibs.form.bootstrap3
 
-import scala.xml.{Unparsed, Elem, NodeSeq}
+import scala.xml.{Elem, Unparsed, NodeSeq}
+import twibs.db.TableData
 import twibs.form.base._
-import twibs.form.bootstrap3.SortOrder._
 import twibs.util.JavaScript._
+import twibs.util.SortOrder
+import twibs.util.SortOrder._
 import twibs.util.{Pagination, Translator}
 import twibs.web.Request
 
-trait Table extends ItemContainer {
+trait DataTable[T] extends ItemContainer {
   def columns: List[Column]
 
   override def translator: Translator = super.translator.kind("TABLE")
@@ -103,10 +105,6 @@ trait Table extends ItemContainer {
     def pagination = new Pagination(value, displayedElementCount, totalElementCount, limit)
   }
 
-  def totalElementCount: Long
-
-  def displayedElementCount: Long
-
   def queryString: String = queryStringField.string
 
   def limit: Int = pageSizeField.value
@@ -136,7 +134,7 @@ trait Table extends ItemContainer {
 
   def visibleColumns = columns.filter(_.visible)
 
-  def tableBody: NodeSeq
+  def tableBody: NodeSeq = tableData.rows.map(tableRow).toList.flatten
 
   trait Column {
     def name: String
@@ -165,8 +163,6 @@ trait Table extends ItemContainer {
       case Unsorted => "sort"
     }
 
-    import SortOrder._
-
     def style(index: Int) = wrapStyle(index) + (sortField.value match {
       case Ascending | Descending =>
         s"#${tableId.string} > table > tbody > tr:nth-child(odd) > td:nth-child(${index + 1}) { background-color: #eaebff; }" +
@@ -180,7 +176,7 @@ trait Table extends ItemContainer {
 
     def sort_=(sortOrder: SortOrder) = sortField.value = sortOrder
 
-    private[Table] val sortField = new HiddenInput("sort") with EnumerationValues[SortOrder.type] {
+    private[DataTable] val sortField = new HiddenInput("sort") with EnumerationValues[SortOrder.type] {
       override def enumeration = SortOrder
 
       override def defaultValues = (if (sortable) Unsorted else NotSortable) :: Nil
@@ -207,4 +203,25 @@ trait Table extends ItemContainer {
   trait NormalWhiteSpace extends Column {
     override def style(index: Int): String = super.style(index) + s"#${tableId.string} > table > tbody > tr > td:nth-child(${index + 1}) { white-space: normal; }"
   }
+
+  def tableData: TableData[T]
+
+  def tableRow(entry: T): NodeSeq
+
+  def displayedElementCount = tableData.displayed
+
+  def totalElementCount = tableData.total
+
+  def sortBy: List[(String, SortOrder)] = columns.collect { case c: DataColumn => (c.sortName, c.sort)}
+
+  case class DataColumn(name: String, sortName: String) extends Column {
+    def this(name: String) = this(name, name)
+
+    override def sortable: Boolean = true
+  }
+
+  object DataColumn {
+    def apply(name: String): DataColumn = DataColumn(name, name)
+  }
+
 }
