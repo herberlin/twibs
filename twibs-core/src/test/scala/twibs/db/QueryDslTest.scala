@@ -15,7 +15,7 @@ class QueryDslTest extends TwibsTest {
     val userId = new LongColumn("user_id")
   }
 
-    import QueryDsl._
+  import QueryDsl._
 
   test("Select simple sql") {
     query(userTable.firstName, userTable.lastName).toSelectSql should be("SELECT users.first_name,users.last_name FROM users")
@@ -33,7 +33,10 @@ class QueryDslTest extends TwibsTest {
 
   test("Extend select") {
     val first = query(userTable.id).where((userTable.id > 0L || userTable.id < 100L) && userTable.id > 0L || userTable.id < 100L).orderBy(userTable.lastName desc)
-    first.also(query(userTable.firstName)).toSelectSql should be("SELECT users.id,users.first_name FROM users WHERE (users.id > ? OR users.id < ?) AND users.id > ? OR users.id < ? ORDER BY users.last_name DESC")
+    val both = first.also(query(userTable.firstName))
+
+    both.toSelectSql should be("SELECT users.id,users.first_name FROM users WHERE (users.id > ? OR users.id < ?) AND users.id > ? OR users.id < ? ORDER BY users.last_name DESC")
+    both.toInsertSql should be("INSERT INTO users(id,first_name) VALUES(?,?)")
   }
 
   test("Insert sql statement") {
@@ -61,7 +64,7 @@ class QueryDslTest extends TwibsTest {
       Database.withStaticTransaction { implicit connection =>
         userTable.size should be(3)
         query(userTable.lastName).where(userTable.firstName like "Frank").size should be(1)
-        query(userTable.firstName, userTable.lastName).insertAndReturn("Frank", "appa")(userTable.id) should be(4L)
+        query(userTable.firstName).also(query(userTable.lastName)).insertAndReturn("Frank", "appa")(userTable.id) should be(4L)
         userTable.size should be(4)
         query(userTable.firstName).where(userTable.firstName like "Frank").size should be(2)
         query(userTable.firstName).where(userTable.firstName like "Frank").distinct.size should be(1)

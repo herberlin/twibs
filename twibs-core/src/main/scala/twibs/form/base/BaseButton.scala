@@ -5,11 +5,11 @@
 package twibs.form.base
 
 import scala.xml.{Elem, Unparsed, Text, NodeSeq}
-import twibs.util.{TranslationSupport, DisplayType}
+import twibs.util.{IdString, TranslationSupport, DisplayType}
 import twibs.util.XmlUtils._
 import twibs.web.Request
 
-trait BaseButton extends BaseChildItemWithName with DisplayType {
+trait ButtonRenderer extends DisplayType with TranslationSupport {
   def renderButtonTitle = if (buttonUseIconOnly) buttonIconOrButtonTitleIfEmptyHtml else buttonTitleWithIconHtml
 
   def buttonUseIconOnly = false
@@ -49,7 +49,19 @@ trait BaseButton extends BaseChildItemWithName with DisplayType {
   def isActive = false
 
   def isInactive = !isActive
+
+  def isVisible: Boolean
+
+  def isDisabled: Boolean
+
+  def ilk: String
+
+  def name: String
+
+  def id: IdString
 }
+
+trait BaseButton extends BaseChildItemWithName with ButtonRenderer
 
 trait ButtonValues extends BaseButton with Values {
   def buttonAsHtmlWithValue(buttonValue: ValueType): NodeSeq = {

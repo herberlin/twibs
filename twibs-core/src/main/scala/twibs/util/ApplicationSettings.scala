@@ -11,8 +11,8 @@ import java.net.{UnknownHostException, InetAddress}
 import org.apache.tika.Tika
 
 class SettingsFactory {
-  val defaultSystemSettings: SystemSettings = new SystemSettings with Loggable {
-    logger.info(s"Run mode is '${runMode.name}'")
+  val defaultSystemSettings: SystemSettings = new SystemSettings {
+    SystemSettings.logger.info(s"Run mode is '${runMode.name}'")
   }
 
   val defaultUserSettings: UserSettings = new UserSettings {
@@ -78,7 +78,7 @@ class SystemSettings {
 
 }
 
-object SystemSettings {
+object SystemSettings extends Loggable {
   implicit def unwrap(companion: SystemSettings.type) = current
 
   def current = SettingsFactory.current.defaultSystemSettings

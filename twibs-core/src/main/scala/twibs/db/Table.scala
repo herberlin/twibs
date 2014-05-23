@@ -74,7 +74,7 @@ class Table(val tableName: String) {
   }
 
   case class LocalDateTimeOptionColumn(name: String) extends Column[Option[LocalDateTime]] with OptionalColumn {
-    def get(rs: ResultSet, pos: Int) = Option(rs.getTimestamp(pos).toLocalDateTime)
+    def get(rs: ResultSet, pos: Int) = Option(rs.getTimestamp(pos)).map(_.toLocalDateTime)
 
     def set(ps: PreparedStatement, pos: Int, valueOption: Any) = valueOption.asInstanceOf[Option[LocalDateTime]] match {
       case Some(value) => ps.setTimestamp(pos, value.toTimestamp)
@@ -89,7 +89,7 @@ class Table(val tableName: String) {
   }
 
   case class LocalDateOptionColumn(name: String) extends Column[Option[LocalDate]] with OptionalColumn {
-    def get(rs: ResultSet, pos: Int) = Option(rs.getDate(pos).toLocalDate)
+    def get(rs: ResultSet, pos: Int) = Option(rs.getDate(pos)).map(_.toLocalDate)
 
     def set(ps: PreparedStatement, pos: Int, valueOption: Any) = valueOption.asInstanceOf[Option[LocalDate]] match {
       case Some(value) => ps.setDate(pos, value.toDate)
@@ -129,6 +129,8 @@ abstract class Column[T](implicit val table: Table) {
   def name: String
 
   def fullName: String = table.tableName + "." + name
+
+  private[db] def sget(rs: ResultSet, pos: Int): T = try get(rs,pos) catch {case e: Exception => Sql.logger.error(s"Retrieving value $fullName failed"); throw e}
 
   def get(rs: ResultSet, pos: Int): T
 
