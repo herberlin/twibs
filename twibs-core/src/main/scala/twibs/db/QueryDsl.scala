@@ -8,7 +8,7 @@ import twibs.util.SortOrder.SortOrder
 object QueryDsl {
   implicit def value2tuple[A](x: A) = Tuple1(x)
 
-  def makeFlat(v: Product): List[Any] = v.productIterator.toList.flatten { case p: Product => makeFlat(p); case a => a :: Nil}
+  def makeFlat(v: Product): List[Any] = v.productIterator.toList.flatten { case p: Option[_] => p :: Nil; case p: Product => makeFlat(p); case a => a :: Nil}
 
   def query[C1](c1: Column[C1]): Query[Tuple1[C1]] = new QueryImpl[Tuple1[C1]](List(c1), from = (rs, ac) => new Tuple1(c1.sget(rs, ac())))
 
@@ -238,7 +238,7 @@ object QueryDsl {
     override def &&(right: Where) = new Where {
       override private[db] def toStatement: Statement = Statement(" WHERE ") ~ right.toStatement
 
-      override private[db] def toStatement(parentPrecedence: Int): Statement = right.toStatement(parentPrecedence)
+      override private[db] def toStatement(parentPrecedence: Int): Statement = Statement(" WHERE ") ~ right.toStatement(parentPrecedence)
     }
 
     override private[db] def toStatement: Statement = EmptyStatement

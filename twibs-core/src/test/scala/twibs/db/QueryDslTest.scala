@@ -8,6 +8,7 @@ class QueryDslTest extends TwibsTest {
     val firstName = new StringColumn("first_name")
     val lastName = new StringColumn("last_name")
     val sort = new LongColumn("sort")
+    val email = new StringOptionColumn("email")
   }
 
   val newsTable = new Table("ns") {
@@ -19,6 +20,10 @@ class QueryDslTest extends TwibsTest {
 
   test("Select simple sql") {
     query(userTable.firstName, userTable.lastName).toSelectSql should be("SELECT users.first_name,users.last_name FROM users")
+  }
+
+  test("Query is not null") {
+    query(userTable.firstName).also(query(userTable.lastName)).where(userTable.email.isNotNull).where(userTable.firstName !== "Zappa").toSelectSql should be("SELECT users.first_name,users.last_name FROM users WHERE users.email IS NOT NULL AND users.first_name <> ?")
   }
 
   test("Select sql with where and order statement") {
