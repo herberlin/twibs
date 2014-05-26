@@ -27,5 +27,7 @@ trait Session extends AttributeContainer {
 object Session {
   private val NOTIFICATIONS_PARAMETER_NAME: String = "NOTIFICATIONS"
 
-  implicit def unwrap(companion: Session.type): Session = Request.session
+  implicit def unwrap(companion: Session.type): Session = current
+
+  def current = Request.session
 }

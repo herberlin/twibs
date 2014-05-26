@@ -21,7 +21,13 @@ class FormResponder(makeForm: () => BaseForm) extends Responder {
       case _ => None
     }
 
-  def parse(request: Request) = {
+  def parse(request: Request) = FormResponder.parse(request, makeForm)
+
+  def enhance[R](f: => R): R = f
+}
+
+object FormResponder {
+  def parse(request: Request, makeForm: () => BaseForm) = {
     BaseForm.use(request.parameters.getString(BaseForm.PN_ID, IdGenerator.next()), request.parameters.getBoolean(BaseForm.PN_MODAL, default = false)) {
       val form = makeForm()
 
@@ -30,21 +36,21 @@ class FormResponder(makeForm: () => BaseForm) extends Responder {
           form.prepare(request)
           form.parse(request)
           form.execute(request)
-          form.items.collect {case r: Result if r.result != Result.Ignored => r.result}.toList
+          form.items.collect { case r: Result if r.result != Result.Ignored => r.result}.toList
         } else Nil
 
-      result.collectFirst {case Result.UseResponse(response) => response} match {
+      result.collectFirst { case Result.UseResponse(response) => response} match {
         case Some(response) => response
         case None =>
 
-          val beforeDisplayJs = result.collect {case Result.BeforeFormDisplay(js) => js}
+          val beforeDisplayJs = result.collect { case Result.BeforeFormDisplay(js) => js}
 
-          val displayJs = result.collect {case Result.InsteadOfFormDisplay(js) => js} match {
+          val displayJs = result.collect { case Result.InsteadOfFormDisplay(js) => js} match {
             case Nil => form.displayJs :: Nil
             case l => l
           }
 
-          val afterDisplayJs = result.collect {case Result.AfterFormDisplay(js) => js}
+          val afterDisplayJs = result.collect { case Result.AfterFormDisplay(js) => js}
 
           val javascript: JsCmd = beforeDisplayJs ::: displayJs ::: afterDisplayJs
 
@@ -54,6 +60,4 @@ class FormResponder(makeForm: () => BaseForm) extends Responder {
       }
     }
   }
-
-  def enhance[R](f: => R): R = f
 }

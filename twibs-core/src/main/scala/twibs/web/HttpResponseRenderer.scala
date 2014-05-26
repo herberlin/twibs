@@ -10,7 +10,7 @@ import javax.servlet.http.{HttpServletRequest, HttpServletResponse}
 import twibs.util.Predef._
 import twibs.util.ThreeTenTransition._
 
-private[web] class HttpResponseRenderer(request: Request, response: Response, httpRequest: HttpServletRequest, httpResponse: HttpServletResponse) {
+class HttpResponseRenderer(request: Request, response: Response, httpRequest: HttpServletRequest, httpResponse: HttpServletResponse) {
   private val currentDateTime = Request.now()
 
   private def currentDateTimeInMillis = currentDateTime.toSystemEpochMillis
