@@ -180,4 +180,20 @@ class ValuesTest extends TwibsTest {
     input.computeIsValid should beFalse
     input.values should be('empty)
   }
+
+  test("Modified input") {
+    val input = new TestField with LongValues
+    input.isModified should beFalse
+    input.values should be ('empty)
+    input.isModified should beFalse
+
+    input.strings = "" :: Nil
+    input.isModified should beTrue
+
+    input.values should be ('empty)
+    input.isModified should beTrue
+    input.resetInputs()
+    input.values should be ('empty)
+    input.isModified should beFalse
+  }
 }

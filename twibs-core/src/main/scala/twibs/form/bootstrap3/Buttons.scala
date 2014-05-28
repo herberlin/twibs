@@ -106,5 +106,5 @@ trait BootstrapPopoverButton extends BootstrapButton with ButtonValues {
 
   def popoverPlacement = "bottom"
 
-  def popoverContainer = "body"
+  def popoverContainer = parent.form.contentId.toCssId
 }

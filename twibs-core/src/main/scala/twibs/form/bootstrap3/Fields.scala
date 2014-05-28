@@ -241,8 +241,6 @@ trait FileEntryField extends Field with FileEntryValues with Result {
     override def execute(parameters: Seq[String]) = processDeleteParameters(parameters)
 
     override def popoverPlacement: String = "auto right"
-
-    override def popoverContainer: String = parent.form.contentId.toCssId
   }
 
   override def inputAsElem(input: Input): Elem = <span>{input.title}</span>
@@ -326,16 +324,12 @@ trait UploadWithOverwrite extends BaseItemContainer {
       override def execute(parameters: Seq[String]) = processDeleteParameters(parameters)
 
       override def popoverPlacement: String = "auto right"
-
-      override def popoverContainer: String = form.contentId.toCssId
     }
 
     private val overwriteButton = new SpecialButton("overwrite") with BootstrapPopoverButton with InfoDisplayType with Executable with StringValues with ButtonValues {
       override def execute(parameters: Seq[String]) = processOverwriteParameters(parameters)
 
       override def popoverPlacement: String = "auto right"
-
-      override def popoverContainer: String = form.contentId.toCssId
     }
 
     private def actionButtonsHtml(string: String): NodeSeq = {

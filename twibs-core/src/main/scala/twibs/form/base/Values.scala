@@ -66,6 +66,7 @@ trait Values extends TranslationSupport with Validatable {
     bufferedStrings = Some(strings)
     bufferedValues = None
     cachedInputs.reset()
+    _modified = true
   }
 
   def strings = inputs.map(_.string)
@@ -74,6 +75,7 @@ trait Values extends TranslationSupport with Validatable {
     bufferedValues = Some(values)
     bufferedStrings = None
     cachedInputs.reset()
+    _modified = true
   }
 
   def resetInputs(): Unit = {
@@ -81,9 +83,12 @@ trait Values extends TranslationSupport with Validatable {
     bufferedValues = None
     cachedInputs.reset()
     _validated = false
+    _modified = false
   }
 
   private[base] var _validated = false
+
+  private var _modified = false
 
   def values = inputs.collect {case ValidInput(_, _, Some(value)) => value}
 
@@ -117,7 +122,7 @@ trait Values extends TranslationSupport with Validatable {
     computeIsValid
   }
 
-  def isModified = bufferedValues.isDefined || bufferedStrings.isDefined
+  def isModified = _modified
 
   def minimumNumberOfInputs = 1
 

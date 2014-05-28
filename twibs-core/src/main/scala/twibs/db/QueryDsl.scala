@@ -129,14 +129,13 @@ object QueryDsl {
 
     override def orderByName(orderBys: List[(String, SortOrder)]): Query[T] =
       orderBy(orderBys.map { case (name, sort) =>
-        columnForName(name) match {
-          case Some(column) =>
+        columnForName(name).flatMap(column =>
             sort match {
               case SortOrder.Ascending => Some(column.asc)
               case SortOrder.Descending => Some(column.desc)
               case _ => None
             }
-        }
+        )
       }.flatten)
 
     def columnForName(columnName: String) = columns.find(_.name == columnName)

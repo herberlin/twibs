@@ -222,6 +222,6 @@ trait DataTable[T] extends ItemContainer {
 
   object DataColumn {
     def apply(name: String): DataColumn = DataColumn(name, name)
+    def apply(column: twibs.db.Column[_]) : DataColumn = DataColumn(column.name)
   }
-
 }

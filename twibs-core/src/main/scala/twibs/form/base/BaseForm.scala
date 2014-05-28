@@ -11,7 +11,11 @@ import scala.xml.NodeSeq
 import twibs.util.JavaScript._
 import twibs.util.XmlUtils._
 import twibs.util._
-import twibs.web.Request
+import twibs.web.{Response, Request}
+import com.google.common.cache.{Cache, CacheBuilder}
+import java.util.concurrent.TimeUnit
+import twibs.form.base.Result.{UseResponse, AfterFormDisplay}
+import java.io.IOException
 
 trait BaseItem extends TranslationSupport {
   def itemIsVisible: Boolean = true
@@ -232,6 +236,8 @@ object BaseForm {
   private val dynamicVar = new DynamicVariable[Option[(IdString, Boolean)]](None)
 
   def use[R](id: IdString, modal: Boolean)(f: => R): R = dynamicVar.withValue(Some((id, modal)))(f)
+
+  val deferredResponses: Cache[String,Response] = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).build()
 }
 
 trait BaseForm extends BaseParentItem with CurrentRequestSettings {
@@ -266,6 +272,17 @@ trait BaseForm extends BaseParentItem with CurrentRequestSettings {
 
   val renderer: Renderer = new Renderer {
     override def renderMessage(message: Message): NodeSeq = message.text
+  }
+
+  def deferred(response:Response): Result.Value = {
+    val id = IdGenerator.next()
+    BaseForm.deferredResponses.put(id, response)
+    AfterFormDisplay(JsCmd(s"location.href = '${deferredAction.executionLink(id)}'"))
+  }
+
+  private val deferredAction = new Executor("deferred-download") with Result {
+    override def execute(strings: Seq[String]): Unit =
+      result = strings.headOption.flatMap(id => Option(BaseForm.deferredResponses.getIfPresent(id)).map(response => UseResponse(response))) getOrElse (throw new IOException("File does not exists"))
   }
 
   // Form is the root item
