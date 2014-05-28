@@ -148,11 +148,11 @@ abstract class Column[T](implicit val table: Table) {
 
   def <(right: T): Where = new ColumnWhere("<", right)
 
-  def !==(right: T): Where = new ColumnWhere("<>", right)
+  def =!=(right: T): Where = new ColumnWhere("<>", right)
 
   def ===(right: T): Where = new ColumnWhere("=", right)
 
-  def in(vals: List[T]): Where = new Where {
+  def in(vals: Seq[T]): Where = new Where {
     private[db] override def toStatement = Statement(s"$fullName in (${vals.map(_ => "?").mkString(",")})", vals.map(right => (self, right)))
   }
 
@@ -216,8 +216,8 @@ trait OrderBy {
   private[db] def toStatement: Statement
 }
 
-private case class Statement(sql: String, parameters: List[(Column[_], Any)] = Nil) {
-  def ~(right: Statement) = Statement(sql + right.sql, parameters ::: right.parameters)
+private case class Statement(sql: String, parameters: Seq[(Column[_], Any)] = Nil) {
+  def ~(right: Statement) = Statement(sql + right.sql, parameters ++ right.parameters)
 
   def insert(connection: Connection): Unit = timed {preparedStatement(connection).useAndClose {_.execute()}}
 
@@ -320,6 +320,8 @@ trait Query[T <: Product] {
   def size(implicit connection: Connection): Long
 
   def isEmpty(implicit connection: Connection): Boolean = size(connection) == 0
+
+  def convert[R <: Product](to: (T) => R,from: (R) => Option[T]): Query[R]
 }
 
 private[db] class AutoCounter {

@@ -23,7 +23,11 @@ class QueryDslTest extends TwibsTest {
   }
 
   test("Query is not null") {
-    query(userTable.firstName).also(query(userTable.lastName)).where(userTable.email.isNotNull).where(userTable.firstName !== "Zappa").toSelectSql should be("SELECT users.first_name,users.last_name FROM users WHERE users.email IS NOT NULL AND users.first_name <> ?")
+    query(userTable.firstName).also(query(userTable.lastName)).where(userTable.email.isNotNull).where(userTable.firstName =!= "Zappa").toSelectSql should be("SELECT users.first_name,users.last_name FROM users WHERE users.email IS NOT NULL AND users.first_name <> ?")
+  }
+
+  test("Test not") {
+    query(userTable.firstName).where(userTable.email =!= Some("a") && userTable.firstName === "").toSelectSql should be("SELECT users.first_name FROM users WHERE users.email <> ? AND users.first_name = ?")
   }
 
   test("Select sql with where and order statement") {
@@ -50,7 +54,7 @@ class QueryDslTest extends TwibsTest {
   }
 
   test("Delete sql statement") {
-    val q = deleteFrom(userTable).where(userTable.firstName !== "Ike")
+    val q = deleteFrom(userTable).where(userTable.firstName =!= "Ike")
     q.toDeleteSql should be("DELETE FROM users WHERE users.first_name <> ?")
   }
 
@@ -79,9 +83,12 @@ class QueryDslTest extends TwibsTest {
         query(userTable.lastName).where(userTable.firstName like "Frank").size should be(1)
         query(userTable.firstName).where(userTable.lastName === "Zappa").orderBy(userTable.sort asc).orderBy(userTable.firstName desc).select.map(_._1).toList should be(List("Frank"))
         query(userTable.firstName).orderBy(userTable.sort desc).select.map(_._1).toList should be(List("Tommy", "Ike", "Frank"))
+        query(userTable.firstName, userTable.lastName).convert(User.tupled,User.unapply).where(userTable.firstName === "Tommy").first.lastName should be ("Mars")
         deleteFrom(userTable).delete should be(3)
         userTable.size should be(0)
       }
     }
   }
+
+  case class User(firstName: String, lastName: String)
 }

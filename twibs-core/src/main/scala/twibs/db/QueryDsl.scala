@@ -221,6 +221,12 @@ object QueryDsl {
     override def toUpdateSql: String = s"UPDATE $tableListSql SET ${columns.map(_.name + "=?").mkString(",")}"
 
     override def toInsertSql: String = s"INSERT INTO $tableListSql(${columns.map(_.name).mkString(",")}) VALUES(${columns.map(x => "?").mkString(",")})"
+
+    override def convert[R <: Product](convertTo: (T) => R, convertFrom: (R) => Option[T]): Query[R] =
+      new QueryImpl[R](columns, where, orderBy, groupBy, joins, offset, limit, isDistinct,
+        (rs, ac) => convertTo(self.from(rs, ac))) {
+        override def to(ps: PreparedStatement, values: R): Unit = self.to(ps, convertFrom(values).get)
+      }
   }
 
   private class DeleteFromImpl(table: Table, where: Where = EmptyWhere) extends DeleteFrom {
