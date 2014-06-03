@@ -4,18 +4,19 @@
 
 package twibs.form.base
 
+import com.google.common.cache.{Cache, CacheBuilder}
+import java.io.IOException
+import java.util.concurrent.TimeUnit
+import scala.Some
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
-import scala.util.DynamicVariable
 import scala.xml.NodeSeq
+import twibs.form.base.Result.AfterFormDisplay
+import twibs.form.base.Result.UseResponse
 import twibs.util.JavaScript._
 import twibs.util.XmlUtils._
 import twibs.util._
-import twibs.web.{Response, Request}
-import com.google.common.cache.{Cache, CacheBuilder}
-import java.util.concurrent.TimeUnit
-import twibs.form.base.Result.{UseResponse, AfterFormDisplay}
-import java.io.IOException
+import twibs.web._
 
 trait BaseItem extends TranslationSupport {
   def itemIsVisible: Boolean = true
@@ -89,7 +90,7 @@ trait BaseChildItemWithName extends BaseChildItem {
   def id: IdString = parent.id + "_" + name
 
   final val name: String = {
-    val names = parent.form.items.collect({case e: BaseChildItemWithName if e != this => e.name}).toList
+    val names = parent.form.items.collect({ case e: BaseChildItemWithName if e != this => e.name}).toList
     def recursive(n: String, i: Int): String = {
       val ret = n + (if (i == 0) "" else i)
       if (!names.contains(ret)) ret
@@ -128,7 +129,7 @@ trait BaseParentItem extends BaseItem with Validatable with RenderedItem {
 
   override def execute(request: Request): Unit = children.foreach(_.execute(request))
 
-  override def html: NodeSeq = children collect {case child: Rendered => child.enrichedHtml} flatten
+  override def html: NodeSeq = children collect { case child: Rendered => child.enrichedHtml} flatten
 
   def items: Iterator[BaseItem] = (children map {
     case withItems: BaseParentItem => withItems.items
@@ -221,9 +222,9 @@ abstract class DynamicContainer[T <: Dynamic] private(val ilk: String, val paren
     super.parse(request)
   }
 
-  def dynamics: List[T] = children collect {case child if tag.runtimeClass.isInstance(child) => child.asInstanceOf[T]}
+  def dynamics: List[T] = children collect { case child if tag.runtimeClass.isInstance(child) => child.asInstanceOf[T]}
 
-  def recreate(dynamicId: String): T = dynamics.collectFirst {case child if child.dynamicId == dynamicId => child} getOrElse create(dynamicId)
+  def recreate(dynamicId: String): T = dynamics.collectFirst { case child if child.dynamicId == dynamicId => child} getOrElse create(dynamicId)
 
   def create(dynamicId: String = IdGenerator.next()): T
 }
@@ -233,17 +234,15 @@ object BaseForm {
 
   val PN_MODAL = "form-modal"
 
-  private val dynamicVar = new DynamicVariable[Option[(IdString, Boolean)]](None)
-
-  def use[R](id: IdString, modal: Boolean)(f: => R): R = dynamicVar.withValue(Some((id, modal)))(f)
-
-  val deferredResponses: Cache[String,Response] = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).build()
+  val deferredResponses: Cache[String, Response] = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).build()
 }
 
 trait BaseForm extends BaseParentItem with CurrentRequestSettings {
   def name: String
 
-  val (id: IdString, modal: Boolean) = BaseForm.dynamicVar.value getOrElse ((IdString(IdGenerator.next()), false))
+  val id: IdString = Request.parameters.getString(BaseForm.PN_ID, IdGenerator.next())
+
+  val modal = Request.parameters.getBoolean(BaseForm.PN_MODAL, default = false)
 
   def modalId = id + "_modal"
 
@@ -261,12 +260,20 @@ trait BaseForm extends BaseParentItem with CurrentRequestSettings {
   def actionLinkWithContextPath: String = WebContext.path + actionLink
 
   private def queryString = {
-    val keyValues = items.collect({case item: BaseField if item.isModified => item.strings.map(string => item.name -> string)}).flatten.toList
+    val keyValues = items.collect({ case item: BaseField if item.isModified => item.strings.map(string => item.name -> string)}).flatten.toList
     val all = if (ApplicationSettings.name != ApplicationSettings.DEFAULT_NAME) (ApplicationSettings.PN_NAME -> ApplicationSettings.name) :: keyValues else keyValues
     if (all.isEmpty) "" else "?" + all.map(e => e._1 + "=" + e._2).mkString("&")
   }
 
   def accessAllowed: Boolean
+
+  def isPrepareAllowed = true
+
+  def isParseAllowed = accessAllowed
+
+  def isExecuteAllowed = accessAllowed
+
+  def isDisplayAllowed = accessAllowed
 
   def displayJs: JsCmd
 
@@ -274,7 +281,7 @@ trait BaseForm extends BaseParentItem with CurrentRequestSettings {
     override def renderMessage(message: Message): NodeSeq = message.text
   }
 
-  def deferred(response:Response): Result.Value = {
+  def deferred(response: Response): Result.Value = {
     val id = IdGenerator.next()
     BaseForm.deferredResponses.put(id, response)
     AfterFormDisplay(JsCmd(s"location.href = '${deferredAction.executionLink(id)}'"))
@@ -295,6 +302,36 @@ trait BaseForm extends BaseParentItem with CurrentRequestSettings {
   override def anchestorIsRevealed: Boolean = true
 
   override def anchestorIsVisible: Boolean = true
+
+  def respond(request: Request): Response = {
+    val result: List[Result.Value] = {
+      if (isPrepareAllowed) prepare(request)
+      if (isParseAllowed) parse(request)
+      if (isExecuteAllowed) execute(request)
+      items.collect { case r: Result if r.result != Result.Ignored => r.result}.toList
+    }
+
+    result.collectFirst { case Result.UseResponse(response) => response} match {
+      case Some(response) => response
+      case None =>
+
+        val beforeDisplayJs = result.collect { case Result.BeforeFormDisplay(js) => js}
+
+        val insteadOfFormDisplayJs = result.collect { case Result.InsteadOfFormDisplay(js) => js} match {
+          case Nil => displayJs :: Nil
+          case l => l
+        }
+
+        val afterDisplayJs = result.collect { case Result.AfterFormDisplay(js) => js}
+
+        val javascript: JsCmd = beforeDisplayJs ::: insteadOfFormDisplayJs ::: afterDisplayJs
+
+        new StringResponse with VolatileResponse with TextMimeType {
+          val asString = javascript.toString
+        }
+    }
+  }
+
 }
 
 trait Executable extends BaseChildItemWithName {

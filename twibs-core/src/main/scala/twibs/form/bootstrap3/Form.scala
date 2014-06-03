@@ -51,7 +51,7 @@ abstract class Form(val name: String) extends BaseForm {
      </div>
     </div>
 
-  def formHtml(modal: Boolean) = if (!accessAllowed) noAccessHtml
+  def formHtml(modal: Boolean) = if (!isDisplayAllowed) noAccessHtml
   else
     <form id={id} name={name} class={formCssClasses} action={actionLinkWithContextPath} method="post" enctype={enctype}>
       {HiddenInputRenderer(BaseForm.PN_ID, id) ++ HiddenInputRenderer(BaseForm.PN_MODAL, "" + modal) ++ HiddenInputRenderer(ApplicationSettings.PN_NAME, requestSettings.applicationSettings.name)}
@@ -97,7 +97,7 @@ abstract class Form(val name: String) extends BaseForm {
     case _ => JsEmpty
   }
 
-  def javascript: JsCmd = if (!accessAllowed) JsEmpty else items.collect({case item: JavascriptItem => item.javascript})
+  def javascript: JsCmd = if (!isDisplayAllowed) JsEmpty else items.collect({case item: JavascriptItem => item.javascript})
 
   def focusJs = items.collectFirst({case item: Field if item.needsFocus => item.focusJs}) getOrElse JsEmpty
 

@@ -44,7 +44,7 @@ trait BootstrapButton extends BaseButton {
       <span>{renderButtonTitle}</span>
 }
 
-trait BootstrapPopoverButton extends BootstrapButton with ButtonValues {
+trait ButtonWithPopover extends BootstrapButton with ButtonValues {
   self =>
   def usePopover = true
 

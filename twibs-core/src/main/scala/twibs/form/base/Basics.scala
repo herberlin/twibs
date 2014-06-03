@@ -112,7 +112,10 @@ abstract class InitInput()(implicit val parent: BaseParentItem) extends BaseFiel
 
   def link(value: ValueType): String = parent.form.actionLinkWithContextPath + "?" + name + "=" + valueToString(value)
 
-  override def execute(request: Request): Unit = valueOption.map(initWithVar)
+  override def prepare(request: Request): Unit = {
+    parse(request)
+    valueOption.map(initWithVar)
+  }
 
   def <<(initWith: (ValueType) => Unit) : (ValueType) => String = {
     initWithVar = initWith

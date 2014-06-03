@@ -108,6 +108,18 @@ class RunMode(val name: String) {
   val isProduction = name == "production"
 }
 
+object OperatingSystem {
+  private val os = System.getProperty("os.name").toLowerCase
+
+  val isWindows = os.indexOf("win") >= 0
+
+  val isMac = os.indexOf("mac") >= 0
+
+  val isUnix = os.indexOf("nix") >= 0 || os.indexOf("nux") >= 0 || os.indexOf("aix") > 0
+
+  val isSolaris = os.indexOf("sunos") >= 0
+}
+
 trait UserSettings {
   def name: String
 

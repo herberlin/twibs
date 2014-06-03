@@ -237,7 +237,7 @@ trait BooleanCheckBoxField extends Field with BooleanValues with FloatingInfo {
 }
 
 trait FileEntryField extends Field with FileEntryValues with Result {
-  val deleteButton = new SpecialButton("delete")(parent) with BootstrapPopoverButton with DangerDisplayType with Executable with StringValues with ButtonValues {
+  val deleteButton = new SpecialButton("delete")(parent) with ButtonWithPopover with DangerDisplayType with Executable with StringValues with ButtonValues {
     override def execute(parameters: Seq[String]) = processDeleteParameters(parameters)
 
     override def popoverPlacement: String = "auto right"
@@ -320,13 +320,13 @@ trait UploadWithOverwrite extends BaseItemContainer {
     override def inputAsEnrichedHtml(input: Input, index: Int): NodeSeq =
       HiddenInputRenderer(name, input.string) ++ <p class="form-control-static clearfix">{actionButtonsHtml(input.string)}<a href="#">{input.title}</a></p>
 
-    private val deleteButton = new SpecialButton("delete") with BootstrapPopoverButton with DangerDisplayType with Executable with StringValues with ButtonValues {
+    private val deleteButton = new SpecialButton("delete") with ButtonWithPopover with DangerDisplayType with Executable with StringValues with ButtonValues {
       override def execute(parameters: Seq[String]) = processDeleteParameters(parameters)
 
       override def popoverPlacement: String = "auto right"
     }
 
-    private val overwriteButton = new SpecialButton("overwrite") with BootstrapPopoverButton with InfoDisplayType with Executable with StringValues with ButtonValues {
+    private val overwriteButton = new SpecialButton("overwrite") with ButtonWithPopover with InfoDisplayType with Executable with StringValues with ButtonValues {
       override def execute(parameters: Seq[String]) = processOverwriteParameters(parameters)
 
       override def popoverPlacement: String = "auto right"

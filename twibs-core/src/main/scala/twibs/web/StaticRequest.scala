@@ -17,6 +17,8 @@ class StaticRequest(val path: String,
 
   def accept: List[String] = Nil
 
+  def remoteAddress: String = "::1"
+
   def referrerOption: Option[String] = None
 
   def userAgentOption: Option[String] = None
@@ -24,8 +26,6 @@ class StaticRequest(val path: String,
   def remoteUserOption: Option[String] = None
 
   def doesClientSupportGzipEncoding: Boolean = false
-
-  def remoteAddress: String = "::1"
 
   def uri: String = path
 

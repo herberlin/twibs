@@ -31,7 +31,7 @@ trait Request extends Serializable with AttributeContainer {
   //
   //  def doesClientSupportGzipEncoding: Boolean
   //
-  //  def remoteAddress: String
+  def remoteAddress: String
   //
   //  def uri: String
   //
@@ -66,6 +66,8 @@ class RequestWrapper(val delegatee: Request) extends Request {
   def method = delegatee.method
 
   def accept = delegatee.accept
+
+  def remoteAddress = delegatee.remoteAddress
 
   def doesClientSupportGzipEncoding = delegatee.doesClientSupportGzipEncoding
 
@@ -104,6 +106,8 @@ private object ImmutableRequest extends Request {
   def path: String = "/"
 
   def accept: List[String] = Nil
+
+  def remoteAddress: String = "::1"
 
   def doesClientSupportGzipEncoding: Boolean = true
 
