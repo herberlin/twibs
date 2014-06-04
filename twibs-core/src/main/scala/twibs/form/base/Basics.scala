@@ -41,14 +41,10 @@ trait Validatable {
   def isValid: Boolean
 }
 
-trait Rendered {
+trait RenderedItem extends BaseItem {
   def html: NodeSeq
 
-  def enrichedHtml: NodeSeq = html
-}
-
-trait RenderedItem extends BaseItem with Rendered {
-  final override def enrichedHtml: NodeSeq = itemIsVisible match {
+  final def enrichedHtml: NodeSeq = itemIsVisible match {
     case false => NodeSeq.Empty
     case true => isRevealed match {
       case true => html

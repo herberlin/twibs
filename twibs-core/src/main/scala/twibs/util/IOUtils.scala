@@ -18,8 +18,15 @@ object Predef {
   type WithCloseMethod = {def close(): Unit}
 
   implicit def toRichClosable[C <: WithCloseMethod](closable: C) = new {
-    def useAndClose[T](f: (C) => T): T = try f(closable) finally {closable.close()}
+    def closeAfter[R](f: => R): R = useAndClose(Unit => f)
 
-    def closeAfter[T](f: => T): T = try f finally {closable.close()}
+    def useAndClose[R](f: C => R): R = {
+      var t: Throwable = null
+      try f(closable) catch {
+        case x: Throwable => t = x; throw x
+      } finally try closable.close() catch {
+        case x: Throwable => if (t != null) t.addSuppressed(x) else throw x
+      }
+    }
   }
 }

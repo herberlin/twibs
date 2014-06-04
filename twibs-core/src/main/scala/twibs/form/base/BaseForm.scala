@@ -129,7 +129,7 @@ trait BaseParentItem extends BaseItem with Validatable with RenderedItem {
 
   override def execute(request: Request): Unit = children.foreach(_.execute(request))
 
-  override def html: NodeSeq = children collect { case child: Rendered => child.enrichedHtml} flatten
+  override def html: NodeSeq = children collect { case child: RenderedItem => child.enrichedHtml} flatten
 
   def items: Iterator[BaseItem] = (children map {
     case withItems: BaseParentItem => withItems.items
@@ -348,6 +348,10 @@ trait ExecuteValidated extends Executable {
   def callValidation() = parent.form.validate()
 
   def executeValidated(): Unit
+}
+
+trait SubmitOnChange extends BaseField {
+  override def submitOnChange = true
 }
 
 abstract class Executor(val ilk: String)(implicit val parent: BaseParentItem) extends Executable {

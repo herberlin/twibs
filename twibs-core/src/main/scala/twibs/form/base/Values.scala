@@ -439,10 +439,6 @@ trait Untrimmed extends Values {
   override def trim = false
 }
 
-trait SubmitOnChange extends BaseField {
-  override def submitOnChange = true
-}
-
 object Uploads {
   val cache: Cache[String, Upload] = CacheBuilder.newBuilder().expireAfterAccess(30, TimeUnit.MINUTES).build()
 

@@ -45,7 +45,7 @@ class FormHierarchyTest extends TwibsTest {
 
       val custom = new CustomContainer()
 
-      def check(): Unit = children should have size 2
+      def check(): Unit = children should have size 3
 
       override def accessAllowed: Boolean = true
     }
@@ -55,12 +55,12 @@ class FormHierarchyTest extends TwibsTest {
     form.container.container.check()
     form.container.container.dynamics.check0()
 
-    form.items should have size 7
+    form.items should have size 8
 
     form.container.container.dynamics.create("a")
     form.container.container.dynamics.create("b")
 
-    form.items should have size 13
+    form.items should have size 14
 
     form.container.container.dynamics.dynamics.foreach(_.check2())
     form.container.container.dynamics.check2()
@@ -68,7 +68,7 @@ class FormHierarchyTest extends TwibsTest {
     form.container.container.dynamics.reset()
     form.container.container.dynamics.check0()
 
-    form.items should have size 7
+    form.items should have size 8
 
     form.container.container.check()
   }
