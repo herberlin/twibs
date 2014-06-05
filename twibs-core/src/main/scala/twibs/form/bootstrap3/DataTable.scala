@@ -111,7 +111,7 @@ trait DataTable[T] extends ItemContainer {
 
   def offset: Long = offsetField.value
 
-  final def tableId = id + "-table"
+  final def tableId = id ~ "table"
 
   def tableHtml =
     <div id={tableId}>

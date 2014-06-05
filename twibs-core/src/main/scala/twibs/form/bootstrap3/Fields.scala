@@ -64,7 +64,7 @@ trait AbstractDateTimeField extends SingleLineField with JavascriptItem {
 
   private def initDateTimeJs = jQuery(inputGroupId).call("datetimepicker", datePickerOptions)
 
-  private def inputGroupId = id + "_input_group"
+  private def inputGroupId = id ~ "input-group"
 
   override def suffixes: List[NodeSeq] =
     if (isEnabled) clearButton :: <span class="glyphicon glyphicon-calendar"></span> :: super.suffixes

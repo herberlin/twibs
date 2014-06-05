@@ -5,6 +5,12 @@
 package twibs.util
 
 case class IdString(string: String) {
+  def ~(add: String) = (string, add) match {
+    case ("", s) => IdString(s)
+    case (s, "") => this
+    case (s, a) => IdString(s + "_" + a)
+  }
+
   def +(add: String) = IdString(string + add)
 
   def toCssId = "#" + string

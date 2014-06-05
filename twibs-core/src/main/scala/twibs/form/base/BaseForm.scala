@@ -81,7 +81,7 @@ trait ParseOnPrepare extends Component {
 trait ComponentWithName extends Component {
   def ilk: String
 
-  def id: IdString = parent.id + "_" + name
+  def id: IdString = parent.id ~ name
 
   final val name: String = {
     val names = form.items.collect({ case e: ComponentWithName if e != this => e.name}).toList
@@ -234,9 +234,9 @@ trait BaseForm extends BaseParentItem with CurrentRequestSettings {
 
   val modal = Request.parameters.getBoolean(BaseForm.PN_MODAL, default = false)
 
-  def modalId = id + "_modal"
+  def modalId = id ~ "modal"
 
-  def contentId: IdString = id + "_content"
+  def contentId: IdString = id ~ "content"
 
   override def translator: Translator = super.translator.usage("FORM").usage(name)
 
