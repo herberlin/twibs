@@ -61,7 +61,7 @@ trait ButtonRenderer extends DisplayType with TranslationSupport {
   def id: IdString
 }
 
-trait BaseButton extends BaseChildItemWithName with ButtonRenderer
+trait BaseButton extends ComponentWithName with ButtonRenderer
 
 trait ButtonValues extends BaseButton with Values {
   def buttonAsHtmlWithValue(buttonValue: ValueType): NodeSeq = {

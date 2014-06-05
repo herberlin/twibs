@@ -41,7 +41,7 @@ trait Validatable {
   def isValid: Boolean
 }
 
-trait RenderedItem extends BaseItem {
+trait RenderedItem extends Component {
   def html: NodeSeq
 
   final def enrichedHtml: NodeSeq = itemIsVisible match {
@@ -58,15 +58,15 @@ trait RenderedItem extends BaseItem {
   }
 }
 
-class DisplayMessage(condition: => Boolean, message: => Message)(implicit val parent: BaseParentItem) extends BaseChildItem with RenderedItem {
+class DisplayMessage(condition: => Boolean, message: => Message)(implicit val parent: BaseParentItem) extends Component with RenderedItem {
   def this(message: => Message)(implicit parent: BaseParentItem) = this(true, message)(parent)
 
   override def itemIsVisible: Boolean = condition
 
-  def html = parent.form.renderer.renderMessage(message)
+  def html = form.renderer.renderMessage(message)
 }
 
-class DisplayHtml(condition: => Boolean, gethtml: => NodeSeq)(implicit val parent: BaseParentItem) extends BaseChildItem with RenderedItem {
+class DisplayHtml(condition: => Boolean, gethtml: => NodeSeq)(implicit val parent: BaseParentItem) extends Component with RenderedItem {
   def this(gethtml: => NodeSeq)(implicit parent: BaseParentItem) = this(true, gethtml)(parent)
 
   override def itemIsVisible: Boolean = condition
@@ -74,7 +74,7 @@ class DisplayHtml(condition: => Boolean, gethtml: => NodeSeq)(implicit val paren
   def html = gethtml
 }
 
-class DisplayText(condition: => Boolean, gettext: => String)(implicit val parent: BaseParentItem) extends BaseChildItem with RenderedItem {
+class DisplayText(condition: => Boolean, gettext: => String)(implicit val parent: BaseParentItem) extends Component with RenderedItem {
   def this(gettext: => String)(implicit parent: BaseParentItem) = this(true, gettext)(parent)
 
   override def itemIsVisible: Boolean = condition
@@ -82,7 +82,7 @@ class DisplayText(condition: => Boolean, gettext: => String)(implicit val parent
   override def html = Text(gettext)
 }
 
-class Messages()(implicit val parent: BaseParentItem) extends BaseChildItem with RenderedItem {
+class Messages()(implicit val parent: BaseParentItem) extends Component with RenderedItem {
   private val _messages = ListBuffer[Message]()
 
   def messages = _messages.toList
@@ -94,19 +94,19 @@ class Messages()(implicit val parent: BaseParentItem) extends BaseChildItem with
     _messages.clear()
   }
 
-  override def html = <div>{messages.map(parent.form.renderer.renderMessage)}</div>
+  override def html = <div>{messages.map(form.renderer.renderMessage)}</div>
 }
 
 abstract class HiddenInput(val ilk: String)(implicit val parent: BaseParentItem) extends BaseField with RenderedItem {
   override def html = inputs.map(input => HiddenInputRenderer(name, input.string))
 
-  def executionLink(value: ValueType) = parent.form.actionLinkWithContextPath + "?" + name + "=" + valueToString(value)
+  def executionLink(value: ValueType) = form.actionLinkWithContextPath + "?" + name + "=" + valueToString(value)
 }
 
 abstract class InitInput()(implicit val parent: BaseParentItem) extends BaseField {
   def ilk: String = "init"
 
-  def link(value: ValueType): String = parent.form.actionLinkWithContextPath + "?" + name + "=" + valueToString(value)
+  def link(value: ValueType): String = form.actionLinkWithContextPath + "?" + name + "=" + valueToString(value)
 
   override def prepare(request: Request): Unit = {
     parse(request)
@@ -122,7 +122,7 @@ abstract class InitInput()(implicit val parent: BaseParentItem) extends BaseFiel
 }
 
 abstract class ActionButton(val ilk: String)(implicit val parent: BaseParentItem) extends ButtonValues {
-  def link(value: ValueType): String = parent.form.actionLinkWithContextPath + "?" + name + "=" + valueToString(value)
+  def link(value: ValueType): String = form.actionLinkWithContextPath + "?" + name + "=" + valueToString(value)
 
   override def execute(request: Request): Unit = values.headOption.map(execute)
 

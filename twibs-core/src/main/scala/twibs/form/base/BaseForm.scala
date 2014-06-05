@@ -18,12 +18,24 @@ import twibs.util.XmlUtils._
 import twibs.util._
 import twibs.web._
 
-trait BaseItem extends TranslationSupport {
+trait Component extends TranslationSupport {
   def itemIsVisible: Boolean = true
 
   def itemIsRevealed: Boolean = true
 
   def itemIsEnabled: Boolean = true
+
+  def anchestorIsVisible: Boolean = parent.itemIsVisible && parent.anchestorIsVisible
+
+  def anchestorIsRevealed: Boolean = parent.itemIsRevealed && parent.anchestorIsRevealed
+
+  def anchestorIsEnabled: Boolean = parent.itemIsEnabled && parent.anchestorIsEnabled
+
+  def isVisible: Boolean = itemIsVisible && anchestorIsVisible
+
+  def isRevealed: Boolean = itemIsRevealed && anchestorIsRevealed
+
+  def isEnabled: Boolean = itemIsEnabled && anchestorIsEnabled
 
   final def itemIsDisabled: Boolean = !itemIsEnabled
 
@@ -31,23 +43,11 @@ trait BaseItem extends TranslationSupport {
 
   final def itemIsHidden: Boolean = !itemIsVisible
 
-  def anchestorIsVisible: Boolean
-
-  def anchestorIsRevealed: Boolean
-
-  def anchestorIsEnabled: Boolean
-
   final def anchestorIsDisabled: Boolean = !anchestorIsEnabled
 
   final def anchestorIsConcealed: Boolean = !anchestorIsRevealed
 
   final def anchestorIsHidden: Boolean = !anchestorIsVisible
-
-  def isVisible: Boolean = itemIsVisible && anchestorIsVisible
-
-  def isRevealed: Boolean = itemIsRevealed && anchestorIsRevealed
-
-  def isEnabled: Boolean = itemIsEnabled && anchestorIsEnabled
 
   final def isDisabled: Boolean = !isEnabled
 
@@ -62,35 +62,29 @@ trait BaseItem extends TranslationSupport {
   def parse(request: Request): Unit = Unit
 
   def execute(request: Request): Unit = Unit
-}
 
-trait BaseChildItem extends BaseItem {
   def parent: BaseParentItem
 
-  def anchestorIsVisible: Boolean = parent.itemIsVisible && parent.anchestorIsVisible
-
-  def anchestorIsRevealed: Boolean = parent.itemIsRevealed && parent.anchestorIsRevealed
-
-  def anchestorIsEnabled: Boolean = parent.itemIsEnabled && parent.anchestorIsEnabled
+  def form: BaseForm = parent.form
 
   override def translator: Translator = parent.translator
 
   parent.registerChild(this)
 }
 
-trait ParseOnPrepare extends BaseItem {
+trait ParseOnPrepare extends Component {
   override def prepare(request: Request): Unit = super.parse(request)
 
   override def parse(request: Request): Unit = Unit
 }
 
-trait BaseChildItemWithName extends BaseChildItem {
+trait ComponentWithName extends Component {
   def ilk: String
 
   def id: IdString = parent.id + "_" + name
 
   final val name: String = {
-    val names = parent.form.items.collect({ case e: BaseChildItemWithName if e != this => e.name}).toList
+    val names = form.items.collect({ case e: ComponentWithName if e != this => e.name}).toList
     def recursive(n: String, i: Int): String = {
       val ret = n + (if (i == 0) "" else i)
       if (!names.contains(ret)) ret
@@ -108,14 +102,14 @@ trait BaseChildItemWithName extends BaseChildItem {
   require(name != ApplicationSettings.PN_NAME, s"'${ApplicationSettings.PN_NAME}' is reserved")
 }
 
-trait BaseParentItem extends BaseItem with Validatable with RenderedItem {
+trait BaseParentItem extends Component with Validatable with RenderedItem {
   implicit def thisAsParent: BaseParentItem = this
 
-  protected val _children = ListBuffer[BaseItem]()
+  protected val _children = ListBuffer[Component]()
 
   def children = _children.toList
 
-  private[base] def registerChild(child: BaseChildItem): Unit = _children += child
+  private[base] def registerChild(child: Component): Unit = if( child != this ) _children += child
 
   def id: IdString
 
@@ -131,10 +125,10 @@ trait BaseParentItem extends BaseItem with Validatable with RenderedItem {
 
   override def html: NodeSeq = children collect { case child: RenderedItem => child.enrichedHtml} flatten
 
-  def items: Iterator[BaseItem] = (children map {
+  def items: Iterator[Component] = (children map {
     case withItems: BaseParentItem => withItems.items
     case item => Iterator.single(item)
-  }).foldLeft(Iterator.single(this.asInstanceOf[BaseItem]))(_ ++ _)
+  }).foldLeft(Iterator.single(this.asInstanceOf[Component]))(_ ++ _)
 
   def validate(): Boolean = {
     items.foreach {
@@ -149,16 +143,12 @@ trait BaseParentItem extends BaseItem with Validatable with RenderedItem {
     case i: Validatable => i.isValid
     case _ => true
   }
-
-  def form: BaseForm
 }
 
-trait BaseItemContainer extends BaseParentItem with BaseChildItemWithName {
+trait BaseItemContainer extends BaseParentItem with ComponentWithName {
   implicit override def thisAsParent: BaseItemContainer = this
 
   override def prefixForChildNames: String = parent.prefixForChildNames
-
-  def form = parent.form
 }
 
 class ItemContainer private(val ilk: String, val parent: BaseParentItem, unit: Unit = Unit) extends BaseItemContainer {
@@ -173,7 +163,7 @@ class Dynamic protected(val ilk: String, val dynamicId: String, val parent: Base
   override def html: NodeSeq = super.html ++ HiddenInputRenderer(parent.name, dynamicId)
 }
 
-trait MinMaxChildren extends BaseParentItem {
+trait MinMaxChildren extends BaseItemContainer {
   def minimumNumberOfDynamics = 0
 
   def maximumNumberOfDynamics = Int.MaxValue
@@ -292,17 +282,6 @@ trait BaseForm extends BaseParentItem with CurrentRequestSettings {
       result = strings.headOption.flatMap(id => Option(BaseForm.deferredResponses.getIfPresent(id)).map(response => UseResponse(response))) getOrElse (throw new IOException("File does not exists"))
   }
 
-  // Form is the root item
-  override def form = this
-
-  override def prefixForChildNames: String = ""
-
-  override def anchestorIsEnabled: Boolean = true
-
-  override def anchestorIsRevealed: Boolean = true
-
-  override def anchestorIsVisible: Boolean = true
-
   def respond(request: Request): Response = {
     val result: List[Result.Value] = {
       if (isPrepareAllowed) prepare(request)
@@ -332,20 +311,33 @@ trait BaseForm extends BaseParentItem with CurrentRequestSettings {
     }
   }
 
+  // Form is the root item
+  override def form = this
+
+  override def parent = this
+
+  override def prefixForChildNames: String = ""
+
+  override def anchestorIsEnabled: Boolean = true
+
+  override def anchestorIsRevealed: Boolean = true
+
+  override def anchestorIsVisible: Boolean = true
+
 }
 
-trait Executable extends BaseChildItemWithName {
+trait Executable extends ComponentWithName {
   override def execute(request: Request): Unit = request.parameters.getStringsOption(name).foreach(execute)
 
   def execute(strings: Seq[String]): Unit
 
-  def executionLink(string: String) = parent.form.actionLinkWithContextPath + "?" + name + "=" + string
+  def executionLink(string: String) = form.actionLinkWithContextPath + "?" + name + "=" + string
 }
 
 trait ExecuteValidated extends Executable {
   def execute(parameters: Seq[String]): Unit = if (callValidation()) executeValidated()
 
-  def callValidation() = parent.form.validate()
+  def callValidation() = form.validate()
 
   def executeValidated(): Unit
 }
@@ -358,7 +350,7 @@ abstract class Executor(val ilk: String)(implicit val parent: BaseParentItem) ex
 
 }
 
-trait BaseField extends BaseChildItemWithName with Values {
+trait BaseField extends ComponentWithName with Values {
   def submitOnChange = false
 
   override def parse(request: Request): Unit = request.parameters.getStringsOption(name).foreach(parse)
@@ -383,7 +375,7 @@ trait BaseField extends BaseChildItemWithName with Values {
   override def reset(): Unit = resetInputs()
 }
 
-class LazyCacheItem[T](calculate: => T)(implicit val parent: BaseParentItem) extends LazyCache[T] with BaseChildItem {
+class LazyCacheItem[T](calculate: => T)(implicit val parent: BaseParentItem) extends LazyCache[T] with Component {
   private val lazyCache = LazyCache(calculate)
 
   def valueOption: Option[T] = lazyCache.valueOption

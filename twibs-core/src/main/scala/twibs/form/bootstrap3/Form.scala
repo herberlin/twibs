@@ -12,7 +12,7 @@ import twibs.web.{PostMethod, GetMethod, Request}
 
 abstract class Form(val name: String) extends BaseForm {
 
-  abstract class OpenModalLink(implicit val parent: BaseParentItem) extends BaseChildItemWithName with BaseButton {
+  abstract class OpenModalLink(implicit val parent: BaseParentItem) extends ComponentWithName with BaseButton {
     def ilk = "open-modal-link"
 
     def html = buttonAsHtml
@@ -118,7 +118,7 @@ class BootstrapRenderer extends Renderer {
         <div class={"alert" :: ("alert-" + message.displayTypeString) :: Nil}>{message.text}</div>
 }
 
-trait JavascriptItem extends BaseItem {
+trait JavascriptItem extends Component {
   def javascript: JsCmd
 }
 
@@ -148,7 +148,7 @@ trait LargeGridSize extends FormGroupItem {
   override def gridSize = "lg"
 }
 
-abstract class DisplayField private(val ilk: String, val parent: BaseParentItem, unit: Unit = Unit) extends BaseChildItemWithName with FormGroupItem {
+abstract class DisplayField private(val ilk: String, val parent: BaseParentItem, unit: Unit = Unit) extends ComponentWithName with FormGroupItem {
   def this(ilk: String)(implicit parent: BaseParentItem) = this(ilk, parent)
 
   def formGroupTitle: NodeSeq = t"field-title: #$ilk"
@@ -173,7 +173,7 @@ abstract class Field private(val ilk: String, val parent: BaseParentItem, unit: 
     case "" => NodeSeq.Empty
     case m =>
       val title = infoTitle
-      <span class="btn btn-default text-info" data-toggle="popover" data-placement="left" data-container={parent.form.id.toCssId} data-content={m} data-html="true"><span class="glyphicon glyphicon-info-sign"></span></span>
+      <span class="btn btn-default text-info" data-toggle="popover" data-placement="left" data-container={form.id.toCssId} data-content={m} data-html="true"><span class="glyphicon glyphicon-info-sign"></span></span>
         .setIfMissing(!title.isEmpty, "title", title)
         .setIfMissing(!title.isEmpty, "data-title", title)
   }
