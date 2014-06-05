@@ -52,7 +52,7 @@ trait SingleLineField extends TextField {
   override def inputAsElem(input: Input) = <input type="text" placeholder={placeholder} value={input.string} />
 }
 
-trait AbstractDateTimeField extends SingleLineField with JavascriptItem {
+trait AbstractDateTimeField extends SingleLineField with JavascriptComponent {
   def datePickerOptions = Map("autoclose" -> autoClose, "pickerPosition" -> "bottom-left", "language" -> "de")
 
   def autoClose = true
@@ -257,7 +257,7 @@ trait FileEntryField extends Field with FileEntryValues with Result {
 
   override def maximumNumberOfInputs: Int = Int.MaxValue
 
-  override def itemIsVisible: Boolean = values.length > 0
+  override def selfIsVisible: Boolean = values.length > 0
 
   private def processDeleteParameters(parameters: Seq[String]): Unit = {
     def doit(output: ValueType) = {
@@ -278,7 +278,7 @@ trait FileEntryField extends Field with FileEntryValues with Result {
   def deleteFileEntry(fileEntry: FileEntry): Unit
 }
 
-trait UploadWithOverwrite extends BaseItemContainer {
+trait UploadWithOverwrite extends Container {
   def defaultFileEntries: Seq[FileEntry]
 
   def deleteFileEntry(fileEntry: FileEntry): Unit
@@ -303,7 +303,7 @@ trait UploadWithOverwrite extends BaseItemContainer {
 
     override def maximumNumberOfInputs: Int = 0
 
-    override def itemIsVisible: Boolean = values.length > 0
+    override def selfIsVisible: Boolean = values.length > 0
 
     override def execute(parameters: Seq[String]): Unit = {
       val (ex, no) = values.partition(exists)

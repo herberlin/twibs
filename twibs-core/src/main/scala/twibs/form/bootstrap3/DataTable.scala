@@ -13,7 +13,7 @@ import twibs.util.SortOrder._
 import twibs.util.{Pagination, Translator}
 import twibs.web.Request
 
-trait DataTable[T] extends ItemContainer {
+trait DataTable[T] extends StaticContainer {
   def columns: List[Column]
 
   override def translator: Translator = super.translator.kind("TABLE")
@@ -49,7 +49,7 @@ trait DataTable[T] extends ItemContainer {
       if (request.parameters.getStringsOption(name + "-submit-while-typing").isDefined)
         result = InsteadOfFormDisplay(refreshTableData)
 
-    override def itemIsVisible: Boolean = searchable
+    override def selfIsVisible: Boolean = searchable
   }
 
   def searchable = true

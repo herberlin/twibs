@@ -8,7 +8,7 @@ import scala.xml.NodeSeq
 import twibs.form.base._
 import twibs.util.Translator
 
-trait Panel extends ItemContainer {
+trait Panel extends StaticContainer {
   override def prefixForChildNames = name + "-"
 
   override def translator: Translator = super.translator.kind("PANEL")
@@ -32,7 +32,7 @@ trait Panel extends ItemContainer {
   }
 }
 
-class ButtonFormGroup(implicit _parent: BaseParentItem) extends ItemContainer("button-group")(_parent) {
+class ButtonFormGroup(implicit _parent: Container) extends StaticContainer("button-group")(_parent) {
   override def html =
     <div class="form-group">
       <div class="col-sm-offset-3 col-sm-9">
@@ -41,14 +41,14 @@ class ButtonFormGroup(implicit _parent: BaseParentItem) extends ItemContainer("b
     </div>
 }
 
-trait BoostratpMinMaxChildren extends MinMaxChildren {
+trait BoostratpMinMaxContainer extends MinMaxContainer {
   override def messageHtml: NodeSeq = messageOption match {
     case Some(message) => Bootstrap.withUntitledFormGroup(form.renderer.renderMessage(message))
     case _ => NodeSeq.Empty
   }
 }
 
-trait Detachable extends BaseItemContainer {
+trait Detachable extends Container {
   override def html: NodeSeq =
     <div class={ilk :: "detachable" :: Nil}>
       {closeButton}
@@ -59,9 +59,9 @@ trait Detachable extends BaseItemContainer {
 
   def closeButton =
     if (isDisabled) NodeSeq.Empty
-    else <button type="button" class="close" data-toggle="popover" data-html="true" data-placement="auto left" data-title={t"delete-item.popover-title: Delete item?"} data-content={dismissButton}>&times;</button>
+    else <button type="button" class="close" data-toggle="popover" data-html="true" data-placement="auto left" data-title={t"delete-component.popover-title: Delete component?"} data-content={dismissButton}>&times;</button>
 
-  def dismissButton = <button type="button" class="btn btn-danger" data-dismiss="detachable">{t"delete-item.button-title: Delete"}</button>
+  def dismissButton = <button type="button" class="btn btn-danger" data-dismiss="detachable">{t"delete-component.button-title: Delete"}</button>
 }
 
 trait UploadWithComment extends Dynamic with Detachable {

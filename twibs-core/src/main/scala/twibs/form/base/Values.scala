@@ -15,7 +15,7 @@ import twibs.util.XmlUtils._
 import twibs.util._
 import twibs.web.Upload
 
-trait Values extends TranslationSupport with Validatable {
+trait Values extends TranslationSupport {
   type ValueType
 
   sealed trait ValidationResult[I, O]
@@ -115,7 +115,7 @@ trait Values extends TranslationSupport with Validatable {
 
   def validated = _validated
 
-  override def isValid = !validated || computeIsValid
+  def isValid = !validated || computeIsValid
 
   def validate(): Boolean = {
     _validated = true

@@ -23,7 +23,7 @@ class FormResponderTest extends TwibsTest {
 
       override def accessAllowed: Boolean = true
 
-      override def name: String = "form"
+      override def computeName(): String = "form"
     }
 
     val request = new RequestWrapper(Request) {

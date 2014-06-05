@@ -10,10 +10,10 @@ import twibs.util.JavaScript._
 import twibs.util._
 import twibs.web.{PostMethod, GetMethod, Request}
 
-abstract class Form(val name: String) extends BaseForm {
+abstract class Form(override val computeName: String) extends BaseForm {
 
-  abstract class OpenModalLink(implicit val parent: BaseParentItem) extends ComponentWithName with BaseButton {
-    def ilk = "open-modal-link"
+  abstract class OpenModalLink(implicit val parent: Container) extends BaseButton {
+    override def ilk = "open-modal-link"
 
     def html = buttonAsHtml
 
@@ -79,7 +79,7 @@ abstract class Form(val name: String) extends BaseForm {
 
   override def html = defaultButtonHtml ++ super.html
 
-  private def defaultButtonHtml = items.collectFirst({case e: DefaultButton => e.renderAsDefault}) getOrElse NodeSeq.Empty
+  private def defaultButtonHtml = components.collectFirst({case e: DefaultButton => e.renderAsDefault}) getOrElse NodeSeq.Empty
 
   def formHeader = if (formHeaderContent.isEmpty) formHeaderContent else <header class="form-header">{formHeaderContent}</header>
 
@@ -97,9 +97,9 @@ abstract class Form(val name: String) extends BaseForm {
     case _ => JsEmpty
   }
 
-  def javascript: JsCmd = if (!isDisplayAllowed) JsEmpty else items.collect({case item: JavascriptItem => item.javascript})
+  def javascript: JsCmd = if (!isDisplayAllowed) JsEmpty else components.collect({case component: JavascriptComponent => component.javascript})
 
-  def focusJs = items.collectFirst({case item: Field if item.needsFocus => item.focusJs}) getOrElse JsEmpty
+  def focusJs = components.collectFirst({case field: Field if field.needsFocus => field.focusJs}) getOrElse JsEmpty
 
   def replaceContentJs = jQuery(contentId).call("html", enrichedHtml)
 
@@ -118,11 +118,11 @@ class BootstrapRenderer extends Renderer {
         <div class={"alert" :: ("alert-" + message.displayTypeString) :: Nil}>{message.text}</div>
 }
 
-trait JavascriptItem extends Component {
+trait JavascriptComponent extends Component {
   def javascript: JsCmd
 }
 
-trait FormGroupItem extends RenderedItem {
+trait FormGroupComponent extends Rendered {
   override def html: NodeSeq =
     <div class={formGroupCssClasses}>
       <label class={formGroupTitleCssClasses} for={id}>{formGroupTitle}</label>
@@ -144,18 +144,18 @@ trait FormGroupItem extends RenderedItem {
   def id: IdString
 }
 
-trait LargeGridSize extends FormGroupItem {
+trait LargeGridSize extends FormGroupComponent {
   override def gridSize = "lg"
 }
 
-abstract class DisplayField private(val ilk: String, val parent: BaseParentItem, unit: Unit = Unit) extends ComponentWithName with FormGroupItem {
-  def this(ilk: String)(implicit parent: BaseParentItem) = this(ilk, parent)
+abstract class DisplayField private(override val ilk: String, val parent: Container, unit: Unit = Unit) extends Component with FormGroupComponent {
+  def this(ilk: String)(implicit parent: Container) = this(ilk, parent)
 
   def formGroupTitle: NodeSeq = t"field-title: #$ilk"
 }
 
-abstract class Field private(val ilk: String, val parent: BaseParentItem, unit: Unit = Unit) extends BaseField with FormGroupItem {
-  def this(ilk: String)(implicit parent: BaseParentItem) = this(ilk, parent)
+abstract class Field private(override val ilk: String, val parent: Container, unit: Unit = Unit) extends BaseField with FormGroupComponent {
+  def this(ilk: String)(implicit parent: Container) = this(ilk, parent)
 
   override def formGroupCssClasses = messageDisplayTypeOption.fold("")("has-" + _) :: super.formGroupCssClasses.addClass(required, "required")
 
@@ -241,7 +241,7 @@ object Bootstrap {
     </div>
 }
 
-abstract class Button(val ilk: String)(implicit val parent: BaseParentItem) extends Executable with BootstrapButton with RenderedItem {
+abstract class Button(override val ilk: String)(implicit val parent: Container) extends Executable with BootstrapButton with Rendered {
   override def html: NodeSeq =
     <div class={formGroupCssClasses}>
       <div class={controlContainerCssClasses}>{buttonAsHtml}</div>
@@ -262,7 +262,7 @@ abstract class Button(val ilk: String)(implicit val parent: BaseParentItem) exte
   override def translator: Translator = super.translator.kind("BUTTON")
 }
 
-abstract class SpecialButton(val ilk: String)(implicit val parent: BaseParentItem) extends BootstrapButton
+abstract class SpecialButton(override val ilk: String)(implicit val parent: Container) extends BootstrapButton
 
 trait FieldWithOptions extends Field with Options {
   override def reset(): Unit = {

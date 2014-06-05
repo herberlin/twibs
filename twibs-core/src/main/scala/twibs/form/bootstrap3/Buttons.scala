@@ -55,11 +55,11 @@ trait ButtonWithPopover extends BootstrapButton with ButtonValues {
 
     override def isActive = self.isActive
 
-    override def itemIsVisible = self.itemIsVisible
+    override def selfIsVisible = self.selfIsVisible
 
-    override def itemIsRevealed = self.itemIsRevealed
+    override def selfIsRevealed = self.selfIsRevealed
 
-    override def itemIsEnabled = self.itemIsEnabled
+    override def selfIsEnabled = self.selfIsEnabled
 
     override def ilk = self.ilk + "-popover"
 

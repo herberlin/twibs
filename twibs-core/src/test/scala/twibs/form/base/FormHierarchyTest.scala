@@ -17,16 +17,23 @@ class FormHierarchyTest extends TwibsTest {
     def check2(): Unit = children should have size 2
   }
 
-  class CustomContainer private(parent: BaseParentItem, unit: Unit = Unit) extends ItemContainer("custom")(parent) {
-    def this()(implicit parent: BaseParentItem) = this(parent)
+  class CustomContainer private(parent: Container, unit: Unit = Unit) extends StaticContainer("custom")(parent) {
+    def this()(implicit parent: Container) = this(parent)
 
     new DisplayHtml("Me")
   }
 
+  test("Form is not a child of itself") {
+    val form = new Form("test") {
+      override def accessAllowed: Boolean = true
+    }
+    form.children.contains(form) should beFalse
+  }
+
   test("Validate hierarchy is correct") {
     val form = new Form("test") {
-      val container = new ItemContainer("level1") {
-        val container = new ItemContainer("level2") {
+      val container = new StaticContainer("level1") {
+        val container = new StaticContainer("level2") {
           val field = new Field("field") with StringValues with SingleLineField
 
           val dynamics = new DynamicContainer[UserContainer]("uploads") {
@@ -55,12 +62,12 @@ class FormHierarchyTest extends TwibsTest {
     form.container.container.check()
     form.container.container.dynamics.check0()
 
-    form.items should have size 8
+    form.components should have size 8
 
     form.container.container.dynamics.create("a")
     form.container.container.dynamics.create("b")
 
-    form.items should have size 14
+    form.components should have size 14
 
     form.container.container.dynamics.dynamics.foreach(_.check2())
     form.container.container.dynamics.check2()
@@ -68,7 +75,7 @@ class FormHierarchyTest extends TwibsTest {
     form.container.container.dynamics.reset()
     form.container.container.dynamics.check0()
 
-    form.items should have size 8
+    form.components should have size 8
 
     form.container.container.check()
   }
@@ -123,10 +130,10 @@ class FormHierarchyTest extends TwibsTest {
     val form = new Form("test") {
       val field = new Field("field") with StringValues with SingleLineField
 
-      val container = new ItemContainer("level1") {
+      val container = new StaticContainer("level1") {
         val field = new Field("field") with StringValues with SingleLineField
 
-        val container = new ItemContainer("level2") {
+        val container = new StaticContainer("level2") {
           val field = new Field("field") with StringValues with SingleLineField
         }
       }
@@ -153,7 +160,7 @@ class FormHierarchyTest extends TwibsTest {
     }
 
     form.dynamics.isValid should beTrue
-    form.dynamics.messageOption should be ('empty)
+    form.dynamics.messageOption should be('empty)
     form.dynamics.validate() should beFalse
     form.dynamics.messageOption should not be 'empty
     form.reset()
