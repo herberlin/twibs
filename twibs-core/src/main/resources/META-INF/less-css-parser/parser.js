@@ -28,11 +28,13 @@ var parseLessCss = function (source, path, compress, optimization) {
         }
     };
 
+    var additionalData = {globalVars:{"context-path": ""}};
+
     new (window.less.Parser)({ paths: ["/"], optimization: optimization}).parse(source,
         function (e, root) {
             if (e != null) error = e;
             else result = compress ? exports.compressor.cssmin(root.toCSS()) : root.toCSS();
-        });
+        }, additionalData);
 
     if (error) throw error;
     return result;

@@ -66,7 +66,7 @@ trait Database {
   }
 
   def migrate(): Unit =
-    if (!migrationLocations.isEmpty) {
+    if (migrationLocations.nonEmpty) {
       val flyway = new Flyway()
       flyway.setInitOnMigrate(true)
       flyway.setLocations(migrationLocations: _*)

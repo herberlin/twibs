@@ -308,7 +308,7 @@ trait UploadWithOverwrite extends Container {
     override def execute(): Unit = {
       val (ex, no) = values.partition(exists)
       values = ex
-      if (!no.isEmpty)
+      if (no.nonEmpty)
         result = AfterFormDisplay(no.map {
           upload =>
             registerUpload(upload)
