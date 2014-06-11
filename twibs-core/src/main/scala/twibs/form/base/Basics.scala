@@ -97,16 +97,12 @@ class Messages()(implicit val parent: Container) extends Component with Rendered
   override def html = <div>{messages.map(form.renderer.renderMessage)}</div>
 }
 
-abstract class HiddenInput(override val ilk: String)(implicit val parent: Container) extends BaseField with Rendered {
+abstract class HiddenField(override val ilk: String)(implicit val parent: Container) extends BaseField with Rendered {
   override def html = inputs.map(input => HiddenInputRenderer(name, input.string))
-
-  def executionLink(value: ValueType) = form.actionLinkWithContextPath + "?" + name + "=" + valueToString(value)
 }
 
 abstract class InitInput()(implicit val parent: Container) extends BaseField {
   override def ilk: String = "init"
-
-  def link(value: ValueType): String = form.actionLinkWithContextPath + "?" + name + "=" + valueToString(value)
 
   override def prepare(request: Request): Unit = {
     parse(request)
@@ -119,14 +115,6 @@ abstract class InitInput()(implicit val parent: Container) extends BaseField {
   }
 
   private var initWithVar:(ValueType) => Unit = (ValueType) => Unit
-}
-
-abstract class ActionButton(override val ilk: String)(implicit val parent: Container) extends ButtonValues {
-  def link(value: ValueType): String = form.actionLinkWithContextPath + "?" + name + "=" + valueToString(value)
-
-  override def execute(request: Request): Unit = values.headOption.map(execute)
-
-  def execute(value: ValueType): Unit
 }
 
 trait Renderer {

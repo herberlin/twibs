@@ -94,7 +94,7 @@ trait Component extends TranslationSupport {
   require(name != ApplicationSettings.PN_NAME, s"'${ApplicationSettings.PN_NAME}' is reserved")
 }
 
-trait ParseOnPrepare extends Component {
+trait ParseOnPrepare extends InteractiveComponent {
   override def prepare(request: Request): Unit = super.parse(request)
 
   override def parse(request: Request): Unit = Unit
@@ -119,7 +119,11 @@ trait Container extends Component with Rendered with Validatable {
 
   override def execute(request: Request): Unit = children.foreach(_.execute(request))
 
-  override def html: NodeSeq = children collect { case child: Rendered => child.enrichedHtml} flatten
+  override def html: NodeSeq = defaultButtonHtml ++ childrenHtml
+  
+  private def defaultButtonHtml = components.collectFirst({case e: DefaultExecutable => e.renderAsDefault}) getOrElse NodeSeq.Empty
+
+  private   def childrenHtml: NodeSeq = children collect { case child: Rendered => child.enrichedHtml} flatten
 
   def components: Iterator[Component] = (children map {
     case container: Container => container.components
@@ -265,9 +269,9 @@ trait BaseForm extends Container with CurrentRequestSettings {
     AfterFormDisplay(JsCmd(s"location.href = '${deferredAction.executionLink(id)}'"))
   }
 
-  private val deferredAction = new Executor("deferred-download") with Result {
-    override def execute(strings: Seq[String]): Unit =
-      result = strings.headOption.flatMap(id => Option(BaseForm.deferredResponses.getIfPresent(id)).map(response => UseResponse(response))) getOrElse (throw new IOException("File does not exists"))
+  private val deferredAction = new Executor("deferred-download") with StringValues with Result {
+    override def execute(): Unit =
+      result = values.headOption.flatMap(id => Option(BaseForm.deferredResponses.getIfPresent(id)).map(response => UseResponse(response))) getOrElse (throw new IOException("File does not exists"))
   }
 
   def respond(request: Request): Response = {
@@ -311,56 +315,46 @@ trait BaseForm extends Container with CurrentRequestSettings {
   override def anchestorIsRevealed: Boolean = true
 
   override def anchestorIsVisible: Boolean = true
-
 }
 
-trait Executable extends Component {
-  override def execute(request: Request): Unit = request.parameters.getStringsOption(name).foreach(execute)
+trait Executable extends InteractiveComponent {
+  override def execute(request: Request): Unit = request.parameters.getStringsOption(name).foreach(parameters => execute())
 
-  def execute(strings: Seq[String]): Unit
+  def execute(): Unit
 
-  def executionLink(string: String) = form.actionLinkWithContextPath + "?" + name + "=" + string
+  def executionLink(value: ValueType) = form.actionLinkWithContextPath + "?" + name + "=" + valueToString(value)
 }
 
 trait ExecuteValidated extends Executable {
-  def execute(parameters: Seq[String]): Unit = if (callValidation()) executeValidated()
+  def execute(): Unit = if (callValidation()) executeValidated()
 
   def callValidation() = form.validate()
 
   def executeValidated(): Unit
 }
 
-trait SubmitOnChange extends BaseField {
-  override def submitOnChange = true
+abstract class Executor(override val ilk: String)(implicit val parent: Container) extends Executable
+
+trait DefaultExecutable extends Executable {
+  def renderAsDefault = <input type="submit" class="concealed" tabindex="-1" name={name} value="" />
 }
 
-abstract class Executor(override val ilk: String)(implicit val parent: Container) extends Executable {
-
-}
-
-trait BaseField extends Component with Values with Validatable {
-  def submitOnChange = false
-
+trait InteractiveComponent extends Component with Values {
   override def parse(request: Request): Unit = request.parameters.getStringsOption(name).foreach(parse)
 
   def parse(parameters: Seq[String]): Unit = strings = parameters
 
-  /* Convenience methods */
-  def input = inputs.head
-
-  def string = strings.head
-
-  def string_=(string: String) = strings = string :: Nil
-
-  def value = values.head
-
-  def value_=(value: ValueType) = values = value :: Nil
-
-  def valueOption = values.headOption
-
-  def valueOption_=(valueOption: Option[ValueType]) = valueOption.map(v => values = v :: Nil)
-
   override def reset(): Unit = resetInputs()
+
+  def link(value: ValueType) = form.actionLinkWithContextPath + "?" + name + "=" + valueToString(value)
+}
+
+trait BaseField extends InteractiveComponent with Validatable {
+  def submitOnChange = false
+}
+
+trait SubmitOnChange extends BaseField {
+  override def submitOnChange = true
 }
 
 class LazyCacheComponent[T](calculate: => T)(implicit val parent: Container) extends LazyCache[T] with Component {

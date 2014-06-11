@@ -32,8 +32,6 @@ trait ButtonRenderer extends DisplayType with TranslationSupport {
 
   def buttonAsEnrichedElem: Elem = enrichButtonElem(buttonAsElem)
 
-  def buttonValueAsString: String = ""
-
   def enrichButtonElem(elem: Elem) : Elem =
     elem
       .setIfMissing("name", name)
@@ -60,24 +58,3 @@ trait ButtonRenderer extends DisplayType with TranslationSupport {
 
   def id: IdString
 }
-
-trait BaseButton extends Component with ButtonRenderer
-
-trait ButtonValues extends BaseButton with Values {
-  def buttonAsHtmlWithValue(buttonValue: ValueType): NodeSeq = {
-    val was = values
-    values = buttonValue :: Nil
-    val ret = buttonAsHtml
-    values = was
-    ret
-  }
-
-  override def buttonValueAsString = strings.headOption getOrElse ""
-
-  def value = values.head
-
-  override def parse(request: Request): Unit = request.parameters.getStringsOption(name).foreach(parse)
-
-  def parse(parameters: Seq[String]): Unit = strings = parameters
-}
-

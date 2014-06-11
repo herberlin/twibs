@@ -10,9 +10,10 @@ import twibs.util.JavaScript._
 import twibs.util._
 import twibs.web.{PostMethod, GetMethod, Request}
 
-abstract class Form(override val computeName: String) extends BaseForm {
+abstract class Form(override val computeName: String) extends BaseForm {self =>
+  abstract class OpenModalLink extends BootstrapButton with StringValues {
+    override def parent: Container = self
 
-  abstract class OpenModalLink(implicit val parent: Container) extends BaseButton {
     override def ilk = "open-modal-link"
 
     def html = buttonAsHtml
@@ -76,10 +77,6 @@ abstract class Form(override val computeName: String) extends BaseForm {
         {enrichedHtml}
       </div>
     </form>
-
-  override def html = defaultButtonHtml ++ super.html
-
-  private def defaultButtonHtml = components.collectFirst({case e: DefaultButton => e.renderAsDefault}) getOrElse NodeSeq.Empty
 
   def formHeader = if (formHeaderContent.isEmpty) formHeaderContent else <header class="form-header">{formHeaderContent}</header>
 
@@ -228,10 +225,6 @@ trait Inline extends Field {
   override def infoHtml = NodeSeq.Empty
 
   override def formGroupTitleCssClasses = "sr-only" :: Nil
-}
-
-trait DefaultButton extends BaseButton with Executable {
-  def renderAsDefault = <input type="submit" class="concealed" tabindex="-1" name={name} value="" />
 }
 
 object Bootstrap {

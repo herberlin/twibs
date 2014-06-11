@@ -15,15 +15,15 @@ class FormResponderTest extends TwibsTest {
     var submitted = ""
 
     val form = new BaseForm {
-      new Executor("exec") {
-        override def execute(parameters: Seq[String]): Unit = submitted = parameters(0)
+      new Executor("exec") with StringValues  {
+        override def execute(): Unit = submitted = strings(0)
       }
 
       override def displayJs: JsCmd = JsEmpty
 
       override def accessAllowed: Boolean = true
 
-      override def computeName(): String = "form"
+      override def computeName: String = "form"
     }
 
     val request = new RequestWrapper(Request) {

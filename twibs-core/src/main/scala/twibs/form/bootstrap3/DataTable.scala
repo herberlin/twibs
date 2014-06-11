@@ -176,7 +176,7 @@ trait DataTable[T] extends StaticContainer {
 
     def sort_=(sortOrder: SortOrder) = sortField.value = sortOrder
 
-    private[DataTable] val sortField = new HiddenInput("sort") with EnumerationValues[SortOrder.type] {
+    private[DataTable] val sortField = new HiddenField("sort") with EnumerationValues[SortOrder.type] {
       override def enumeration = SortOrder
 
       override def defaultValues = (if (sortable) Unsorted else NotSortable) :: Nil
@@ -190,8 +190,8 @@ trait DataTable[T] extends StaticContainer {
       }
     }
 
-    private val setSort = new Executor("set-sort") {
-      override def execute(parameters: Seq[String]): Unit = {
+    private val setSort = new Executor("set-sort") with StringValues {
+      override def execute(): Unit = {
         columns.filterNot(_ == Column.this).foreach(_.sortField.reset())
         sortField.toggle()
       }

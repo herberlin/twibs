@@ -10,7 +10,7 @@ import twibs.util.JavaScript._
 import twibs.util.{Translator, PrimaryDisplayType}
 import twibs.web.{Upload, Request}
 
-trait UploadButton extends Button with PrimaryDisplayType {
+trait UploadButton extends Button with StringValues with PrimaryDisplayType {
   override def buttonAsEnrichedElem =
     <span class={spanCssClasses}>
       {buttonTitleWithIconHtml}
@@ -27,7 +27,7 @@ trait UploadButton extends Button with PrimaryDisplayType {
   override def parse(request: Request) = Request.uploads.get(name).map(uploads => uploaded(uploads.toList))
 
   // TODO: Convert UploadButton to input without appropriate Renderer
-  override def execute(strings: Seq[String]): Unit = Unit
+  override def execute(): Unit = Unit
 
   def uploaded(uploads: List[Upload]): Unit
 
@@ -36,21 +36,21 @@ trait UploadButton extends Button with PrimaryDisplayType {
   override def translator: Translator = super.translator.kind("UPLOAD-BUTTON")
 }
 
-trait BootstrapButton extends BaseButton {
+trait BootstrapButton extends InteractiveComponent with ButtonRenderer with Values {
   def buttonAsElem =
     if (isEnabled)
-      <button type="submit" value={buttonValueAsString}>{renderButtonTitle}</button>
+      <button type="submit" value={stringOrEmpty}>{renderButtonTitle}</button>
     else
       <span>{renderButtonTitle}</span>
 }
 
-trait ButtonWithPopover extends BootstrapButton with ButtonValues {
+trait ButtonWithPopover extends BootstrapButton {
   self =>
   def usePopover = true
 
   override def buttonAsEnrichedElem: Elem = if (usePopover) openPopoverButton.buttonAsEnrichedElem else super.buttonAsEnrichedElem
 
-  class OpenPopoverButton extends BootstrapButton with Executable with Result {
+  class OpenPopoverButton extends BootstrapButton with Executable with StringValues with Result {
     override def parent = self.parent
 
     override def isActive = self.isActive
@@ -67,18 +67,18 @@ trait ButtonWithPopover extends BootstrapButton with ButtonValues {
 
     override def displayTypeString = self.displayTypeString
 
-    override def buttonValueAsString: String = self.buttonValueAsString
+    override def stringOrEmpty: String = self.stringOrEmpty
 
     override def buttonAsElem: Elem =
       if (isEnabled)
         if (popoverNeedsCalculation)
-          <button type="submit" value={self.buttonValueAsString}>{renderButtonTitle}</button>
+          <button type="submit" value={self.stringOrEmpty}>{renderButtonTitle}</button>
         else
           <button type="button" data-container={popoverContainer} data-toggle="popover" data-html="true" data-placement={popoverPlacement} data-title={popoverTitle} data-content={popoverContent}>{renderButtonTitle}</button>
       else
         <span>{renderButtonTitle}</span>
 
-    override def execute(strings: Seq[String]): Unit = {
+    override def execute(): Unit = {
       self.strings = strings
       result = AfterFormDisplay(openPopoverJs)
     }

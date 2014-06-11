@@ -197,6 +197,35 @@ trait Values extends TranslationSupport {
   def toInput(value: ValueType): Input = ValidInput(valueToString(value), titleForValue(value), Some(value))
 
   def toInput(value: ValueType, title: String): Input = ValidInput(valueToString(value), title, Some(value))
+
+  /* Convenience methods */
+  def input = inputs.head
+
+  def string = strings.head
+
+  def stringOrEmpty = strings.headOption getOrElse ""
+
+  def string_=(string: String) = strings = string :: Nil
+
+  def value = values.head
+
+  def value_=(value: ValueType) = values = value :: Nil
+
+  def valueOption = values.headOption
+
+  def valueOption_=(valueOption: Option[ValueType]) = valueOption.map(v => values = v :: Nil)
+
+  def withValue[R](valueArg : ValueType)(f: => R) : R = withValues(valueArg:: Nil)(f)
+
+  def withValues[R](valuesArg : Seq[ValueType])(f: => R) : R = {
+    val was = values
+    values = valuesArg
+    try {
+      f
+    } finally {
+      values = was
+    }
+  }
 }
 
 trait StringValues extends Values {

@@ -237,8 +237,8 @@ trait BooleanCheckBoxField extends Field with BooleanValues with FloatingInfo {
 }
 
 trait FileEntryField extends Field with FileEntryValues with Result {
-  val deleteButton = new SpecialButton("delete")(parent) with ButtonWithPopover with DangerDisplayType with Executable with StringValues with ButtonValues {
-    override def execute(parameters: Seq[String]) = processDeleteParameters(parameters)
+  val deleteButton = new SpecialButton("delete")(parent) with ButtonWithPopover with DangerDisplayType with Executable with StringValues {
+    override def execute() = processDeleteParameters(values)
 
     override def popoverPlacement: String = "auto right"
   }
@@ -250,7 +250,7 @@ trait FileEntryField extends Field with FileEntryValues with Result {
       case ValidInput(_, _, Some(fileEntry)) => fileEntry.path
       case _ => "#"
     }
-    <p class="form-control-static clearfix"><div class="pull-right">{deleteButton.buttonAsHtmlWithValue(input.string)}</div><a href={link} target="_blank">{input.title}</a></p>
+    <p class="form-control-static clearfix"><div class="pull-right">{deleteButton.withValue(input.string)(deleteButton.buttonAsHtml)}</div><a href={link} target="_blank">{input.title}</a></p>
   }
 
   override def minimumNumberOfInputs: Int = 0
@@ -305,7 +305,7 @@ trait UploadWithOverwrite extends Container {
 
     override def selfIsVisible: Boolean = values.length > 0
 
-    override def execute(parameters: Seq[String]): Unit = {
+    override def execute(): Unit = {
       val (ex, no) = values.partition(exists)
       values = ex
       if (!no.isEmpty)
@@ -320,14 +320,14 @@ trait UploadWithOverwrite extends Container {
     override def inputAsEnrichedHtml(input: Input, index: Int): NodeSeq =
       HiddenInputRenderer(name, input.string) ++ <p class="form-control-static clearfix">{actionButtonsHtml(input.string)}<a href="#">{input.title}</a></p>
 
-    private val deleteButton = new SpecialButton("delete") with ButtonWithPopover with DangerDisplayType with Executable with StringValues with ButtonValues {
-      override def execute(parameters: Seq[String]) = processDeleteParameters(parameters)
+    private val deleteButton = new SpecialButton("delete") with ButtonWithPopover with DangerDisplayType with Executable with StringValues {
+      override def execute() = processDeleteParameters(values)
 
       override def popoverPlacement: String = "auto right"
     }
 
-    private val overwriteButton = new SpecialButton("overwrite") with ButtonWithPopover with InfoDisplayType with Executable with StringValues with ButtonValues {
-      override def execute(parameters: Seq[String]) = processOverwriteParameters(parameters)
+    private val overwriteButton = new SpecialButton("overwrite") with ButtonWithPopover with InfoDisplayType with Executable with StringValues {
+      override def execute() = processOverwriteParameters(values)
 
       override def popoverPlacement: String = "auto right"
     }
@@ -336,8 +336,8 @@ trait UploadWithOverwrite extends Container {
       if (isDisabled) NodeSeq.Empty
       else
         <div class="pull-right btn-group">
-          {deleteButton.buttonAsHtmlWithValue(string)}
-          {overwriteButton.buttonAsHtmlWithValue(string)}
+          {deleteButton.withValue(string)(deleteButton.buttonAsHtml)}
+          {overwriteButton.withValue(string)(overwriteButton.buttonAsHtml)}
         </div>
     }
 
