@@ -9,15 +9,17 @@ import scala.xml.{Elem, NodeSeq, Unparsed}
 import twibs.form.base._
 import twibs.util.{ApplicationSettings, IdString, Message, Translator}
 
-abstract class Form(override val computeName: String) extends BaseForm {
+abstract class Form(override val ilk: String) extends BaseForm {
   self =>
 
-  abstract class OpenModalLink extends BootstrapButton with StringValues {
+  override protected def computeName: String = ilk
+
+  abstract class OpenModalLink extends BootstrapButton with StringValues with Floating {
     override def parent: Container = self
 
     override def ilk = "open-modal-link"
 
-    override def buttonAsElem: Elem = <a href="#" data-call={actionLinkWithContextPathAndParameters}>{buttonTitleWithIconHtml}</a>
+    override def buttonAsElem: Elem = <a href="#" data-call={actionLinkWithContextPathAndParameters}>{renderButtonTitle}</a>
   }
 
   protected def enctype = "multipart/form-data"
@@ -50,7 +52,7 @@ abstract class Form(override val computeName: String) extends BaseForm {
   def formHtml(modal: Boolean) = if (!isDisplayAllowed) noAccessHtml
   else
     <form id={id} name={name} class={formCssClasses} action={actionLinkWithContextPath} method="post" enctype={enctype}>
-      {renderer.hiddenInput(BaseForm.PN_ID, id) ++ renderer.hiddenInput(BaseForm.PN_MODAL, "" + modal) ++ renderer.hiddenInput(ApplicationSettings.PN_NAME, requestSettings.applicationSettings.name)}
+      {renderer.hiddenInput(pnId, id) ++ renderer.hiddenInput(pnModal, "" + modal) ++ renderer.hiddenInput(ApplicationSettings.PN_NAME, requestSettings.applicationSettings.name)}
       <div class="modal transfer-modal">
         <div class="modal-dialog">
           <div class="modal-content">

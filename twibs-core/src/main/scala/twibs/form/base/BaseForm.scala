@@ -102,8 +102,8 @@ trait Component extends TranslationSupport {
 
   require(!ilk.isEmpty, "Empty ilk is not allowed")
   require(ilk matches "\\w+[\\w0-9-]*", "Ilk must start with character and contain only characters, numbers and -")
-  require(name != BaseForm.PN_ID, s"'${BaseForm.PN_ID}' is reserved")
-  require(name != BaseForm.PN_MODAL, s"'${BaseForm.PN_MODAL}' is reserved")
+  require(!name.endsWith(BaseForm.PN_ID_SUFFIX), s"Suffix '${BaseForm.PN_ID_SUFFIX}' is reserved")
+  require(!name.endsWith(BaseForm.PN_MODAL_SUFFIX), s"Suffix '${BaseForm.PN_MODAL_SUFFIX}' is reserved")
   require(name != ApplicationSettings.PN_NAME, s"'${ApplicationSettings.PN_NAME}' is reserved")
 }
 
@@ -124,7 +124,7 @@ trait Container extends Component with Validatable {
 
   def children = _children.toList
 
-  private[base] def registerChild(child: Component): Unit = if( child != this ) _children += child
+  private[base] def registerChild(child: Component): Unit = if (child != this) _children += child
 
   def prefixForChildNames: String = parent.prefixForChildNames
 
@@ -227,17 +227,21 @@ class Dynamic protected(override val ilk: String, val dynamicId: String, val par
 }
 
 object BaseForm {
-  val PN_ID = "form-id"
+  val PN_ID_SUFFIX = "-form-id"
 
-  val PN_MODAL = "form-modal"
+  val PN_MODAL_SUFFIX = "-form-modal"
 
   val deferredResponses: Cache[String, Response] = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).build()
 }
 
 trait BaseForm extends Container with CurrentRequestSettings {
-  override val id: IdString = Request.parameters.getString(BaseForm.PN_ID, IdGenerator.next())
+  def pnId = ilk + BaseForm.PN_ID_SUFFIX
 
-  val modal = Request.parameters.getBoolean(BaseForm.PN_MODAL, default = false)
+  def pnModal = ilk + BaseForm.PN_MODAL_SUFFIX
+
+  override val id: IdString = Request.parameters.getString(pnId, IdGenerator.next())
+
+  val modal = Request.parameters.getBoolean(pnModal, default = false)
 
   val formReload = new Executor("form-reload") with StringValues {
     override def execute(): Unit = InsteadOfFormDisplay(reloadFormJs)
@@ -245,7 +249,7 @@ trait BaseForm extends Container with CurrentRequestSettings {
 
   override def html: NodeSeq = defaultButtonHtml ++ super.html
 
-  private def defaultButtonHtml = components.collectFirst({case e: DefaultExecutable => e.renderAsDefault}) getOrElse NodeSeq.Empty
+  private def defaultButtonHtml = components.collectFirst({ case e: DefaultExecutable => e.renderAsDefault}) getOrElse NodeSeq.Empty
 
   def modalId = id ~ "modal"
 
@@ -292,9 +296,9 @@ trait BaseForm extends Container with CurrentRequestSettings {
 
   def refreshJs = replaceContentJs ~ javascript ~ focusJs
 
-  def javascript: JsCmd = if (!isDisplayAllowed) JsEmpty else components.collect({case component: JavascriptComponent => component.javascript})
+  def javascript: JsCmd = if (!isDisplayAllowed) JsEmpty else components.collect({ case component: JavascriptComponent => component.javascript})
 
-  def focusJs = components.collectFirst({case field: BaseField if field.needsFocus => field.focusJs}) getOrElse JsEmpty
+  def focusJs = components.collectFirst({ case field: BaseField if field.needsFocus => field.focusJs}) getOrElse JsEmpty
 
   def replaceContentJs = jQuery(contentId).call("html", enrichedHtml)
 
@@ -357,7 +361,7 @@ trait BaseForm extends Container with CurrentRequestSettings {
 }
 
 trait Executable extends InteractiveComponent {
-  override def execute(request: Request): Unit = if(isEnabled) request.parameters.getStringsOption(name).foreach(parameters => execute())
+  override def execute(request: Request): Unit = if (isEnabled) request.parameters.getStringsOption(name).foreach(parameters => execute())
 
   def execute(): Unit = if (callValidation()) executeValidated()
 

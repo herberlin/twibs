@@ -47,7 +47,9 @@ private[web] abstract class HttpRequest(httpServletRequest: HttpServletRequest) 
 
   val desiredLocale = ULocale.forLocale(httpServletRequest.getLocale)
 
-  val parameters: Parameters = Parameters((urlParameters ++ multiPartParameters).toMap)
+  val parameters: Parameters = Parameters(removeUnderscoreParameterSetByJQuery(urlParameters ++ multiPartParameters))
+
+  private def removeUnderscoreParameterSetByJQuery(map: Map[String, Seq[String]]) :  Map[String, Seq[String]]  =map.filterNot(_._1 == "_")
 
   def urlParameters: Map[String, Seq[String]] = httpServletRequest.getParameterMap.asScala.map(entry => (entry._1, entry._2.toSeq)).toMap
 

@@ -89,7 +89,8 @@ $(function () {
     var submitWhileTypingTimer;
 
     $(window)
-        .on('hashchange', hashchange);
+        .on('hashchange', hashchange)
+        .scroll(positionFixedContainers);
 
     $(document)
         .on('click', 'button[type="submit"]', function (e) {
@@ -168,7 +169,8 @@ $(function () {
                 $next.html($this.val());
             });
 
-            fixContainers();
+            initFixedContainers();
+            positionFixedContainers();
         });
 
     $('body')
@@ -270,10 +272,10 @@ $(function () {
         $form.find('select.form-control').trigger("chosen:updated");
     }
 
-    function fixContainers() {
-        $(".fixed-container").each(function () {
+    function initFixedContainers() {
+        $(".fixed-container").not(".fixed-managed").each(function () {
             var container = $(this);
-            container.removeClass("fixed-container");
+            container.addClass("fixed-managed");
             var item = $(this).find(".fixed-content");
             var width = item.width();
             var height = item.height();
@@ -281,20 +283,28 @@ $(function () {
             container.css("width", width);
             container.css("height", height);
             item.css("position", "absolute").css("left", "auto").css("top", "auto").css("width", width).css("height", height);
-            $(window).scroll(function () {
-                var offset = container.offset();
-                var scrollTop = $(document).scrollTop();
-                var fixed = item.hasClass("fixed");
-                if (offset.top < scrollTop) {
-                    if (!fixed) {
-                        item.css({position: "fixed", left: offset.left, top: 0});
-                        item.addClass("fixed");
-                    }
-                } else if (fixed) {
-                    item.css({position: "absolute", left: "auto", top: "auto"});
-                    item.removeClass("fixed");
+        });
+    }
+
+    function positionFixedContainers() {
+        var scrollTop = $(document).scrollTop();
+
+        $(".fixed-container").each(function () {
+            var container = $(this);
+            var item = $(this).find(".fixed-content");
+            var width = container.css("width");
+            var height = container.css("height");
+            var offset = container.offset();
+            var fixed = item.hasClass("fixed");
+            if (offset.top < scrollTop) {
+                if (!fixed) {
+                    item.css({position: "fixed", left: offset.left, top: 0});
+                    item.addClass("fixed");
                 }
-            });
+            } else if (fixed) {
+                item.css({position: "absolute", left: "auto", top: "auto"});
+                item.removeClass("fixed");
+            }
         });
     }
 
@@ -317,18 +327,6 @@ $(function () {
         $("select").not('[autocomplete]').find("option").each(function () {
             this.selected = this.hasAttribute("selected");
         });
-    }
-
-    // Store a reference to the original remove method.
-    var originalCkeditor = $.fn.ckeditor;
-
-    // Define overriding method.
-    jQuery.fn.remove = function () {
-        // Log the fact that we are calling our override.
-        console.log("Override method");
-
-        // Execute the original method.
-        originalRemoveMethod.apply(this, arguments);
     }
 
     twibsUpdateAfterDomChange();
