@@ -7,12 +7,10 @@ package twibs.form.base
 import com.google.common.cache.{Cache, CacheBuilder}
 import java.io.IOException
 import java.util.concurrent.TimeUnit
-import scala.Some
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
-import scala.xml.NodeSeq
+import scala.xml.{Elem, NodeSeq}
 import twibs.form.base.Result.AfterFormDisplay
-import twibs.form.base.Result.UseResponse
 import twibs.util.JavaScript._
 import twibs.util.XmlUtils._
 import twibs.util._
@@ -85,6 +83,21 @@ trait Component extends TranslationSupport {
     recursive(parent.prefixForChildNames + ilk, 0)
   }
 
+  def html: NodeSeq
+
+  final def enrichedHtml: NodeSeq = selfIsVisible match {
+    case false => NodeSeq.Empty
+    case true => isRevealed match {
+      case true => html
+      case false =>
+        html match {
+          case s@NodeSeq.Empty => s
+          case n: Elem => n.addClass(selfIsConcealed, "concealed")
+          case n: NodeSeq => <div>{n}</div>.addClass(selfIsConcealed, "concealed")
+        }
+    }
+  }
+
   parent.registerChild(this)
 
   require(!ilk.isEmpty, "Empty ilk is not allowed")
@@ -94,13 +107,17 @@ trait Component extends TranslationSupport {
   require(name != ApplicationSettings.PN_NAME, s"'${ApplicationSettings.PN_NAME}' is reserved")
 }
 
+trait JavascriptComponent extends Component {
+  def javascript: JsCmd
+}
+
 trait ParseOnPrepare extends InteractiveComponent {
   override def prepare(request: Request): Unit = super.parse(request)
 
   override def parse(request: Request): Unit = Unit
 }
 
-trait Container extends Component with Rendered with Validatable {
+trait Container extends Component with Validatable {
   implicit def thisAsParent: Container = this
 
   protected val _children = ListBuffer[Component]()
@@ -119,11 +136,7 @@ trait Container extends Component with Rendered with Validatable {
 
   override def execute(request: Request): Unit = children.foreach(_.execute(request))
 
-  override def html: NodeSeq = defaultButtonHtml ++ childrenHtml
-  
-  private def defaultButtonHtml = components.collectFirst({case e: DefaultExecutable => e.renderAsDefault}) getOrElse NodeSeq.Empty
-
-  private   def childrenHtml: NodeSeq = children collect { case child: Rendered => child.enrichedHtml} flatten
+  override def html: NodeSeq = children collect { case child: Floating => NodeSeq.Empty case child => child.enrichedHtml} flatten
 
   def components: Iterator[Component] = (children map {
     case container: Container => container.components
@@ -210,7 +223,7 @@ class Dynamic protected(override val ilk: String, val dynamicId: String, val par
 
   override def prefixForChildNames: String = dynamicId
 
-  override def html: NodeSeq = super.html ++ HiddenInputRenderer(parent.name, dynamicId)
+  override def html: NodeSeq = super.html ++ form.renderer.hiddenInput(parent.name, dynamicId)
 }
 
 object BaseForm {
@@ -225,6 +238,14 @@ trait BaseForm extends Container with CurrentRequestSettings {
   override val id: IdString = Request.parameters.getString(BaseForm.PN_ID, IdGenerator.next())
 
   val modal = Request.parameters.getBoolean(BaseForm.PN_MODAL, default = false)
+
+  val formReload = new Executor("form-reload") with StringValues {
+    override def execute(): Unit = InsteadOfFormDisplay(reloadFormJs)
+  }
+
+  override def html: NodeSeq = defaultButtonHtml ++ super.html
+
+  private def defaultButtonHtml = components.collectFirst({case e: DefaultExecutable => e.renderAsDefault}) getOrElse NodeSeq.Empty
 
   def modalId = id ~ "modal"
 
@@ -257,11 +278,29 @@ trait BaseForm extends Container with CurrentRequestSettings {
 
   def isDisplayAllowed = accessAllowed
 
-  def displayJs: JsCmd
+  def reloadFormJs = displayJs
 
-  val renderer: Renderer = new Renderer {
-    override def renderMessage(message: Message): NodeSeq = message.text
+  def displayJs = Request.method match {
+    case GetMethod => openModalJs
+    case PostMethod => refreshJs
+    case _ => JsEmpty
   }
+
+  def openModalJs = jQuery("body").call("append", modalHtml) ~ jQuery(modalId).call("twibsModal") ~ javascript
+
+  def modalHtml: NodeSeq
+
+  def refreshJs = replaceContentJs ~ javascript ~ focusJs
+
+  def javascript: JsCmd = if (!isDisplayAllowed) JsEmpty else components.collect({case component: JavascriptComponent => component.javascript})
+
+  def focusJs = components.collectFirst({case field: BaseField if field.needsFocus => field.focusJs}) getOrElse JsEmpty
+
+  def replaceContentJs = jQuery(contentId).call("html", enrichedHtml)
+
+  def hideModalJs = jQuery(modalId).call("modal", "hide")
+
+  def renderer: Renderer
 
   def deferred(response: Response): Result.Value = {
     val id = IdGenerator.next()
@@ -269,7 +308,7 @@ trait BaseForm extends Container with CurrentRequestSettings {
     AfterFormDisplay(JsCmd(s"location.href = '${deferredAction.executionLink(id)}'"))
   }
 
-  private val deferredAction = new Executor("deferred-download") with StringValues with Result {
+  private val deferredAction = new Executor("deferred-download") with StringValues {
     override def execute(): Unit =
       result = values.headOption.flatMap(id => Option(BaseForm.deferredResponses.getIfPresent(id)).map(response => UseResponse(response))) getOrElse (throw new IOException("File does not exists"))
   }
@@ -318,22 +357,20 @@ trait BaseForm extends Container with CurrentRequestSettings {
 }
 
 trait Executable extends InteractiveComponent {
-  override def execute(request: Request): Unit = request.parameters.getStringsOption(name).foreach(parameters => execute())
+  override def execute(request: Request): Unit = if(isEnabled) request.parameters.getStringsOption(name).foreach(parameters => execute())
 
-  def execute(): Unit
-
-  def executionLink(value: ValueType) = form.actionLinkWithContextPath + "?" + name + "=" + valueToString(value)
-}
-
-trait ExecuteValidated extends Executable {
   def execute(): Unit = if (callValidation()) executeValidated()
 
   def callValidation() = form.validate()
 
-  def executeValidated(): Unit
+  def executeValidated(): Unit = Unit
+
+  def executionLink(value: ValueType) = form.actionLinkWithContextPath + "?" + name + "=" + valueToString(value)
 }
 
-abstract class Executor(override val ilk: String)(implicit val parent: Container) extends Executable
+abstract class Executor(override val ilk: String)(implicit val parent: Container) extends Executable with Result with Floating {
+  override def html: NodeSeq = NodeSeq.Empty
+}
 
 trait DefaultExecutable extends Executable {
   def renderAsDefault = <input type="submit" class="concealed" tabindex="-1" name={name} value="" />
@@ -351,13 +388,21 @@ trait InteractiveComponent extends Component with Values {
 
 trait BaseField extends InteractiveComponent with Validatable {
   def submitOnChange = false
+
+  def needsFocus = !isDisabled && !isValid
+
+  def focusJs = jQuery(id).call("focus")
 }
 
 trait SubmitOnChange extends BaseField {
   override def submitOnChange = true
 }
 
-class LazyCacheComponent[T](calculate: => T)(implicit val parent: Container) extends LazyCache[T] with Component {
+trait UseLastParameterOnly extends BaseField {
+  override def parse(parameters: Seq[String]): Unit = super.parse(parameters.lastOption.map(_ :: Nil) getOrElse Nil)
+}
+
+class LazyCacheComponent[T](calculate: => T)(implicit val parent: Container) extends LazyCache[T] with Component with Floating {
   private val lazyCache = LazyCache(calculate)
 
   def valueOption: Option[T] = lazyCache.valueOption
@@ -368,4 +413,6 @@ class LazyCacheComponent[T](calculate: => T)(implicit val parent: Container) ext
     super.reset()
     lazyCache.reset()
   }
+
+  override def html: NodeSeq = NodeSeq.Empty
 }

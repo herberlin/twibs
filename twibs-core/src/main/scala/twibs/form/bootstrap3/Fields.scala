@@ -14,7 +14,7 @@ import xml._
 
 trait ReadOnlyField extends Field {
   override def inputAsEnrichedHtml(input: Input, index: Int) =
-    HiddenInputRenderer(name, input.string) ++ <p class="form-control-static">{input.title}</p>
+    form.renderer.hiddenInput(name, input.string) ++ <p class="form-control-static">{input.title}</p>
 
   override def inputAsElem(input: Input) = <span></span>
 }
@@ -214,6 +214,8 @@ trait CheckBoxField extends CheckOrRadioField {
   override def minimumNumberOfInputs = if (required) 1 else 0
 
   override def maximumNumberOfInputs = options.size
+
+  override def translator: Translator = super.translator.usage("CHECKBOX")
 }
 
 trait RadioField extends CheckOrRadioField {
@@ -237,7 +239,7 @@ trait BooleanCheckBoxField extends Field with BooleanValues with FloatingInfo {
 }
 
 trait FileEntryField extends Field with FileEntryValues with Result {
-  val deleteButton = new SpecialButton("delete")(parent) with ButtonWithPopover with DangerDisplayType with Executable with StringValues {
+  val deleteButton = new Button("delete")(parent) with ButtonWithPopover with DangerDisplayType with StringValues with Floating {
     override def execute() = processDeleteParameters(values)
 
     override def popoverPlacement: String = "auto right"
@@ -250,7 +252,7 @@ trait FileEntryField extends Field with FileEntryValues with Result {
       case ValidInput(_, _, Some(fileEntry)) => fileEntry.path
       case _ => "#"
     }
-    <p class="form-control-static clearfix"><div class="pull-right">{deleteButton.withValue(input.string)(deleteButton.buttonAsHtml)}</div><a href={link} target="_blank">{input.title}</a></p>
+    <p class="form-control-static clearfix"><div class="pull-right">{deleteButton.withValue(input.string)(_.buttonAsHtml)}</div><a href={link} target="_blank">{input.title}</a></p>
   }
 
   override def minimumNumberOfInputs: Int = 0
@@ -318,15 +320,15 @@ trait UploadWithOverwrite extends Container {
     }
 
     override def inputAsEnrichedHtml(input: Input, index: Int): NodeSeq =
-      HiddenInputRenderer(name, input.string) ++ <p class="form-control-static clearfix">{actionButtonsHtml(input.string)}<a href="#">{input.title}</a></p>
+      form.renderer.hiddenInput(name, input.string) ++ <p class="form-control-static clearfix">{actionButtonsHtml(input.string)}<a href="#">{input.title}</a></p>
 
-    private val deleteButton = new SpecialButton("delete") with ButtonWithPopover with DangerDisplayType with Executable with StringValues {
+    private val deleteButton = new Button("delete") with ButtonWithPopover with DangerDisplayType with StringValues with Floating {
       override def execute() = processDeleteParameters(values)
 
       override def popoverPlacement: String = "auto right"
     }
 
-    private val overwriteButton = new SpecialButton("overwrite") with ButtonWithPopover with InfoDisplayType with Executable with StringValues {
+    private val overwriteButton = new Button("overwrite") with ButtonWithPopover with InfoDisplayType with StringValues with Floating {
       override def execute() = processOverwriteParameters(values)
 
       override def popoverPlacement: String = "auto right"
@@ -336,8 +338,8 @@ trait UploadWithOverwrite extends Container {
       if (isDisabled) NodeSeq.Empty
       else
         <div class="pull-right btn-group">
-          {deleteButton.withValue(string)(deleteButton.buttonAsHtml)}
-          {overwriteButton.withValue(string)(overwriteButton.buttonAsHtml)}
+          {deleteButton.withValue(string)(_.buttonAsHtml)}
+          {overwriteButton.withValue(string)(_.buttonAsHtml)}
         </div>
     }
 

@@ -80,7 +80,7 @@ trait DataTable[T] extends StaticContainer {
               .addClass(page.disabled, "disabled")
               .addClass(page.active, "active")
         }}
-        </ul> ++ HiddenInputRenderer(fallbackName, string)
+        </ul> ++ form.renderer.hiddenInput(fallbackName, string)
 
     private def displayedElementsText: String =
       if (pagination.displayedElementCount < pagination.totalElementCount)

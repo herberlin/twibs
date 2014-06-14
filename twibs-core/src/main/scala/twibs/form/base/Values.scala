@@ -165,7 +165,7 @@ trait Values extends TranslationSupport {
 
   def stringToValueConverter: StringToValueConverter = (string) => stringToValueOption(string) match {
     case Some(value) => Success(value)
-    case None => Failure(string, t"format-message: Invalid string '$string'.")
+    case None => Failure(string, t"format-message: Invalid string ''$string''.")
   }
 
   def stringToValueOption: StringToValueOption
@@ -215,13 +215,13 @@ trait Values extends TranslationSupport {
 
   def valueOption_=(valueOption: Option[ValueType]) = valueOption.map(v => values = v :: Nil)
 
-  def withValue[R](valueArg : ValueType)(f: => R) : R = withValues(valueArg:: Nil)(f)
+  def withValue[R](valueArg : ValueType)(f: this.type => R) : R = withValues(valueArg:: Nil)(f)
 
-  def withValues[R](valuesArg : Seq[ValueType])(f: => R) : R = {
+  def withValues[R](valuesArg : Seq[ValueType])(f: this.type => R) : R = {
     val was = values
     values = valuesArg
     try {
-      f
+      f(this)
     } finally {
       values = was
     }

@@ -19,6 +19,8 @@ trait Result {
   def BeforeFormDisplay(js: JsCmd) = Result.AfterFormDisplay(js)
 
   def InsteadOfFormDisplay(js: JsCmd) = Result.InsteadOfFormDisplay(js)
+
+  def UseResponse(response: Response) = Result.UseResponse(response)
 }
 
 object Result {
@@ -37,28 +39,13 @@ object Result {
 
 }
 
-trait Rendered extends Component {
-  def html: NodeSeq
-
-  final def enrichedHtml: NodeSeq = selfIsVisible match {
-    case false => NodeSeq.Empty
-    case true => isRevealed match {
-      case true => html
-      case false =>
-        html match {
-          case s@NodeSeq.Empty => s
-          case n: Elem => n.addClass(selfIsConcealed, "concealed")
-          case n: NodeSeq => <div>{n}</div>.addClass(selfIsConcealed, "concealed")
-        }
-    }
-  }
-}
+trait Floating extends Component
 
 trait Validatable {
   def isValid: Boolean
 }
 
-class DisplayMessage(condition: => Boolean, message: => Message)(implicit val parent: Container) extends Component with Rendered {
+class DisplayMessage(condition: => Boolean, message: => Message)(implicit val parent: Container) extends Component {
   def this(message: => Message)(implicit parent: Container) = this(true, message)(parent)
 
   override def selfIsVisible: Boolean = condition
@@ -66,7 +53,7 @@ class DisplayMessage(condition: => Boolean, message: => Message)(implicit val pa
   def html = form.renderer.renderMessage(message)
 }
 
-class DisplayHtml(condition: => Boolean, gethtml: => NodeSeq)(implicit val parent: Container) extends Component with Rendered {
+class DisplayHtml(condition: => Boolean, gethtml: => NodeSeq)(implicit val parent: Container) extends Component {
   def this(gethtml: => NodeSeq)(implicit parent: Container) = this(true, gethtml)(parent)
 
   override def selfIsVisible: Boolean = condition
@@ -74,7 +61,7 @@ class DisplayHtml(condition: => Boolean, gethtml: => NodeSeq)(implicit val paren
   def html = gethtml
 }
 
-class DisplayText(condition: => Boolean, gettext: => String)(implicit val parent: Container) extends Component with Rendered {
+class DisplayText(condition: => Boolean, gettext: => String)(implicit val parent: Container) extends Component {
   def this(gettext: => String)(implicit parent: Container) = this(true, gettext)(parent)
 
   override def selfIsVisible: Boolean = condition
@@ -82,7 +69,7 @@ class DisplayText(condition: => Boolean, gettext: => String)(implicit val parent
   override def html = Text(gettext)
 }
 
-class Messages()(implicit val parent: Container) extends Component with Rendered {
+class Messages()(implicit val parent: Container) extends Component {
   private val _messages = ListBuffer[Message]()
 
   def messages = _messages.toList
@@ -97,30 +84,12 @@ class Messages()(implicit val parent: Container) extends Component with Rendered
   override def html = <div>{messages.map(form.renderer.renderMessage)}</div>
 }
 
-abstract class HiddenField(override val ilk: String)(implicit val parent: Container) extends BaseField with Rendered {
-  override def html = inputs.map(input => HiddenInputRenderer(name, input.string))
-}
-
-abstract class InitInput()(implicit val parent: Container) extends BaseField {
-  override def ilk: String = "init"
-
-  override def prepare(request: Request): Unit = {
-    parse(request)
-    valueOption.map(initWithVar)
-  }
-
-  def <<(initWith: (ValueType) => Unit) : (ValueType) => String = {
-    initWithVar = initWith
-    link
-  }
-
-  private var initWithVar:(ValueType) => Unit = (ValueType) => Unit
+abstract class HiddenField(override val ilk: String)(implicit val parent: Container) extends BaseField {
+  override def html = inputs.map(input => form.renderer.hiddenInput(name, input.string)).flatten
 }
 
 trait Renderer {
   def renderMessage(message: Message): NodeSeq
-}
 
-object HiddenInputRenderer {
-  def apply(name: String, value: String) = <input type="hidden" autocomplete="off" name={name} value={value} />
+  def hiddenInput(name: String, value: String): NodeSeq
 }

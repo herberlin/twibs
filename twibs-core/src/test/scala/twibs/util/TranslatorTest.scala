@@ -103,5 +103,8 @@ class TranslatorTest extends TwibsTest {
     val regex = ".*"
 
     t"regex-message: Please enter a string that matches ''$regex''." should be("Please enter a string that matches '.*'.")
+
+    val string = ""
+    t"format-message: Invalid string ''$string''." should be("Invalid string ''.")
   }
 }

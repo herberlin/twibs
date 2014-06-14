@@ -4,10 +4,10 @@
 
 package twibs.form.bootstrap3
 
-import scala.xml.{NodeSeq, Elem}
+import scala.xml.{Unparsed, Text, NodeSeq, Elem}
 import twibs.form.base._
 import twibs.util.JavaScript._
-import twibs.util.{Translator, PrimaryDisplayType}
+import twibs.util.{DisplayType, IdString, Translator, PrimaryDisplayType}
 import twibs.web.{Upload, Request}
 
 trait UploadButton extends Button with StringValues with PrimaryDisplayType {
@@ -36,12 +36,61 @@ trait UploadButton extends Button with StringValues with PrimaryDisplayType {
   override def translator: Translator = super.translator.kind("UPLOAD-BUTTON")
 }
 
-trait BootstrapButton extends InteractiveComponent with ButtonRenderer with Values {
+trait BootstrapButton extends InteractiveComponent with Values with DisplayType {
+  def renderButtonTitle = if (buttonUseIconOnly) buttonIconOrButtonTitleIfEmptyHtml else buttonTitleWithIconHtml
+
+  def buttonUseIconOnly = false
+
+  def buttonTitleWithIconHtml: NodeSeq = buttonIconHtml match {case NodeSeq.Empty => buttonTitleHtml case ns => ns ++ Text(" ") ++ buttonTitleHtml }
+
+  def buttonIconOrButtonTitleIfEmptyHtml: NodeSeq = buttonIconHtml match {case NodeSeq.Empty => buttonTitleHtml case s => s }
+
+  def buttonIconHtml: NodeSeq = buttonIconName match {case "" => NodeSeq.Empty case s => <span class={s"glyphicon glyphicon-$s"}></span> }
+
+  def buttonTitleHtml = Unparsed(buttonTitle)
+
+  def buttonTitle = t"button-title: #$ilk"
+
+  def buttonIconName = t"button-icon:"
+
+  def buttonCssClasses = "btn" :: "btn-" + displayTypeString :: Nil
+
+  def buttonAsHtml: NodeSeq = if (isVisible) buttonAsEnrichedElem else NodeSeq.Empty
+
+  def buttonAsEnrichedElem: Elem = enrichButtonElem(buttonAsElem)
+
+  def enrichButtonElem(elem: Elem) : Elem =
+    elem
+      .setIfMissing("name", name)
+      .setIfMissing("id", id.string)
+      .addClass(isActive, "active")
+      .addClasses(buttonCssClasses)
+      .addClass(isDisabled, "disabled")
+      .addClass(!isDisabled, "can-be-disabled")
+      .setIfMissing(isDisabled, "disabled", "disabled")
+      .setIfMissing(name != ilk, "data-ilk", ilk)
+      .setIfMissing(buttonUseIconOnly, "title", buttonTitle)
+
+  def isActive = false
+
+  def isInactive = !isActive
+
   def buttonAsElem =
     if (isEnabled)
       <button type="submit" value={stringOrEmpty}>{renderButtonTitle}</button>
     else
       <span>{renderButtonTitle}</span>
+
+  override def html: NodeSeq =
+    <div class={formGroupCssClasses}>
+      <div class={controlContainerCssClasses}>{buttonAsHtml}</div>
+    </div>
+
+  def formGroupCssClasses = "form-group" :: Nil
+
+  def controlContainerCssClasses = "col-sm-offset-3" :: "col-sm-9" :: "controls" :: Nil
+
+  override def translator: Translator = super.translator.kind("BUTTON")
 }
 
 trait ButtonWithPopover extends BootstrapButton {

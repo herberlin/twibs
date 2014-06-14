@@ -8,14 +8,14 @@ import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File}
 import org.apache.tika.Tika
 import scala.concurrent.duration._
 import twibs.TwibsTest
-import twibs.util.Parameters
+import twibs.util.{Loggable, Parameters}
 import twibs.util.Parameters._
 
-class ResponderTest extends TwibsTest {
+class ResponderTest extends TwibsTest with Loggable {
   private implicit def toRequest(pathArg: String): Request = toRequest(pathArg, "localhost", Parameters())
 
-  private def toRequest(pathArg: String, theDomain: String, theParameters: Parameters, theUseCache: Boolean = true): Request =
-    new StaticRequest(pathArg, theDomain, theParameters, theUseCache)
+  private def toRequest(path: String, domain: String, parameters: Parameters, useCache: Boolean = true): Request =
+    new StaticRequest(path, domain, parameters, useCache)
 
   val defaultFileResponder: Responder = new FileResponder(new File("src/test/webapp/default"))
   val www1FileResponder: Responder = new FileResponder(new File("src/test/webapp/www1")) :: defaultFileResponder :: Nil
@@ -70,7 +70,7 @@ class ResponderTest extends TwibsTest {
         |}
         |;""".stripMargin)
 
-    load(responder, "/withErrors.js") should be("// /withErrors.js:2: ERROR - Parse error. missing ) after argument list\n//     return f(\"www1\";\n//                    ^\n// ")
+    load(responder, "/withErrors.js") should be("// /withErrors.js:2: ERROR - Parse error. ',' expected\n//     return f(\"www1\";\n//                    ^\n// ")
 
     val response = responder.respond("/includeSimpleTwice.js").get
     response.isModified should beFalse
@@ -82,8 +82,7 @@ class ResponderTest extends TwibsTest {
     val responder = new LessCssParserResponder(www1FileResponder)
     load(responder, "/simple.css") should be(
       """a{font-size:12px}b{color:red}""".stripMargin)
-    load(responder, "/withErrorsCss.css") should be( """// Parse Error: missing closing `}` in '/withErrorsCss.less' (line 2, column 2) near
-                                                       |// /* What */
+    load(responder, "/withErrorsCss.css") should be( """// Parse Error: missing opening `(` in '/withErrorsCss.less' (line 3, column 12) near
                                                        |// a {
                                                        |//     c:::f.?=)/)/%&%&$)(/=)ont-size: 12px;""".stripMargin)
     responder.respond("/simple.css").get.mimeType should be("text/css")
@@ -133,8 +132,7 @@ class ResponderTest extends TwibsTest {
 
   test("static error responder") {
     val responder = new StaticErrorResponder(new LessCssParserResponder(www1FileResponder) :: www1FileResponder :: Nil)
-    load(responder, "/withErrors.css") should be( """// Parse Error: missing closing `}` in '/withErrors.less' (line 2, column 2) near
-                                                    |// /* What */
+    load(responder, "/withErrors.css") should be( """// Parse Error: missing opening `(` in '/withErrors.less' (line 3, column 12) near
                                                     |// a {
                                                     |//     c:::f.?=)/)/%&%&$)(/=)ont-size: 12px;""".stripMargin)
     responder.respond("/withErrors.css").get should be(anInstanceOf[ErrorResponse])
@@ -144,8 +142,7 @@ class ResponderTest extends TwibsTest {
     load(www1FileResponder, "/l1/l2/withErrors.less") should be("/* What */\na {\n    c:::f.?=)/)/%&%&$)(/=)ont-size: 12px;")
     val contentResponder = new LessCssParserResponder(www1FileResponder)
 
-    load(contentResponder, "/l1/l2/withErrors.css") should be( """// Parse Error: missing closing `}` in '/l1/l2/withErrors.less' (line 2, column 2) near
-                                                                 |// /* What */
+    load(contentResponder, "/l1/l2/withErrors.css") should be( """// Parse Error: missing opening `(` in '/l1/l2/withErrors.less' (line 3, column 12) near
                                                                  |// a {
                                                                  |//     c:::f.?=)/)/%&%&$)(/=)ont-size: 12px;""".stripMargin)
 
@@ -235,7 +232,7 @@ class ResponderTest extends TwibsTest {
     val first = responder.respond("/file.txt")
     responder.respond("/file.txt").get should be theSameInstanceAs first.get
     responder.respond("/file.txt").get should be theSameInstanceAs first.get
-    responder.respond(toRequest("/file.txt", "localhost", Parameters(), theUseCache = false)).get should not be theSameInstanceAs(first.get)
+    responder.respond(toRequest("/file.txt", "localhost", Parameters(), useCache = false)).get should not be theSameInstanceAs(first.get)
   }
 
   def load(responder: Responder, path: String) = {

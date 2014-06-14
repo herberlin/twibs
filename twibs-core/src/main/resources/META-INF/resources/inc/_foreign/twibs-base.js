@@ -39,16 +39,27 @@ function twibsClosePopoversByScript() {
 }
 
 $(function () {
-    $.fn.reloadForm = function (value) {
-        $(this).submitForm("default-change-action", value);
+    var cp = typeof contextPath !== 'undefined' ? contextPath : '';
+
+    $.fn.ckeditor = function (callback, config) {
+        $('<script src="' + cp + '/inc/ckeditor/ckeditor.js"></script><script src="' + cp + '/inc/ckeditor/adapters/jquery.js"></script>').appendTo('head');
+        $(this).ckeditor(callback, config);
     };
 
-    $.fn.submitForm = function (key, value) {
+    $.fn.reloadForm = function (value) {
+        $(this).submitForm("form-change", value, true);
+    };
+
+    $.fn.submitForm = function (key, value, enabledForm) {
         var data = {};
         data[key] = value;
+        var config = {data: data};
+        if (!enabledForm) {
+            config["beforeSubmit"] = disableForm;
+        }
         $(this).each(function () {
             var $form = $(this).closest('form');
-            $form.ajaxSubmit(ajaxSubmitConfig($form, {data: data, beforeSubmit: disableForm}));
+            $form.ajaxSubmit(ajaxSubmitConfig($form, config));
         });
         return this;
     };
@@ -61,7 +72,7 @@ $(function () {
                     $this.remove();
                     $('body').updateDynamics();
                 })
-                .on('shown.bs.modal',function () {
+                .on('shown.bs.modal', function () {
                     $this.find('input:visible,.btn:visible').first().focus();
                     twibsUpdateAfterDomChange();
                 }).modal();
@@ -70,7 +81,7 @@ $(function () {
 
     $.fn.updateDynamics = function () {
         return this.each(function () {
-            $(this).find(".twibs-form:visible").reloadForm("");
+            $(this).find(".twibs-form:visible").submitForm("form-reload", "")
             twibsClosePopoversByScript();
         })
     };
@@ -81,11 +92,16 @@ $(function () {
         .on('hashchange', hashchange);
 
     $(document)
+        .on('click', 'button[type="submit"]', function (e) {
+            var $this = $(e.target);
+            $this.closest('form').submitForm($this.attr('name'), $this.val(), $this.hasClass("enabled-form"));
+            e.preventDefault();
+        })
         .on('click', '.submit', function (e) {
             var $this = $(e.target);
             if (!$this.closest(".ignore-submit,.submit").hasClass("ignore-submit")) {
                 var $button = $this.closest(".submit");
-                $button.submitForm($button.attr('name'), $button.attr('value'));
+                $button.submitForm($button.attr('name'), $button.attr('value'), $this.hasClass("enabled-form"));
                 e.stopPropagation();
                 e.preventDefault();
             }
@@ -103,16 +119,7 @@ $(function () {
             var val = $this.val();
             if (was != val) {
                 $this.data("previous", val);
-                var data = {};
-                data[$this.attr('name') + "-submit-while-typing"] = val;
-                $this.closest('form').each(function () {
-                    $(this).ajaxSubmit({
-                        dataType: 'script',
-                        data: data,
-                        success: twibsUpdateAfterDomChange,
-                        error: ajaxFormError
-                    });
-                });
+                $this.closest('form').submitForm($this.attr('name') + "-submit-while-typing", val, true);
             }
         })
         .on('click', '.input-clear', function (e) {
@@ -143,7 +150,7 @@ $(function () {
             }
         })
         .on("twibs-update-dom", function () {
-            $('.twibs-form select.chosen').chosen({disable_search_threshold: 6});
+            $('.twibs-form select.chosen').chosen({disable_search_threshold: 6, width: '100%'});
 
             // 'chosen' does not preserve the focus, 'twibs' does.
             $('.twibs-form select.chosen:focus').each(function () {
@@ -152,19 +159,16 @@ $(function () {
 
             $('[data-toggle="popover"]').popover();
 
-            $('.twibs-form').each(function () {
-                var $form = $(this);
-                $form.ajaxForm(ajaxSubmitConfig($form, {beforeSubmit: disableForm}));
-            });
-
             $('textarea.hidden-print').each(function () {
                 var $this = $(this);
                 var $next = $this.next("div.textarea-print");
-                if( $next.length === 0 ) {
+                if ($next.length === 0) {
                     $next = $('<div class="textarea-print form-control visible-print"></div>').insertBefore($this);
                 }
                 $next.html($this.val());
             });
+
+            fixContainers();
         });
 
     $('body')
@@ -266,6 +270,34 @@ $(function () {
         $form.find('select.form-control').trigger("chosen:updated");
     }
 
+    function fixContainers() {
+        $(".fixed-container").each(function () {
+            var container = $(this);
+            container.removeClass("fixed-container");
+            var item = $(this).find(".fixed-content");
+            var width = item.width();
+            var height = item.height();
+
+            container.css("width", width);
+            container.css("height", height);
+            item.css("position", "absolute").css("left", "auto").css("top", "auto").css("width", width).css("height", height);
+            $(window).scroll(function () {
+                var offset = container.offset();
+                var scrollTop = $(document).scrollTop();
+                var fixed = item.hasClass("fixed");
+                if (offset.top < scrollTop) {
+                    if (!fixed) {
+                        item.css({position: "fixed", left: offset.left, top: 0});
+                        item.addClass("fixed");
+                    }
+                } else if (fixed) {
+                    item.css({position: "absolute", left: "auto", top: "auto"});
+                    item.removeClass("fixed");
+                }
+            });
+        });
+    }
+
     // Fix autofill in firefox: Reset disabled state after load
     // (firefox disables fields after ajax submit and page reload).
     // Either "disabled" or "can-be-disabled" can be given, not both.
@@ -285,6 +317,18 @@ $(function () {
         $("select").not('[autocomplete]').find("option").each(function () {
             this.selected = this.hasAttribute("selected");
         });
+    }
+
+    // Store a reference to the original remove method.
+    var originalCkeditor = $.fn.ckeditor;
+
+    // Define overriding method.
+    jQuery.fn.remove = function () {
+        // Log the fact that we are calling our override.
+        console.log("Override method");
+
+        // Execute the original method.
+        originalRemoveMethod.apply(this, arguments);
     }
 
     twibsUpdateAfterDomChange();
