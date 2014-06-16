@@ -4,11 +4,12 @@
 
 package twibs.form.bootstrap3
 
-import scala.xml.{Unparsed, Text, NodeSeq, Elem}
+import scala.xml.{Elem, NodeSeq, Text, Unparsed}
+
 import twibs.form.base._
 import twibs.util.JavaScript._
-import twibs.util.{DisplayType, IdString, Translator, PrimaryDisplayType}
-import twibs.web.{Upload, Request}
+import twibs.util.{DisplayType, PrimaryDisplayType, Translator}
+import twibs.web.{Request, Upload}
 
 trait UploadButton extends Button with StringValues with PrimaryDisplayType {
   override def buttonAsEnrichedElem =
@@ -59,7 +60,7 @@ trait BootstrapButton extends InteractiveComponent with Values with DisplayType 
 
   def buttonAsEnrichedElem: Elem = enrichButtonElem(buttonAsElem)
 
-  def enrichButtonElem(elem: Elem) : Elem =
+  def enrichButtonElem(elem: Elem): Elem =
     elem
       .setIfMissing("name", name)
       .setIfMissing("id", id.string)
@@ -99,7 +100,7 @@ trait ButtonWithPopover extends BootstrapButton {
 
   override def buttonAsEnrichedElem: Elem = if (usePopover) openPopoverButton.buttonAsEnrichedElem else super.buttonAsEnrichedElem
 
-  class OpenPopoverButton extends BootstrapButton with Executable with StringValues with Result {
+  class OpenPopoverButton extends BootstrapButton with Executable with StringValues with Result with Floating {
     override def parent = self.parent
 
     override def isActive = self.isActive
@@ -118,6 +119,8 @@ trait ButtonWithPopover extends BootstrapButton {
 
     override def stringOrEmpty: String = self.stringOrEmpty
 
+    override def buttonUseIconOnly = orgButtonUseIconOnly
+
     override def buttonAsElem: Elem =
       if (isEnabled)
         if (popoverNeedsCalculation)
@@ -134,6 +137,10 @@ trait ButtonWithPopover extends BootstrapButton {
 
     def openPopoverJs = jQuery(id).call("popover", popoverOptions).call("addClass", "popover-by-script").call("popover", "show")
   }
+
+  private def orgButtonUseIconOnly = super.buttonUseIconOnly
+
+  override def buttonUseIconOnly = if (usePopover) false else super.buttonUseIconOnly
 
   final val openPopoverButton = computeOpenPopoverButton
 

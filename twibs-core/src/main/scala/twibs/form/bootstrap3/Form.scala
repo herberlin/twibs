@@ -14,12 +14,10 @@ abstract class Form(override val ilk: String) extends BaseForm {
 
   override protected def computeName: String = ilk
 
-  abstract class OpenModalLink extends BootstrapButton with StringValues with Floating {
+  abstract class OpenModalLink extends BootstrapButton with StringValues with Floating with LinkButton {
     override def parent: Container = self
 
     override def ilk = "open-modal-link"
-
-    override def buttonAsElem: Elem = <a href="#" data-call={actionLinkWithContextPathAndParameters}>{renderButtonTitle}</a>
   }
 
   protected def enctype = "multipart/form-data"
@@ -49,7 +47,7 @@ abstract class Form(override val ilk: String) extends BaseForm {
      </div>
     </div>
 
-  def formHtml(modal: Boolean) = if (!isDisplayAllowed) noAccessHtml
+  def formHtml(modal: Boolean) = if (!isEnabled) noAccessHtml
   else
     <form id={id} name={name} class={formCssClasses} action={actionLinkWithContextPath} method="post" enctype={enctype}>
       {renderer.hiddenInput(pnId, id) ++ renderer.hiddenInput(pnModal, "" + modal) ++ renderer.hiddenInput(ApplicationSettings.PN_NAME, requestSettings.applicationSettings.name)}
@@ -210,6 +208,18 @@ object Bootstrap {
 }
 
 abstract class Button(override val ilk: String)(implicit val parent: Container) extends Executable with Result with BootstrapButton
+
+trait LinkButton extends BootstrapButton {
+  override def buttonAsElem: Elem = <a href="#" data-call={dataCall}>{renderButtonTitle}</a>
+
+  def dataCall = {
+    val ret = form.actionLinkWithContextPathAndParameters
+    valueOption match {
+      case Some(v) => (if (ret.contains("?")) ret + "&" else ret + "?") + name + "=" + v
+      case None => ret
+    }
+  }
+}
 
 trait EnabledForm extends Button {
   override def buttonCssClasses: List[String] = "enabled-form" :: super.buttonCssClasses

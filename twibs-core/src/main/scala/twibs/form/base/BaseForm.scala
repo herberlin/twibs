@@ -244,7 +244,7 @@ trait BaseForm extends Container with CurrentRequestSettings {
   val modal = Request.parameters.getBoolean(pnModal, default = false)
 
   val formReload = new Executor("form-reload") with StringValues {
-    override def execute(): Unit = InsteadOfFormDisplay(reloadFormJs)
+    override def execute(): Unit = result = InsteadOfFormDisplay(reloadFormJs)
   }
 
   override def html: NodeSeq = defaultButtonHtml ++ super.html
@@ -274,13 +274,7 @@ trait BaseForm extends Container with CurrentRequestSettings {
 
   def accessAllowed: Boolean
 
-  def isPrepareAllowed = true
-
-  def isParseAllowed = accessAllowed
-
-  def isExecuteAllowed = accessAllowed
-
-  def isDisplayAllowed = accessAllowed
+  override def selfIsEnabled = accessAllowed
 
   def reloadFormJs = displayJs
 
@@ -296,7 +290,7 @@ trait BaseForm extends Container with CurrentRequestSettings {
 
   def refreshJs = replaceContentJs ~ javascript ~ focusJs
 
-  def javascript: JsCmd = if (!isDisplayAllowed) JsEmpty else components.collect({ case component: JavascriptComponent => component.javascript})
+  def javascript: JsCmd = if (isVisible) components.collect({ case component: JavascriptComponent => component.javascript}) else JsEmpty
 
   def focusJs = components.collectFirst({ case field: BaseField if field.needsFocus => field.focusJs}) getOrElse JsEmpty
 
@@ -319,9 +313,9 @@ trait BaseForm extends Container with CurrentRequestSettings {
 
   def respond(request: Request): Response = {
     val result: List[Result.Value] = {
-      if (isPrepareAllowed) prepare(request)
-      if (isParseAllowed) parse(request)
-      if (isExecuteAllowed) execute(request)
+      prepare(request)
+      parse(request)
+      execute(request)
       components.collect { case r: Result if r.result != Result.Ignored => r.result}.toList
     }
 
@@ -361,7 +355,7 @@ trait BaseForm extends Container with CurrentRequestSettings {
 }
 
 trait Executable extends InteractiveComponent {
-  override def execute(request: Request): Unit = if (isEnabled) request.parameters.getStringsOption(name).foreach(parameters => execute())
+  override def execute(request: Request): Unit = request.parameters.getStringsOption(name).foreach(parameters => if (isEnabled) execute())
 
   def execute(): Unit = if (callValidation()) executeValidated()
 

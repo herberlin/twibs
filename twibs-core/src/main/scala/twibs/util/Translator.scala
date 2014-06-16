@@ -4,10 +4,11 @@
 
 package twibs.util
 
-import com.ibm.icu.text.MessageFormat
-import com.ibm.icu.util.ULocale
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.ArrayBuffer
+
+import com.ibm.icu.text.MessageFormat
+import com.ibm.icu.util.ULocale
 
 abstract class Translator(id: String, usages: List[String], kinds: List[String]) {
   private val cache = TrieMap[String, String]()
@@ -39,11 +40,13 @@ abstract class Translator(id: String, usages: List[String], kinds: List[String])
 
   def unresolved(fullKey: String, default: String): Unit
 
-  def translateOrUseDefault(key: String, default: => String, args: Any*): String =
+  def translateOrUseDefault(key: String, default: => String, args: Any*): String = {
+    assert(!key.contains("."), s"Keys must not contain any dot ('.'): $key")
     format(cache.getOrElseUpdate(key, resolve(prefixes, key) getOrElse default), args: _*)
+  }
 
   private def resolve(prefixes: List[String], key: String): Option[String] =
-    prefixes.view.map(prefix => resolve(prefix + key)).collectFirst {case Some(x) => x}
+    prefixes.view.map(prefix => resolve(prefix + key)).collectFirst { case Some(x) => x}
 
   def translate(sc: StringContext, args: Any*): String = {
     sc.checkLengths(args)
@@ -66,7 +69,13 @@ abstract class Translator(id: String, usages: List[String], kinds: List[String])
       }
     }
     sb.append(strings.last)
-    translate(sa(0), sb.toString(), remainingArgs.toArray: _*)
+    val l = sa(0).split("\\.").toList.reverse
+    val (t, key) = l match {
+      case List(k) => (this, k)
+      case k :: tail => (tail.foldRight(this)((u, t) => t.usage(u)), k)
+      case _ => throw new IllegalStateException("Nil")
+    }
+    t.translate(key, sb.toString(), remainingArgs.toArray: _*)
   }
 
   private def format(messageFormatString: String, args: Any*): String =

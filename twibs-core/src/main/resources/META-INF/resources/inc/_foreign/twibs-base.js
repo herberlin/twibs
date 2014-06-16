@@ -36,6 +36,7 @@ function twibsUpdateAfterDomChange() {
 
 function twibsClosePopoversByScript() {
     $('[data-toggle=popover],.popover-by-script').popover('hide');
+    $('.popover.in').detach();
 }
 
 $(function () {
@@ -94,7 +95,7 @@ $(function () {
 
     $(document)
         .on('click', 'button[type="submit"]', function (e) {
-            var $this = $(e.target);
+            var $this = $(this);
             $this.closest('form').submitForm($this.attr('name'), $this.val(), $this.hasClass("enabled-form"));
             e.preventDefault();
         })

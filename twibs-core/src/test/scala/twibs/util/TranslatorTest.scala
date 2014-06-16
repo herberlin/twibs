@@ -86,7 +86,7 @@ class TranslatorTest extends TwibsTest {
 
   test("Translation with parameter and implicit conversion") {
     implicit val root = new TranslatorResolver(ULocale.ENGLISH, Configuration) {
-      override def resolve(key: String) = None
+      override protected def resolve(key: String) = None
     }.root
 
     val k = "Me"
@@ -106,5 +106,13 @@ class TranslatorTest extends TwibsTest {
 
     val string = ""
     t"format-message: Invalid string ''$string''." should be("Invalid string ''.")
+  }
+
+  test("Translation with fallback") {
+    implicit val root : Translator = ApplicationSettings.translators(ULocale.GERMAN)
+
+    t"label: L" should be ("Herr")
+    t"sub.label: S" should be ("Du")
+    t"sub2.label: N" should be ("Herr")
   }
 }

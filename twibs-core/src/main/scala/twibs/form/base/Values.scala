@@ -9,6 +9,7 @@ import com.ibm.icu.text.NumberFormat
 import java.text.ParseException
 import java.util.concurrent.TimeUnit
 import org.apache.commons.io.FilenameUtils
+import org.owasp.html.PolicyFactory
 import org.threeten.bp.format.{DateTimeParseException, DateTimeFormatter}
 import org.threeten.bp.{LocalDate, LocalDateTime}
 import twibs.util.XmlUtils._
@@ -254,6 +255,14 @@ trait WebAddressValues extends StringValues {
   override def valueProcessors = super.valueProcessors :+ webAddressProcessor
 
   abstract override def translator: Translator = super.translator.kind("WEB-ADDRESS")
+}
+
+trait HtmlValues extends StringValues {
+  def policyFactory: PolicyFactory
+
+  def cleanupProcessor: StringProcessor = (string: String) => Success(policyFactory.sanitize(string))
+
+  override def stringProcessors: List[StringProcessor] = cleanupProcessor :: super.stringProcessors
 }
 
 trait BooleanValues extends Values {
@@ -513,7 +522,7 @@ trait Options extends Values {
 }
 
 trait TranslatedOptions extends Options {
-  override def titleForOption(value: ValueType): String = translator.translate("option-title." + valueToString(value), titleForValue(value))
+  override def titleForOption(value: ValueType): String = translator.usage("option-title").translate(valueToString(value), titleForValue(value))
 }
 
 trait FileEntry {
