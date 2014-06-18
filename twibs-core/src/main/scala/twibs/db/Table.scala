@@ -46,6 +46,21 @@ class Table(val tableName: String) {
     }
   }
 
+  case class IntColumn(name: String) extends Column[Int] {
+    def get(rs: ResultSet, pos: Int) = rs.getInt(pos)
+
+    def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setInt(pos, value.asInstanceOf[Int])
+  }
+
+  case class IntOptionColumn(name: String) extends Column[Option[Int]] with OptionalColumn {
+    def get(rs: ResultSet, pos: Int) = Option(rs.getInt(pos))
+
+    def set(ps: PreparedStatement, pos: Int, valueOption: Any) = valueOption.asInstanceOf[Option[Int]] match {
+      case Some(value) => ps.setInt(pos, value)
+      case None => ps.setNull(pos, Types.BIGINT)
+    }
+  }
+
   case class BooleanColumn(name: String) extends Column[Boolean] {
     def get(rs: ResultSet, pos: Int) = rs.getBoolean(pos)
 
@@ -177,6 +192,9 @@ trait OptionalColumn {
   self: Column[_] =>
   def isNotNull = new Where {
     private[db] override def toStatement = Statement(s"$fullName IS NOT NULL")
+  }
+  def isNull = new Where {
+    private[db] override def toStatement = Statement(s"$fullName IS NULL")
   }
 }
 
