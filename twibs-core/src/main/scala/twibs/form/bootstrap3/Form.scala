@@ -75,11 +75,15 @@ abstract class Form(override val ilk: String) extends BaseForm {
 
   def formHeader = if (formHeaderContent.isEmpty) formHeaderContent else <header class="form-header">{formHeaderContent}</header>
 
-  def formHeaderContent: NodeSeq = formTitle
+  def formHeaderContent: NodeSeq = formTitle ++ formDescription
 
   def formTitle = formTitleString match {case "" => NodeSeq.Empty case s => <h3>{s}</h3> }
 
   def formTitleString = t"form-title: #$name"
+
+  def formDescription = formDescriptionString match { case "" => NodeSeq.Empty case s => Unparsed(s)}
+
+  def formDescriptionString = t"form-description:"
 
   def noAccessHtml: NodeSeq = <div class="alert alert-warning">{t"no-access-body: You have no permission to use this method."}</div>
 
