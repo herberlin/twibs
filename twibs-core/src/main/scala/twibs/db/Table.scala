@@ -159,6 +159,10 @@ abstract class Column[T](implicit val table: Table) {
     private[db] override def toStatement = Statement(s"$fullName $operator ?", (self, right) :: Nil)
   }
 
+  protected class ColumnToColumn(operator: String, right: Column[T]) extends Where {
+    private[db] override def toStatement = Statement(s"$fullName $operator ${right.fullName}", Nil)
+  }
+
   def >(right: T): Where = new ColumnWhere(">", right)
 
   def <(right: T): Where = new ColumnWhere("<", right)
@@ -166,6 +170,8 @@ abstract class Column[T](implicit val table: Table) {
   def =!=(right: T): Where = new ColumnWhere("<>", right)
 
   def ===(right: T): Where = new ColumnWhere("=", right)
+
+  def ===(right: Column[T]): Where = new ColumnToColumn("=", right)
 
   def in(vals: Seq[T]): Where = new Where {
     private[db] override def toStatement = Statement(s"$fullName in (${vals.map(_ => "?").mkString(",")})", vals.map(right => (self, right)))
@@ -339,7 +345,7 @@ trait Query[T <: Product] {
 
   def isEmpty(implicit connection: Connection): Boolean = size(connection) == 0
 
-  def convert[R <: Product](to: (T) => R,from: (R) => Option[T]): Query[R]
+  def convert[R <: Product](to: (T) => R,from: (R) => Option[T] = (x:R) => None): Query[R]
 }
 
 private[db] class AutoCounter {
