@@ -4,17 +4,20 @@
 
 package twibs.form.base
 
-import com.google.common.cache.{CacheBuilder, Cache}
-import com.ibm.icu.text.NumberFormat
 import java.text.ParseException
 import java.util.concurrent.TimeUnit
-import org.apache.commons.io.FilenameUtils
-import org.owasp.html.PolicyFactory
-import org.threeten.bp.format.{DateTimeParseException, DateTimeFormatter}
-import org.threeten.bp.{LocalDate, LocalDateTime}
+
 import twibs.util.XmlUtils._
 import twibs.util._
 import twibs.web.Upload
+
+import com.google.common.cache.{Cache, CacheBuilder}
+import com.ibm.icu.text.NumberFormat
+import com.ibm.icu.util.ULocale
+import org.apache.commons.io.FilenameUtils
+import org.owasp.html.PolicyFactory
+import org.threeten.bp.format.{DateTimeFormatter, DateTimeParseException}
+import org.threeten.bp.{LocalDate, LocalDateTime}
 
 trait Values extends TranslationSupport {
   type ValueType
@@ -91,7 +94,7 @@ trait Values extends TranslationSupport {
 
   private var _modified = false
 
-  def values = inputs.collect {case ValidInput(_, _, Some(value)) => value}
+  def values = inputs.collect { case ValidInput(_, _, Some(value)) => value}
 
   def defaultValues: Seq[ValueType] = Nil
 
@@ -106,7 +109,7 @@ trait Values extends TranslationSupport {
 
   private def format(i: Int) = Formatters.integerFormat.format(i)
 
-  def messageDisplayTypeOption = if (validated) inputsMessageOption.map(_.displayTypeString) orElse inputs.collectFirst({case x: InvalidInput => "warning"}) else None
+  def messageDisplayTypeOption = if (validated) inputsMessageOption.map(_.displayTypeString) orElse inputs.collectFirst({ case x: InvalidInput => "warning"}) else None
 
   def computeIsValid = areInputsValid && isNumberOfInputsValid
 
@@ -216,9 +219,9 @@ trait Values extends TranslationSupport {
 
   def valueOption_=(valueOption: Option[ValueType]) = valueOption.map(v => values = v :: Nil)
 
-  def withValue[R](valueArg : ValueType)(f: this.type => R) : R = withValues(valueArg:: Nil)(f)
+  def withValue[R](valueArg: ValueType)(f: this.type => R): R = withValues(valueArg :: Nil)(f)
 
-  def withValues[R](valuesArg : Seq[ValueType])(f: this.type => R) : R = {
+  def withValues[R](valuesArg: Seq[ValueType])(f: this.type => R): R = {
     val was = values
     values = valuesArg
     try {
@@ -453,6 +456,18 @@ trait DateValues extends MinMaxValues {
   override def valueToString: ValueToString = value => editDateFormat.format(value)
 }
 
+trait LocaleValues extends Values {
+  type ValueType = ULocale
+
+  override def valueToString: ValueToString = locale => locale.toLanguageTag
+
+  override def stringToValueOption: StringToValueOption = (string) => Some(ULocale.forLanguageTag(string))
+
+  override def titleForValue(value: ValueType): String = value.getDisplayName(RequestSettings.locale)
+
+  abstract override def translator: Translator = super.translator.kind("LOCALE")
+}
+
 trait EnumerationValues[E <: Enumeration] extends Options {
   type ValueType = E#Value
 
@@ -518,7 +533,7 @@ trait Options extends Values {
 
   def useEmptyOption(string: String) = !required || options.isEmpty || !optionStrings.contains(string)
 
-  override def stringToValueOption: StringToValueOption = string => options.collectFirst{ case o if o.string == string => o.value }
+  override def stringToValueOption: StringToValueOption = string => options.collectFirst { case o if o.string == string => o.value}
 }
 
 trait TranslatedOptions extends Options {

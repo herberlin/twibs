@@ -4,11 +4,13 @@
 
 package twibs.web
 
-import com.ibm.icu.util.ULocale
 import java.io.InputStream
 import java.net.URI
-import org.threeten.bp.LocalDateTime
+
 import twibs.util._
+
+import com.ibm.icu.util.ULocale
+import org.threeten.bp.LocalDateTime
 
 trait Request extends Serializable with AttributeContainer {
   def timestamp: LocalDateTime
@@ -25,13 +27,15 @@ trait Request extends Serializable with AttributeContainer {
 
   //  def referrerOption: Option[String]
   //
-  //  def userAgentOption: Option[String]
-  //
   //  def remoteUserOption: Option[String]
   //
   //  def doesClientSupportGzipEncoding: Boolean
   //
   def remoteAddress: String
+
+  def remoteHost: String
+
+  def userAgent: String
   //
   //  def uri: String
   //
@@ -54,6 +58,8 @@ trait Request extends Serializable with AttributeContainer {
   override def toString = s"Request[$path|$method]"
 
   def desiredLocale: ULocale
+
+  def getCookieValue(cookieName: String): Option[String]
 }
 
 class RequestWrapper(val delegatee: Request) extends Request {
@@ -68,6 +74,10 @@ class RequestWrapper(val delegatee: Request) extends Request {
   def accept = delegatee.accept
 
   def remoteAddress = delegatee.remoteAddress
+
+  def remoteHost = delegatee.remoteHost
+
+  def userAgent = delegatee.userAgent
 
   def doesClientSupportGzipEncoding = delegatee.doesClientSupportGzipEncoding
 
@@ -90,6 +100,8 @@ class RequestWrapper(val delegatee: Request) extends Request {
   def useAndRespond(responder: Responder) = use {
     responder.respond(this)
   }
+
+  def getCookieValue(cookieName: String) = delegatee.getCookieValue(cookieName)
 }
 
 object Request extends DynamicVariableWithDynamicDefault[Request](ImmutableRequest) {
@@ -108,6 +120,10 @@ private object ImmutableRequest extends Request {
   def accept: List[String] = Nil
 
   def remoteAddress: String = "::1"
+
+  def remoteHost: String = "localhost"
+
+  def userAgent: String = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/34.0.1847.116 Chrome/34.0.1847.116 Safari/537.36"
 
   def doesClientSupportGzipEncoding: Boolean = true
 
@@ -134,6 +150,8 @@ private object ImmutableRequest extends Request {
   def useCache = true
 
   val desiredLocale = SystemSettings.locale
+
+  def getCookieValue(cookieName: String) = None
 }
 
 trait Upload {

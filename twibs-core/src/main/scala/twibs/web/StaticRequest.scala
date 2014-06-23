@@ -4,8 +4,9 @@
 
 package twibs.web
 
-import com.ibm.icu.util.ULocale
 import twibs.util.{ApplicationSettings, Parameters}
+
+import com.ibm.icu.util.ULocale
 
 class StaticRequest(val path: String,
                     val domain: String = "localhost",
@@ -18,6 +19,10 @@ class StaticRequest(val path: String,
   def accept: List[String] = Nil
 
   def remoteAddress: String = "::1"
+
+  def remoteHost: String = "localhost"
+
+  def userAgent: String = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/34.0.1847.116 Chrome/34.0.1847.116 Safari/537.36"
 
   def referrerOption: Option[String] = None
 
@@ -34,4 +39,6 @@ class StaticRequest(val path: String,
   val session = new StaticSession
 
   val desiredLocale: ULocale = ApplicationSettings.locales.head
+
+  def getCookieValue(cookieName: String) = None
 }

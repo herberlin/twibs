@@ -4,17 +4,20 @@
 
 package twibs.web
 
-import collection.JavaConverters._
-import com.ibm.icu.util.ULocale
 import java.beans.Transient
 import javax.servlet.http.HttpServletRequest
+
+import scala.collection.JavaConverters._
+
+import twibs.util._
+
+import com.ibm.icu.util.ULocale
 import org.apache.commons.fileupload.disk.DiskFileItemFactory
 import org.apache.commons.fileupload.servlet.ServletFileUpload
-import org.apache.commons.fileupload.{FileItemFactory, FileItem}
+import org.apache.commons.fileupload.{FileItem, FileItemFactory}
 import org.apache.commons.io.FileUtils
 import org.apache.sling.api.SlingHttpServletRequest
 import org.apache.sling.api.request.RequestParameter
-import twibs.util._
 
 private[web] abstract class HttpRequest(httpServletRequest: HttpServletRequest) extends Request {
   val timestamp = Request.now()
@@ -43,13 +46,17 @@ private[web] abstract class HttpRequest(httpServletRequest: HttpServletRequest) 
 
   val remoteAddress = httpServletRequest.getRemoteAddr
 
+  val remoteHost = httpServletRequest.getRemoteHost
+
+  val userAgent = httpServletRequest.getHeader("User-Agent")
+
   val uri = httpServletRequest.getRequestURI
 
   val desiredLocale = ULocale.forLocale(httpServletRequest.getLocale)
 
   val parameters: Parameters = Parameters(removeUnderscoreParameterSetByJQuery(urlParameters ++ multiPartParameters))
 
-  private def removeUnderscoreParameterSetByJQuery(map: Map[String, Seq[String]]) :  Map[String, Seq[String]]  =map.filterNot(_._1 == "_")
+  private def removeUnderscoreParameterSetByJQuery(map: Map[String, Seq[String]]): Map[String, Seq[String]] = map.filterNot(_._1 == "_")
 
   def urlParameters: Map[String, Seq[String]] = httpServletRequest.getParameterMap.asScala.map(entry => (entry._1, entry._2.toSeq)).toMap
 
@@ -67,6 +74,8 @@ private[web] abstract class HttpRequest(httpServletRequest: HttpServletRequest) 
   val useCache = !((RunMode.isDevelopment || RunMode.isTest) && httpServletRequest.getHeader("Cache-Control") == "no-cache" && httpServletRequest.getHeader("If-Modified-Since") == null)
 
   def multiPartParameters: Map[String, Seq[String]]
+
+  def getCookieValue(cookieName: String) = httpServletRequest.getCookies.find(_.getName.equalsIgnoreCase(cookieName)).map(_.getValue)
 }
 
 private[web] class HttpRequestWithCommonsFileUpload(httpServletRequest: HttpServletRequest) extends HttpRequest(httpServletRequest) {

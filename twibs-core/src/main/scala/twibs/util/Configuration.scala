@@ -81,7 +81,7 @@ object ConfigurationForTypesafeConfig {
   def forSettings(applicationName: String, settings: SystemSettings = SystemSettings) =
     new ConfigurationForTypesafeConfig(userConfig(childConfig(baseConfig(settings), "APPLICATIONS." + applicationName)))
 
-  private def userConfig(wrapped: Config) = ConfigFactory.load("user").withFallback(wrapped)
+  private def userConfig(wrapped: Config) = ConfigFactory.parseResourcesAnySyntax("user").withFallback(wrapped)
 
   private def childConfig(parent: Config, path: String) = if (parent.hasPath(path)) parent.getConfig(path).withFallback(parent) else parent
 }
