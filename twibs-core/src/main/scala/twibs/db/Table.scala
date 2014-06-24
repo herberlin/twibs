@@ -6,6 +6,7 @@ import org.threeten.bp.{LocalDate, LocalDateTime}
 import scala.Some
 import twibs.util.Loggable
 import twibs.util.Predef._
+import twibs.util.SortOrder.SortOrder
 import twibs.util.ThreeTenTransition._
 
 object Sql extends Loggable
@@ -45,6 +46,21 @@ class Table(val tableName: String) {
     }
   }
 
+  case class IntColumn(name: String) extends Column[Int] {
+    def get(rs: ResultSet, pos: Int) = rs.getInt(pos)
+
+    def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setInt(pos, value.asInstanceOf[Int])
+  }
+
+  case class IntOptionColumn(name: String) extends Column[Option[Int]] with OptionalColumn {
+    def get(rs: ResultSet, pos: Int) = Option(rs.getInt(pos))
+
+    def set(ps: PreparedStatement, pos: Int, valueOption: Any) = valueOption.asInstanceOf[Option[Int]] match {
+      case Some(value) => ps.setInt(pos, value)
+      case None => ps.setNull(pos, Types.BIGINT)
+    }
+  }
+
   case class BooleanColumn(name: String) extends Column[Boolean] {
     def get(rs: ResultSet, pos: Int) = rs.getBoolean(pos)
 
@@ -73,7 +89,7 @@ class Table(val tableName: String) {
   }
 
   case class LocalDateTimeOptionColumn(name: String) extends Column[Option[LocalDateTime]] with OptionalColumn {
-    def get(rs: ResultSet, pos: Int) = Option(rs.getTimestamp(pos).toLocalDateTime)
+    def get(rs: ResultSet, pos: Int) = Option(rs.getTimestamp(pos)).map(_.toLocalDateTime)
 
     def set(ps: PreparedStatement, pos: Int, valueOption: Any) = valueOption.asInstanceOf[Option[LocalDateTime]] match {
       case Some(value) => ps.setTimestamp(pos, value.toTimestamp)
@@ -88,7 +104,7 @@ class Table(val tableName: String) {
   }
 
   case class LocalDateOptionColumn(name: String) extends Column[Option[LocalDate]] with OptionalColumn {
-    def get(rs: ResultSet, pos: Int) = Option(rs.getDate(pos).toLocalDate)
+    def get(rs: ResultSet, pos: Int) = Option(rs.getDate(pos)).map(_.toLocalDate)
 
     def set(ps: PreparedStatement, pos: Int, valueOption: Any) = valueOption.asInstanceOf[Option[LocalDate]] match {
       case Some(value) => ps.setDate(pos, value.toDate)
@@ -114,29 +130,51 @@ class Table(val tableName: String) {
   def size(implicit connection: Connection) = Statement(s"SELECT count(*) FROM $tableName").size(connection)
 }
 
+class AggregateColumn[T](delegatee: Column[T]) extends Column[T]()(delegatee.table) {
+  override def set(ps: PreparedStatement, pos: Int, value: Any): Unit =
+    throw new IllegalArgumentException("Aggregate columns can not be set")
+
+  override def name: String = delegatee.name
+
+  override def get(rs: ResultSet, pos: Int): T = delegatee.get(rs, pos)
+}
+
 abstract class Column[T](implicit val table: Table) {
+  self =>
   def name: String
 
   def fullName: String = table.tableName + "." + name
 
+  private[db] def sget(rs: ResultSet, pos: Int): T = try get(rs,pos) catch {case e: Exception => Sql.logger.error(s"Retrieving value $fullName failed"); throw e}
+
+  def get(rs: ResultSet, pos: Int): T
+
+  def set(ps: PreparedStatement, pos: Int, value: Any): Unit
+
   protected class ColumnWhere(operator: String, right: T) extends Where {
-    private[db] override def toStatement = Statement(s"$fullName $operator ?", (Column.this, right) :: Nil)
+    private[db] override def toStatement = Statement(s"$fullName $operator ?", (self, right) :: Nil)
   }
 
   protected class ColumnSeqWhere(operator: String, right: Seq[T]) extends Where {
-    private[db] override def toStatement = Statement(s"$fullName $operator ?", (Column.this, right) :: Nil)
+    private[db] override def toStatement = Statement(s"$fullName $operator ?", (self, right) :: Nil)
+  }
+
+  protected class ColumnToColumn(operator: String, right: Column[T]) extends Where {
+    private[db] override def toStatement = Statement(s"$fullName $operator ${right.fullName}", Nil)
   }
 
   def >(right: T): Where = new ColumnWhere(">", right)
 
   def <(right: T): Where = new ColumnWhere("<", right)
 
-  def !==(right: T): Where = new ColumnWhere("<>", right)
+  def =!=(right: T): Where = new ColumnWhere("<>", right)
 
   def ===(right: T): Where = new ColumnWhere("=", right)
 
-  def in(vals: List[T]): Where = new Where {
-    private[db] override def toStatement = Statement(s"$fullName in (${vals.map(_ => "?").mkString(",")})", vals.map(right => (Column.this, right)))
+  def ===(right: Column[T]): Where = new ColumnToColumn("=", right)
+
+  def in(vals: Seq[T]): Where = new Where {
+    private[db] override def toStatement = Statement(s"$fullName in (${vals.map(_ => "?").mkString(",")})", vals.map(right => (self, right)))
   }
 
   def asc: OrderBy = new OrderBy {
@@ -147,15 +185,22 @@ abstract class Column[T](implicit val table: Table) {
     override def toStatement = Statement(s"$fullName DESC")
   }
 
-  def get(rs: ResultSet, pos: Int): T
+  def max: Column[T] = new AggregateColumn[T](this) {
+    override def fullName = s"max(${super.fullName})"
+  }
 
-  def set(ps: PreparedStatement, pos: Int, value: Any): Unit
+  def sum: Column[T] = new AggregateColumn[T](this) {
+    override def fullName = s"sum(${super.fullName})"
+  }
 }
 
 trait OptionalColumn {
   self: Column[_] =>
   def isNotNull = new Where {
     private[db] override def toStatement = Statement(s"$fullName IS NOT NULL")
+  }
+  def isNull = new Where {
+    private[db] override def toStatement = Statement(s"$fullName IS NULL")
   }
 }
 
@@ -195,8 +240,8 @@ trait OrderBy {
   private[db] def toStatement: Statement
 }
 
-private case class Statement(sql: String, parameters: List[(Column[_], Any)] = Nil) {
-  def ~(right: Statement) = Statement(sql + right.sql, parameters ::: right.parameters)
+private case class Statement(sql: String, parameters: Seq[(Column[_], Any)] = Nil) {
+  def ~(right: Statement) = Statement(sql + right.sql, parameters ++ right.parameters)
 
   def insert(connection: Connection): Unit = timed {preparedStatement(connection).useAndClose {_.execute()}}
 
@@ -206,7 +251,7 @@ private case class Statement(sql: String, parameters: List[(Column[_], Any)] = N
       ps.getGeneratedKeys useAndClose { generatedKeys =>
         if (generatedKeys.next()) {
           val md = generatedKeys.getMetaData
-          val pos = (for( i <- 1 to md.getColumnCount if md.getColumnName(i) == column.name) yield i).headOption getOrElse 1
+          val pos = (for (i <- 1 to md.getColumnCount if md.getColumnName(i) == column.name) yield i).headOption getOrElse 1
           column.get(generatedKeys, pos)
         } else {
           throw new SQLException("No generated key returned")
@@ -252,13 +297,27 @@ trait Query[T <: Product] {
 
   def orderBy(orderBy: OrderBy): Query[T]
 
+  def orderBy(orderBys: List[OrderBy]) : Query[T]
+
+  def orderByName(orderBy: List[(String, SortOrder)]): Query[T]
+
+  def join(left: Column[_], right: Column[_]): Query[T]
+
+  def groupBy(column: Column[_]): Query[T]
+
+  def offset(offset: Long): Query[T]
+
+  def limit(limit: Long): Query[T]
+
+  def distinct: Query[T]
+
   def columns: List[Column[_]]
 
   def where: Where
 
   def orderBy: OrderBy
 
-  def select(implicit connection: Connection): TraversableOnce[T] with AutoCloseable
+  def select(implicit connection: Connection): Iterator[T] with AutoCloseable
 
   def firstOption(implicit connection: Connection): Option[T] = {
     val s = select(connection)
@@ -286,7 +345,7 @@ trait Query[T <: Product] {
 
   def isEmpty(implicit connection: Connection): Boolean = size(connection) == 0
 
-  private[db] def from(rs: ResultSet, autoCounter: AutoCounter): T
+  def convert[R <: Product](to: (T) => R,from: (R) => Option[T] = (x:R) => None): Query[R]
 }
 
 private[db] class AutoCounter {

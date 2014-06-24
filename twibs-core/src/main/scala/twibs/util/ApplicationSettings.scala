@@ -11,8 +11,8 @@ import java.net.{UnknownHostException, InetAddress}
 import org.apache.tika.Tika
 
 class SettingsFactory {
-  val defaultSystemSettings: SystemSettings = new SystemSettings with Loggable {
-    logger.info(s"Run mode is '${runMode.name}'")
+  val defaultSystemSettings: SystemSettings = new SystemSettings {
+    SystemSettings.logger.info(s"Run mode is '${runMode.name}'")
   }
 
   val defaultUserSettings: UserSettings = new UserSettings {
@@ -66,7 +66,7 @@ class SystemSettings {
 
   val locale = ULocale.getDefault
 
-  private def isCalledFromTestClass = new Exception().getStackTrace.exists(_.getClassName == "org.scalatest.tools.Runner")
+  private def isCalledFromTestClass = new Exception().getStackTrace.exists(_.getClassName.startsWith("org.scalatest"))
 
   object Twibs {
     val fullVersion: String = Option(getClass.getPackage.getSpecificationVersion) getOrElse "0.0"
@@ -78,7 +78,7 @@ class SystemSettings {
 
 }
 
-object SystemSettings {
+object SystemSettings extends Loggable {
   implicit def unwrap(companion: SystemSettings.type) = current
 
   def current = SettingsFactory.current.defaultSystemSettings
@@ -106,6 +106,18 @@ class RunMode(val name: String) {
   val isStaging = name == "staging"
 
   val isProduction = name == "production"
+}
+
+object OperatingSystem {
+  private val os = System.getProperty("os.name").toLowerCase
+
+  val isWindows = os.indexOf("win") >= 0
+
+  val isMac = os.indexOf("mac") >= 0
+
+  val isUnix = os.indexOf("nix") >= 0 || os.indexOf("nux") >= 0 || os.indexOf("aix") > 0
+
+  val isSolaris = os.indexOf("sunos") >= 0
 }
 
 trait UserSettings {

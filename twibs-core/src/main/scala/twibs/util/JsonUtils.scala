@@ -28,6 +28,7 @@ object JsonUtils {
     case nb: NodeBuffer => stringToJsonString(NodeSeq.seqToNodeSeq(nb).toString())
     case seq: NodeSeq => stringToJsonString(seq.toString())
     case seq: Seq[_] => seqToJsonString(seq)
+    case arr: Array[_] => seqToJsonString(arr.toSeq)
     case string: String => stringToJsonString(string)
     case other => stringToJsonString(other.toString)
   }

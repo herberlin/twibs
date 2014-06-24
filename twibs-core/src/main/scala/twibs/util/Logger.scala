@@ -10,6 +10,7 @@ import ch.qos.logback.core.joran.spi.JoranException
 import ch.qos.logback.core.util.StatusPrinter
 import org.slf4j.LoggerFactory
 import org.slf4j.bridge.SLF4JBridgeHandler
+import com.google.common.base.Stopwatch
 
 object Logger extends Loggable {
   private def removeDollarFromString(string: String) = string.replace("$", "")
@@ -91,10 +92,20 @@ trait Logger {
 
   def debugWithTiming[A](msg: => String)(alwaysExecuted: => A) = {
     if (isDebugEnabled) {
-      val now = System.nanoTime
+      debug(s"Start: $msg")
+      val sw = Stopwatch.createStarted()
       val result = alwaysExecuted
-      val micros = ((System.nanoTime - now) / 1e6).floor.toLong
-      debug(s"$msg (in $micros ms)")
+      debug(s"End: $msg (in $sw)")
+      result
+    } else alwaysExecuted
+  }
+
+  def infoWithTiming[A](msg: => String)(alwaysExecuted: => A) = {
+    if (isInfoEnabled) {
+      info(s"Start: $msg")
+      val sw = Stopwatch.createStarted()
+      val result = alwaysExecuted
+      info(s"End: $msg (in $sw)")
       result
     } else alwaysExecuted
   }

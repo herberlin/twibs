@@ -4,18 +4,22 @@
 
 package twibs.form.base
 
-import com.google.common.cache.{CacheBuilder, Cache}
-import com.ibm.icu.text.NumberFormat
 import java.text.ParseException
 import java.util.concurrent.TimeUnit
-import org.apache.commons.io.FilenameUtils
-import org.threeten.bp.format.{DateTimeParseException, DateTimeFormatter}
-import org.threeten.bp.{LocalDate, LocalDateTime}
+
 import twibs.util.XmlUtils._
 import twibs.util._
 import twibs.web.Upload
 
-trait Values extends TranslationSupport with Validatable {
+import com.google.common.cache.{Cache, CacheBuilder}
+import com.ibm.icu.text.NumberFormat
+import com.ibm.icu.util.ULocale
+import org.apache.commons.io.FilenameUtils
+import org.owasp.html.PolicyFactory
+import org.threeten.bp.format.{DateTimeFormatter, DateTimeParseException}
+import org.threeten.bp.{LocalDate, LocalDateTime}
+
+trait Values extends TranslationSupport {
   type ValueType
 
   sealed trait ValidationResult[I, O]
@@ -66,6 +70,7 @@ trait Values extends TranslationSupport with Validatable {
     bufferedStrings = Some(strings)
     bufferedValues = None
     cachedInputs.reset()
+    _modified = true
   }
 
   def strings = inputs.map(_.string)
@@ -74,6 +79,7 @@ trait Values extends TranslationSupport with Validatable {
     bufferedValues = Some(values)
     bufferedStrings = None
     cachedInputs.reset()
+    _modified = true
   }
 
   def resetInputs(): Unit = {
@@ -81,11 +87,14 @@ trait Values extends TranslationSupport with Validatable {
     bufferedValues = None
     cachedInputs.reset()
     _validated = false
+    _modified = false
   }
 
   private[base] var _validated = false
 
-  def values = inputs.collect {case ValidInput(_, _, Some(value)) => value}
+  private var _modified = false
+
+  def values = inputs.collect { case ValidInput(_, _, Some(value)) => value}
 
   def defaultValues: Seq[ValueType] = Nil
 
@@ -100,7 +109,7 @@ trait Values extends TranslationSupport with Validatable {
 
   private def format(i: Int) = Formatters.integerFormat.format(i)
 
-  def messageDisplayTypeOption = if (validated) inputsMessageOption.map(_.displayTypeString) orElse inputs.collectFirst({case x: InvalidInput => "warning"}) else None
+  def messageDisplayTypeOption = if (validated) inputsMessageOption.map(_.displayTypeString) orElse inputs.collectFirst({ case x: InvalidInput => "warning"}) else None
 
   def computeIsValid = areInputsValid && isNumberOfInputsValid
 
@@ -110,14 +119,14 @@ trait Values extends TranslationSupport with Validatable {
 
   def validated = _validated
 
-  override def isValid = !validated || computeIsValid
+  def isValid = !validated || computeIsValid
 
   def validate(): Boolean = {
     _validated = true
     computeIsValid
   }
 
-  def isModified = bufferedValues.isDefined || bufferedStrings.isDefined
+  def isModified = _modified
 
   def minimumNumberOfInputs = 1
 
@@ -160,7 +169,7 @@ trait Values extends TranslationSupport with Validatable {
 
   def stringToValueConverter: StringToValueConverter = (string) => stringToValueOption(string) match {
     case Some(value) => Success(value)
-    case None => Failure(string, t"format-message: Invalid string '$string'.")
+    case None => Failure(string, t"format-message: Invalid string ''$string''.")
   }
 
   def stringToValueOption: StringToValueOption
@@ -192,6 +201,35 @@ trait Values extends TranslationSupport with Validatable {
   def toInput(value: ValueType): Input = ValidInput(valueToString(value), titleForValue(value), Some(value))
 
   def toInput(value: ValueType, title: String): Input = ValidInput(valueToString(value), title, Some(value))
+
+  /* Convenience methods */
+  def input = inputs.head
+
+  def string = strings.head
+
+  def stringOrEmpty = strings.headOption getOrElse ""
+
+  def string_=(string: String) = strings = string :: Nil
+
+  def value = values.head
+
+  def value_=(value: ValueType) = values = value :: Nil
+
+  def valueOption = values.headOption
+
+  def valueOption_=(valueOption: Option[ValueType]) = valueOption.map(v => values = v :: Nil)
+
+  def withValue[R](valueArg: ValueType)(f: this.type => R): R = withValues(valueArg :: Nil)(f)
+
+  def withValues[R](valuesArg: Seq[ValueType])(f: this.type => R): R = {
+    val was = values
+    values = valuesArg
+    try {
+      f(this)
+    } finally {
+      values = was
+    }
+  }
 }
 
 trait StringValues extends Values {
@@ -220,6 +258,14 @@ trait WebAddressValues extends StringValues {
   override def valueProcessors = super.valueProcessors :+ webAddressProcessor
 
   abstract override def translator: Translator = super.translator.kind("WEB-ADDRESS")
+}
+
+trait HtmlValues extends StringValues {
+  def policyFactory: PolicyFactory
+
+  def cleanupProcessor: StringProcessor = (string: String) => Success(policyFactory.sanitize(string))
+
+  override def stringProcessors: List[StringProcessor] = cleanupProcessor :: super.stringProcessors
 }
 
 trait BooleanValues extends Values {
@@ -410,6 +456,18 @@ trait DateValues extends MinMaxValues {
   override def valueToString: ValueToString = value => editDateFormat.format(value)
 }
 
+trait LocaleValues extends Values {
+  type ValueType = ULocale
+
+  override def valueToString: ValueToString = locale => locale.toLanguageTag
+
+  override def stringToValueOption: StringToValueOption = (string) => Some(ULocale.forLanguageTag(string))
+
+  override def titleForValue(value: ValueType): String = value.getDisplayName(RequestSettings.locale)
+
+  abstract override def translator: Translator = super.translator.kind("LOCALE")
+}
+
 trait EnumerationValues[E <: Enumeration] extends Options {
   type ValueType = E#Value
 
@@ -432,10 +490,6 @@ trait Required extends Values {
 
 trait Untrimmed extends Values {
   override def trim = false
-}
-
-trait SubmitOnChange extends BaseField {
-  override def submitOnChange = true
 }
 
 object Uploads {
@@ -479,11 +533,11 @@ trait Options extends Values {
 
   def useEmptyOption(string: String) = !required || options.isEmpty || !optionStrings.contains(string)
 
-  override def stringToValueOption: StringToValueOption = string => options.collectFirst{ case o if o.string == string => o.value }
+  override def stringToValueOption: StringToValueOption = string => options.collectFirst { case o if o.string == string => o.value}
 }
 
 trait TranslatedOptions extends Options {
-  override def titleForOption(value: ValueType): String = translator.translate("option-title." + valueToString(value), titleForValue(value))
+  override def titleForOption(value: ValueType): String = translator.usage("option-title").translate(valueToString(value), titleForValue(value))
 }
 
 trait FileEntry {

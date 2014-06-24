@@ -14,7 +14,7 @@ import xml._
 
 trait ReadOnlyField extends Field {
   override def inputAsEnrichedHtml(input: Input, index: Int) =
-    HiddenInputRenderer(name, input.string) ++ <p class="form-control-static">{input.title}</p>
+    form.renderer.hiddenInput(name, input.string) ++ <p class="form-control-static">{input.title}</p>
 
   override def inputAsElem(input: Input) = <span></span>
 }
@@ -52,7 +52,7 @@ trait SingleLineField extends TextField {
   override def inputAsElem(input: Input) = <input type="text" placeholder={placeholder} value={input.string} />
 }
 
-trait AbstractDateTimeField extends SingleLineField with JavascriptItem {
+trait AbstractDateTimeField extends SingleLineField with JavascriptComponent {
   def datePickerOptions = Map("autoclose" -> autoClose, "pickerPosition" -> "bottom-left", "language" -> "de")
 
   def autoClose = true
@@ -64,7 +64,7 @@ trait AbstractDateTimeField extends SingleLineField with JavascriptItem {
 
   private def initDateTimeJs = jQuery(inputGroupId).call("datetimepicker", datePickerOptions)
 
-  private def inputGroupId = id + "_input_group"
+  private def inputGroupId = id ~ "input-group"
 
   override def suffixes: List[NodeSeq] =
     if (isEnabled) clearButton :: <span class="glyphicon glyphicon-calendar"></span> :: super.suffixes
@@ -214,6 +214,8 @@ trait CheckBoxField extends CheckOrRadioField {
   override def minimumNumberOfInputs = if (required) 1 else 0
 
   override def maximumNumberOfInputs = options.size
+
+  override def translator: Translator = super.translator.usage("CHECKBOX")
 }
 
 trait RadioField extends CheckOrRadioField {
@@ -237,12 +239,10 @@ trait BooleanCheckBoxField extends Field with BooleanValues with FloatingInfo {
 }
 
 trait FileEntryField extends Field with FileEntryValues with Result {
-  val deleteButton = new SpecialButton("delete")(parent) with BootstrapPopoverButton with DangerDisplayType with Executable with StringValues with ButtonValues {
-    override def execute(parameters: Seq[String]) = processDeleteParameters(parameters)
+  val deleteButton = new Button("delete")(parent) with ButtonWithPopover with DangerDisplayType with StringValues with Floating {
+    override def execute() = processDeleteParameters(values)
 
     override def popoverPlacement: String = "auto right"
-
-    override def popoverContainer: String = parent.form.contentId.toCssId
   }
 
   override def inputAsElem(input: Input): Elem = <span>{input.title}</span>
@@ -252,14 +252,14 @@ trait FileEntryField extends Field with FileEntryValues with Result {
       case ValidInput(_, _, Some(fileEntry)) => fileEntry.path
       case _ => "#"
     }
-    <p class="form-control-static clearfix"><div class="pull-right">{deleteButton.buttonAsHtmlWithValue(input.string)}</div><a href={link} target="_blank">{input.title}</a></p>
+    <p class="form-control-static clearfix"><div class="pull-right">{deleteButton.withValue(input.string)(_.buttonAsHtml)}</div><a href={link} target="_blank">{input.title}</a></p>
   }
 
   override def minimumNumberOfInputs: Int = 0
 
   override def maximumNumberOfInputs: Int = Int.MaxValue
 
-  override def itemIsVisible: Boolean = values.length > 0
+  override def selfIsVisible: Boolean = values.length > 0
 
   private def processDeleteParameters(parameters: Seq[String]): Unit = {
     def doit(output: ValueType) = {
@@ -280,7 +280,7 @@ trait FileEntryField extends Field with FileEntryValues with Result {
   def deleteFileEntry(fileEntry: FileEntry): Unit
 }
 
-trait UploadWithOverwrite extends BaseItemContainer {
+trait UploadWithOverwrite extends Container {
   def defaultFileEntries: Seq[FileEntry]
 
   def deleteFileEntry(fileEntry: FileEntry): Unit
@@ -305,12 +305,12 @@ trait UploadWithOverwrite extends BaseItemContainer {
 
     override def maximumNumberOfInputs: Int = 0
 
-    override def itemIsVisible: Boolean = values.length > 0
+    override def selfIsVisible: Boolean = values.length > 0
 
-    override def execute(parameters: Seq[String]): Unit = {
+    override def execute(): Unit = {
       val (ex, no) = values.partition(exists)
       values = ex
-      if (!no.isEmpty)
+      if (no.nonEmpty)
         result = AfterFormDisplay(no.map {
           upload =>
             registerUpload(upload)
@@ -320,30 +320,26 @@ trait UploadWithOverwrite extends BaseItemContainer {
     }
 
     override def inputAsEnrichedHtml(input: Input, index: Int): NodeSeq =
-      HiddenInputRenderer(name, input.string) ++ <p class="form-control-static clearfix">{actionButtonsHtml(input.string)}<a href="#">{input.title}</a></p>
+      form.renderer.hiddenInput(name, input.string) ++ <p class="form-control-static clearfix">{actionButtonsHtml(input.string)}<a href="#">{input.title}</a></p>
 
-    private val deleteButton = new SpecialButton("delete") with BootstrapPopoverButton with DangerDisplayType with Executable with StringValues with ButtonValues {
-      override def execute(parameters: Seq[String]) = processDeleteParameters(parameters)
+    private val deleteButton = new Button("delete") with ButtonWithPopover with DangerDisplayType with StringValues with Floating {
+      override def execute() = processDeleteParameters(values)
 
       override def popoverPlacement: String = "auto right"
-
-      override def popoverContainer: String = form.contentId.toCssId
     }
 
-    private val overwriteButton = new SpecialButton("overwrite") with BootstrapPopoverButton with InfoDisplayType with Executable with StringValues with ButtonValues {
-      override def execute(parameters: Seq[String]) = processOverwriteParameters(parameters)
+    private val overwriteButton = new Button("overwrite") with ButtonWithPopover with InfoDisplayType with StringValues with Floating {
+      override def execute() = processOverwriteParameters(values)
 
       override def popoverPlacement: String = "auto right"
-
-      override def popoverContainer: String = form.contentId.toCssId
     }
 
     private def actionButtonsHtml(string: String): NodeSeq = {
       if (isDisabled) NodeSeq.Empty
       else
         <div class="pull-right btn-group">
-          {deleteButton.buttonAsHtmlWithValue(string)}
-          {overwriteButton.buttonAsHtmlWithValue(string)}
+          {deleteButton.withValue(string)(_.buttonAsHtml)}
+          {overwriteButton.withValue(string)(_.buttonAsHtml)}
         </div>
     }
 

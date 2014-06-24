@@ -15,6 +15,8 @@ object EmailUtils {
 
   def isValidEmailAddress(emailAddress: String) = emailAddress != null && emailAddressRegexPattern.matcher(emailAddress).matches()
 
+  def cleanupEmailAddress(emailAddress: String) = emailAddress.trim().stripSuffix(".").replaceAll("[\\.\\s]+\\@", "\\@").toLowerCase
+
   //  def isEmailAddressWithName (emailAddress: String): Boolean = {
   //    if (emailAddress == null || StringUtils.isBlank (emailAddress) ) {
   //      return true

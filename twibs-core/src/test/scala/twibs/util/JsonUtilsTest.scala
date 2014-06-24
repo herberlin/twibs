@@ -25,11 +25,14 @@ class JsonUtilsTest extends TwibsTest {
   test("Sequence to json") {
     List("a", "b", "c", 1.001).toJsonString should equal( """["a","b","c",1.001]""")
   }
+  test("Array to json") {
+    Array("a", "b", "c", 1.001).toJsonString should equal( """["a","b","c",1.001]""")
+  }
   test("Complex to json") {
     List("a", Map("b" -> List("c"))).toJsonString should equal( """["a",{"b":["c"]}]""")
   }
   test("Complex to json with tuple list") {
-    List("a", null, List("b" -> List("c"))).toJsonString should equal( """["a",null,{"b":["c"]}]""")
+    List("a", null, List("b" -> Array("c"))).toJsonString should equal( """["a",null,{"b":["c"]}]""")
   }
   test("Html") {
       <i class="icon-trash icon-white"/><u>{ "\r\n\r \n" }u</u>.toJsonString should equal(

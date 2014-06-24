@@ -36,19 +36,31 @@ function twibsUpdateAfterDomChange() {
 
 function twibsClosePopoversByScript() {
     $('[data-toggle=popover],.popover-by-script').popover('hide');
+    $('.popover.in').detach();
 }
 
 $(function () {
-    $.fn.reloadForm = function (value) {
-        $(this).submitForm("default-change-action", value);
+    var cp = typeof contextPath !== 'undefined' ? contextPath : '';
+
+    $.fn.ckeditor = function (callback, config) {
+        $('<script src="' + cp + '/inc/ckeditor/ckeditor.js"></script><script src="' + cp + '/inc/ckeditor/adapters/jquery.js"></script>').appendTo('head');
+        $(this).ckeditor(callback, config);
     };
 
-    $.fn.submitForm = function (key, value) {
+    $.fn.reloadForm = function (value) {
+        $(this).submitForm("form-change", value, true);
+    };
+
+    $.fn.submitForm = function (key, value, enabledForm) {
         var data = {};
         data[key] = value;
+        var config = {data: data};
+        if (!enabledForm) {
+            config["beforeSubmit"] = disableForm;
+        }
         $(this).each(function () {
             var $form = $(this).closest('form');
-            $form.ajaxSubmit(ajaxSubmitConfig($form, {data: data, beforeSubmit: disableForm}));
+            $form.ajaxSubmit(ajaxSubmitConfig($form, config));
         });
         return this;
     };
@@ -61,7 +73,7 @@ $(function () {
                     $this.remove();
                     $('body').updateDynamics();
                 })
-                .on('shown.bs.modal',function () {
+                .on('shown.bs.modal', function () {
                     $this.find('input:visible,.btn:visible').first().focus();
                     twibsUpdateAfterDomChange();
                 }).modal();
@@ -70,7 +82,7 @@ $(function () {
 
     $.fn.updateDynamics = function () {
         return this.each(function () {
-            $(this).find(".twibs-form:visible").reloadForm("");
+            $(this).find(".twibs-form:visible").submitForm("form-reload", "")
             twibsClosePopoversByScript();
         })
     };
@@ -78,14 +90,20 @@ $(function () {
     var submitWhileTypingTimer;
 
     $(window)
-        .on('hashchange', hashchange);
+        .on('hashchange', hashchange)
+        .scroll(positionFixedContainers);
 
     $(document)
+        .on('click', 'button[type="submit"]', function (e) {
+            var $this = $(this);
+            $this.closest('form').submitForm($this.attr('name'), $this.val(), $this.hasClass("enabled-form"));
+            e.preventDefault();
+        })
         .on('click', '.submit', function (e) {
             var $this = $(e.target);
             if (!$this.closest(".ignore-submit,.submit").hasClass("ignore-submit")) {
                 var $button = $this.closest(".submit");
-                $button.submitForm($button.attr('name'), $button.attr('value'));
+                $button.submitForm($button.attr('name'), $button.attr('value'), $this.hasClass("enabled-form"));
                 e.stopPropagation();
                 e.preventDefault();
             }
@@ -103,16 +121,7 @@ $(function () {
             var val = $this.val();
             if (was != val) {
                 $this.data("previous", val);
-                var data = {};
-                data[$this.attr('name') + "-submit-while-typing"] = val;
-                $this.closest('form').each(function () {
-                    $(this).ajaxSubmit({
-                        dataType: 'script',
-                        data: data,
-                        success: twibsUpdateAfterDomChange,
-                        error: ajaxFormError
-                    });
-                });
+                $this.closest('form').submitForm($this.attr('name') + "-submit-while-typing", val, true);
             }
         })
         .on('click', '.input-clear', function (e) {
@@ -143,7 +152,7 @@ $(function () {
             }
         })
         .on("twibs-update-dom", function () {
-            $('.twibs-form select.chosen').chosen({disable_search_threshold: 6});
+            $('.twibs-form select.chosen').chosen({disable_search_threshold: 6, width: '100%'});
 
             // 'chosen' does not preserve the focus, 'twibs' does.
             $('.twibs-form select.chosen:focus').each(function () {
@@ -152,19 +161,17 @@ $(function () {
 
             $('[data-toggle="popover"]').popover();
 
-            $('.twibs-form').each(function () {
-                var $form = $(this);
-                $form.ajaxForm(ajaxSubmitConfig($form, {beforeSubmit: disableForm}));
-            });
-
             $('textarea.hidden-print').each(function () {
                 var $this = $(this);
                 var $next = $this.next("div.textarea-print");
-                if( $next.length === 0 ) {
+                if ($next.length === 0) {
                     $next = $('<div class="textarea-print form-control visible-print"></div>').insertBefore($this);
                 }
                 $next.html($this.val());
             });
+
+            initFixedContainers();
+            positionFixedContainers();
         });
 
     $('body')
@@ -264,6 +271,42 @@ $(function () {
         $form.find('.can-be-disabled').attr('disabled', 'disabled');
         $form.find('.can-be-disabled-by-class').addClass('disabled');
         $form.find('select.form-control').trigger("chosen:updated");
+    }
+
+    function initFixedContainers() {
+        $(".fixed-container").not(".fixed-managed").each(function () {
+            var container = $(this);
+            container.addClass("fixed-managed");
+            var item = $(this).find(".fixed-content");
+            var width = item.width();
+            var height = item.height();
+
+            container.css("width", width);
+            container.css("height", height);
+            item.css("position", "absolute").css("left", "auto").css("top", "auto").css("width", width).css("height", height);
+        });
+    }
+
+    function positionFixedContainers() {
+        var scrollTop = $(document).scrollTop();
+
+        $(".fixed-container").each(function () {
+            var container = $(this);
+            var item = $(this).find(".fixed-content");
+            var width = container.css("width");
+            var height = container.css("height");
+            var offset = container.offset();
+            var fixed = item.hasClass("fixed");
+            if (offset.top < scrollTop) {
+                if (!fixed) {
+                    item.css({position: "fixed", left: offset.left, top: 0});
+                    item.addClass("fixed");
+                }
+            } else if (fixed) {
+                item.css({position: "absolute", left: "auto", top: "auto"});
+                item.removeClass("fixed");
+            }
+        });
     }
 
     // Fix autofill in firefox: Reset disabled state after load

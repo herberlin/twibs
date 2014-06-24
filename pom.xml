@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>net.twibs</groupId>
     <artifactId>twibs-parent</artifactId>
-    <version>0.8</version>
+    <version>0.10-SNAPSHOT</version>
     <inceptionYear>2013</inceptionYear>
     <packaging>pom</packaging>
     <name>Twibs: Maven Parent</name>
@@ -25,7 +25,7 @@
     </developers>
     <properties>
         <scala.main.version>2.11</scala.main.version>
-        <scala.version>${scala.main.version}.0</scala.version>
+        <scala.version>${scala.main.version}.1</scala.version>
         <jetty.version>9.0.7.v20131107</jetty.version>
         <maven.test.skip>false</maven.test.skip>
     </properties>
@@ -46,7 +46,7 @@
         <url>https://github.com/hombre/twibs.git</url>
         <connection>scm:git:https://github.com/hombre/twibs.git</connection>
         <developerConnection>scm:git:https://github.com/hombre/twibs.git</developerConnection>
-        <tag>v0.8</tag>
+        <tag>HEAD</tag>
     </scm>
     <build>
         <defaultGoal>package</defaultGoal>
@@ -66,20 +66,13 @@
                 </plugin>
                 <plugin>
                     <artifactId>maven-release-plugin</artifactId>
-                    <version>2.4.2</version>
+                    <version>2.5</version>
                     <configuration>
                         <tagNameFormat>v@{project.version}</tagNameFormat>
                         <pushChanges>false</pushChanges>
                         <localCheckout>true</localCheckout>
                         <goals>deploy</goals>
                     </configuration>
-                    <dependencies>
-                        <dependency>
-                            <groupId>org.apache.maven.scm</groupId>
-                            <artifactId>maven-scm-provider-gitexe</artifactId>
-                            <version>1.9</version>
-                        </dependency>
-                    </dependencies>
                 </plugin>
                 <plugin>
                     <groupId>net.alchim31.maven</groupId>
@@ -269,7 +262,7 @@
             <dependency>
                 <groupId>org.scalatest</groupId>
                 <artifactId>scalatest_${scala.main.version}</artifactId>
-                <version>2.1.4</version>
+                <version>2.2.0</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
@@ -287,7 +280,7 @@
             <dependency>
                 <groupId>org.seleniumhq.selenium</groupId>
                 <artifactId>selenium-java</artifactId>
-                <version>2.41.0</version>
+                <version>2.42.2</version>
                 <scope>test</scope>
             </dependency>
 

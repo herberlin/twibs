@@ -39,7 +39,7 @@ case class GermanIban(str: String) {
 }
 
 object GermanIban {
-  private def inUrl = new URL("http://www.bundesbank.de/Redaktion/DE/Downloads/Kerngeschaeftsfelder/Unbarer_Zahlungsverkehr/Bankleitzahlen/2013_09_08/blz_2013_06_03_txt_zip.zip?__blob=publicationFile")
+  private def inUrl = new URL("http://www.bundesbank.de/Redaktion/DE/Downloads/Aufgaben/Unbarer_Zahlungsverkehr/Bankleitzahlen/2014_09_07/blz_2014_06_09_txt_zip.zip?__blob=publicationFile")
 
   private def outfile = new File("src/main/resources/twibs/util/de_blz.ser")
 

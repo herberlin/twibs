@@ -3,10 +3,10 @@
     <parent>
         <groupId>net.twibs</groupId>
         <artifactId>twibs-parent</artifactId>
-        <version>0.8</version>
+        <version>0.10-SNAPSHOT</version>
     </parent>
     <artifactId>twibs-core</artifactId>
-    <version>0.8</version>
+    <version>0.10-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>Twibs: Core Libraries</name>
     <url>https://github.com/hombre/twibs</url>
@@ -33,7 +33,7 @@
         <url>https://github.com/hombre/twibs.git</url>
         <connection>scm:git:https://github.com/hombre/twibs.git</connection>
         <developerConnection>scm:git:https://github.com/hombre/twibs.git</developerConnection>
-        <tag>v0.8</tag>
+        <tag>HEAD</tag>
     </scm>
     <build>
         <defaultGoal>install</defaultGoal>
@@ -110,7 +110,7 @@
         <dependency>
             <groupId>com.typesafe</groupId>
             <artifactId>config</artifactId>
-            <version>1.2.0</version>
+            <version>1.2.1</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -160,7 +160,7 @@
         <dependency>
             <groupId>org.threeten</groupId>
             <artifactId>threetenbp</artifactId>
-            <version>0.8.1</version>
+            <version>0.9</version>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
@@ -170,7 +170,7 @@
         <dependency>
             <groupId>com.google.javascript</groupId>
             <artifactId>closure-compiler</artifactId>
-            <version>v20140407</version>
+            <version>v20140508</version>
         </dependency>
         <dependency>
             <groupId>com.googlecode.htmlcompressor</groupId>
@@ -180,12 +180,12 @@
         <dependency>
             <groupId>org.apache.tomcat</groupId>
             <artifactId>tomcat-jdbc</artifactId>
-            <version>8.0.5</version>
+            <version>8.0.8</version>
         </dependency>
         <dependency>
             <groupId>com.typesafe.slick</groupId>
-            <artifactId>slick_2.11.0-RC4</artifactId>
-            <version>2.1.0-M1</version>
+            <artifactId>slick_2.11</artifactId>
+            <version>2.1.0-M2</version>
         </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
@@ -200,7 +200,7 @@
         <dependency>
             <groupId>com.googlecode.owasp-java-html-sanitizer</groupId>
             <artifactId>owasp-java-html-sanitizer</artifactId>
-            <version>r223</version>
+            <version>r239</version>
         </dependency>
         <dependency>
             <groupId>com.ibm.icu</groupId>
@@ -240,7 +240,7 @@
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <version>1.4.177</version>
+            <version>1.4.178</version>
             <scope>test</scope>
         </dependency>
         <dependency>

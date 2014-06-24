@@ -4,45 +4,48 @@
 
 package twibs.form.base
 
+import com.google.common.cache.{Cache, CacheBuilder}
+import java.io.IOException
+import java.util.concurrent.TimeUnit
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
-import scala.util.DynamicVariable
-import scala.xml.NodeSeq
+import scala.xml.{Elem, NodeSeq}
+import twibs.form.base.Result.AfterFormDisplay
 import twibs.util.JavaScript._
 import twibs.util.XmlUtils._
 import twibs.util._
-import twibs.web.Request
+import twibs.web._
 
-trait BaseItem extends TranslationSupport {
-  def itemIsVisible: Boolean = true
+trait Component extends TranslationSupport {
+  def selfIsVisible: Boolean = true
 
-  def itemIsRevealed: Boolean = true
+  def selfIsRevealed: Boolean = true
 
-  def itemIsEnabled: Boolean = true
+  def selfIsEnabled: Boolean = true
 
-  final def itemIsDisabled: Boolean = !itemIsEnabled
+  def anchestorIsVisible: Boolean = parent.selfIsVisible && parent.anchestorIsVisible
 
-  final def itemIsConcealed: Boolean = !itemIsRevealed
+  def anchestorIsRevealed: Boolean = parent.selfIsRevealed && parent.anchestorIsRevealed
 
-  final def itemIsHidden: Boolean = !itemIsVisible
+  def anchestorIsEnabled: Boolean = parent.selfIsEnabled && parent.anchestorIsEnabled
 
-  def anchestorIsVisible: Boolean
+  def isVisible: Boolean = selfIsVisible && anchestorIsVisible
 
-  def anchestorIsRevealed: Boolean
+  def isRevealed: Boolean = selfIsRevealed && anchestorIsRevealed
 
-  def anchestorIsEnabled: Boolean
+  def isEnabled: Boolean = selfIsEnabled && anchestorIsEnabled
+
+  final def selfIsDisabled: Boolean = !selfIsEnabled
+
+  final def selfIsConcealed: Boolean = !selfIsRevealed
+
+  final def selfIsHidden: Boolean = !selfIsVisible
 
   final def anchestorIsDisabled: Boolean = !anchestorIsEnabled
 
   final def anchestorIsConcealed: Boolean = !anchestorIsRevealed
 
   final def anchestorIsHidden: Boolean = !anchestorIsVisible
-
-  def isVisible: Boolean = itemIsVisible && anchestorIsVisible
-
-  def isRevealed: Boolean = itemIsRevealed && anchestorIsRevealed
-
-  def isEnabled: Boolean = itemIsEnabled && anchestorIsEnabled
 
   final def isDisabled: Boolean = !isEnabled
 
@@ -57,35 +60,21 @@ trait BaseItem extends TranslationSupport {
   def parse(request: Request): Unit = Unit
 
   def execute(request: Request): Unit = Unit
-}
 
-trait BaseChildItem extends BaseItem {
-  def parent: BaseParentItem
+  def parent: Container
 
-  def anchestorIsVisible: Boolean = parent.itemIsVisible && parent.anchestorIsVisible
+  def form: BaseForm = parent.form
 
-  def anchestorIsRevealed: Boolean = parent.itemIsRevealed && parent.anchestorIsRevealed
+  override def translator: Translator = parent.translator.usage(ilk)
 
-  def anchestorIsEnabled: Boolean = parent.itemIsEnabled && parent.anchestorIsEnabled
+  def ilk: String = "unknown"
 
-  override def translator: Translator = parent.translator
+  def id: IdString = parent.id ~ name
 
-  parent.registerChild(this)
-}
+  final val name: String = computeName
 
-trait ParseOnPrepare extends BaseItem {
-  override def prepare(request: Request): Unit = super.parse(request)
-
-  override def parse(request: Request): Unit = Unit
-}
-
-trait BaseChildItemWithName extends BaseChildItem {
-  def ilk: String
-
-  def id: IdString = parent.id + "_" + name
-
-  final val name: String = {
-    val names = parent.form.items.collect({case e: BaseChildItemWithName if e != this => e.name}).toList
+  protected def computeName: String = {
+    val names = form.components.map(_.name).toList
     def recursive(n: String, i: Int): String = {
       val ret = n + (if (i == 0) "" else i)
       if (!names.contains(ret)) ret
@@ -94,27 +83,50 @@ trait BaseChildItemWithName extends BaseChildItem {
     recursive(parent.prefixForChildNames + ilk, 0)
   }
 
-  override def translator: Translator = super.translator.usage(ilk)
+  def html: NodeSeq
+
+  final def enrichedHtml: NodeSeq = selfIsVisible match {
+    case false => NodeSeq.Empty
+    case true => isRevealed match {
+      case true => html
+      case false =>
+        html match {
+          case s@NodeSeq.Empty => s
+          case n: Elem => n.addClass(selfIsConcealed, "concealed")
+          case n: NodeSeq => <div>{n}</div>.addClass(selfIsConcealed, "concealed")
+        }
+    }
+  }
+
+  parent.registerChild(this)
 
   require(!ilk.isEmpty, "Empty ilk is not allowed")
   require(ilk matches "\\w+[\\w0-9-]*", "Ilk must start with character and contain only characters, numbers and -")
-  require(name != BaseForm.PN_ID, s"'${BaseForm.PN_ID}' is reserved")
-  require(name != BaseForm.PN_MODAL, s"'${BaseForm.PN_MODAL}' is reserved")
+  require(!name.endsWith(BaseForm.PN_ID_SUFFIX), s"Suffix '${BaseForm.PN_ID_SUFFIX}' is reserved")
+  require(!name.endsWith(BaseForm.PN_MODAL_SUFFIX), s"Suffix '${BaseForm.PN_MODAL_SUFFIX}' is reserved")
   require(name != ApplicationSettings.PN_NAME, s"'${ApplicationSettings.PN_NAME}' is reserved")
 }
 
-trait BaseParentItem extends BaseItem with Validatable with RenderedItem {
-  implicit def thisAsParent: BaseParentItem = this
+trait JavascriptComponent extends Component {
+  def javascript: JsCmd
+}
 
-  protected val _children = ListBuffer[BaseItem]()
+trait ParseOnPrepare extends InteractiveComponent {
+  override def prepare(request: Request): Unit = super.parse(request)
+
+  override def parse(request: Request): Unit = Unit
+}
+
+trait Container extends Component with Validatable {
+  implicit def thisAsParent: Container = this
+
+  protected val _children = ListBuffer[Component]()
 
   def children = _children.toList
 
-  private[base] def registerChild(child: BaseChildItem): Unit = _children += child
+  private[base] def registerChild(child: Component): Unit = if (child != this) _children += child
 
-  def id: IdString
-
-  def prefixForChildNames: String
+  def prefixForChildNames: String = parent.prefixForChildNames
 
   override def reset(): Unit = children.foreach(_.reset())
 
@@ -124,17 +136,17 @@ trait BaseParentItem extends BaseItem with Validatable with RenderedItem {
 
   override def execute(request: Request): Unit = children.foreach(_.execute(request))
 
-  override def html: NodeSeq = children collect {case child: Rendered => child.enrichedHtml} flatten
+  override def html: NodeSeq = children collect { case child: Floating => NodeSeq.Empty case child => child.enrichedHtml} flatten
 
-  def items: Iterator[BaseItem] = (children map {
-    case withItems: BaseParentItem => withItems.items
-    case item => Iterator.single(item)
-  }).foldLeft(Iterator.single(this.asInstanceOf[BaseItem]))(_ ++ _)
+  def components: Iterator[Component] = (children map {
+    case container: Container => container.components
+    case component => Iterator.single(component)
+  }).foldLeft(Iterator.single(this.asInstanceOf[Component]))(_ ++ _)
 
   def validate(): Boolean = {
-    items.foreach {
+    components.foreach {
       case i: Values => i._validated = true
-      case i: MinMaxChildren => i._validated = true
+      case i: MinMaxContainer => i._validated = true
       case _ =>
     }
     isValid
@@ -144,38 +156,16 @@ trait BaseParentItem extends BaseItem with Validatable with RenderedItem {
     case i: Validatable => i.isValid
     case _ => true
   }
-
-  def form: BaseForm
 }
 
-trait BaseItemContainer extends BaseParentItem with BaseChildItemWithName {
-  implicit override def thisAsParent: BaseItemContainer = this
-
-  override def prefixForChildNames: String = parent.prefixForChildNames
-
-  def form = parent.form
-}
-
-class ItemContainer private(val ilk: String, val parent: BaseParentItem, unit: Unit = Unit) extends BaseItemContainer {
-  def this(ilk: String)(implicit parent: BaseParentItem) = this(ilk, parent)
-}
-
-class Dynamic protected(val ilk: String, val dynamicId: String, val parent: BaseItemContainer, unit: Unit = Unit) extends BaseItemContainer {
-  def this(ilk: String, dynamicId: String)(implicit parent: BaseItemContainer) = this(ilk, dynamicId, parent)
-
-  override def prefixForChildNames: String = dynamicId
-
-  override def html: NodeSeq = super.html ++ HiddenInputRenderer(parent.name, dynamicId)
-}
-
-trait MinMaxChildren extends BaseParentItem {
+trait MinMaxContainer extends Container {
   def minimumNumberOfDynamics = 0
 
   def maximumNumberOfDynamics = Int.MaxValue
 
   override def html = messageHtml ++ super.html
 
-  override def isValid: Boolean = super.isValid && (!validated || Range(minimumNumberOfDynamics, maximumNumberOfDynamics).contains(children.size))
+  override def isValid = super.isValid && (!validated || Range(minimumNumberOfDynamics, maximumNumberOfDynamics).contains(children.size))
 
   def messageOption: Option[Message] =
     if (validated && children.size < minimumNumberOfDynamics) Some(Message.warning(t"minimum-number-of-children-message: Please provide at least ${format(minimumNumberOfDynamics)} children"))
@@ -204,8 +194,12 @@ trait MinMaxChildren extends BaseParentItem {
   }
 }
 
-abstract class DynamicContainer[T <: Dynamic] private(val ilk: String, val parent: BaseParentItem, tag: ClassTag[T], unit: Unit = Unit) extends BaseItemContainer with MinMaxChildren {
-  def this(ilk: String)(implicit parent: BaseParentItem, tag: ClassTag[T]) = this(ilk, parent, tag)
+class StaticContainer private(override val ilk: String, val parent: Container, unit: Unit = Unit) extends Container {
+  def this(ilk: String)(implicit parent: Container) = this(ilk, parent)
+}
+
+abstract class DynamicContainer[T <: Dynamic] private(override val ilk: String, val parent: Container, tag: ClassTag[T], unit: Unit = Unit) extends MinMaxContainer {
+  def this(ilk: String)(implicit parent: Container, tag: ClassTag[T]) = this(ilk, parent, tag)
 
   override def reset(): Unit = {
     super.reset()
@@ -217,31 +211,49 @@ abstract class DynamicContainer[T <: Dynamic] private(val ilk: String, val paren
     super.parse(request)
   }
 
-  def dynamics: List[T] = children collect {case child if tag.runtimeClass.isInstance(child) => child.asInstanceOf[T]}
+  def dynamics: List[T] = children collect { case child if tag.runtimeClass.isInstance(child) => child.asInstanceOf[T]}
 
-  def recreate(dynamicId: String): T = dynamics.collectFirst {case child if child.dynamicId == dynamicId => child} getOrElse create(dynamicId)
+  def recreate(dynamicId: String): T = dynamics.collectFirst { case child if child.dynamicId == dynamicId => child} getOrElse create(dynamicId)
 
   def create(dynamicId: String = IdGenerator.next()): T
 }
 
-object BaseForm {
-  val PN_ID = "form-id"
+class Dynamic protected(override val ilk: String, val dynamicId: String, val parent: Container, unit: Unit = Unit) extends Container {
+  def this(ilk: String, dynamicId: String)(implicit parent: Container) = this(ilk, dynamicId, parent)
 
-  val PN_MODAL = "form-modal"
+  override def prefixForChildNames: String = dynamicId
 
-  private val dynamicVar = new DynamicVariable[Option[(IdString, Boolean)]](None)
-
-  def use[R](id: IdString, modal: Boolean)(f: => R): R = dynamicVar.withValue(Some((id, modal)))(f)
+  override def html: NodeSeq = super.html ++ form.renderer.hiddenInput(parent.name, dynamicId)
 }
 
-trait BaseForm extends BaseParentItem with CurrentRequestSettings {
-  def name: String
+object BaseForm {
+  val PN_ID_SUFFIX = "-form-id"
 
-  val (id: IdString, modal: Boolean) = BaseForm.dynamicVar.value getOrElse ((IdString(IdGenerator.next()), false))
+  val PN_MODAL_SUFFIX = "-form-modal"
 
-  def modalId = id + "_modal"
+  val deferredResponses: Cache[String, Response] = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).build()
+}
 
-  def contentId: IdString = id + "_content"
+trait BaseForm extends Container with CurrentRequestSettings {
+  def pnId = ilk + BaseForm.PN_ID_SUFFIX
+
+  def pnModal = ilk + BaseForm.PN_MODAL_SUFFIX
+
+  override val id: IdString = Request.parameters.getString(pnId, IdGenerator.next())
+
+  val modal = Request.parameters.getBoolean(pnModal, default = false)
+
+  val formReload = new Executor("form-reload") with StringValues {
+    override def execute(): Unit = result = InsteadOfFormDisplay(reloadFormJs)
+  }
+
+  override def html: NodeSeq = defaultButtonHtml ++ super.html
+
+  private def defaultButtonHtml = components.collectFirst({ case e: DefaultExecutable => e.renderAsDefault}) getOrElse NodeSeq.Empty
+
+  def modalId = id ~ "modal"
+
+  def contentId: IdString = id ~ "content"
 
   override def translator: Translator = super.translator.usage("FORM").usage(name)
 
@@ -255,21 +267,83 @@ trait BaseForm extends BaseParentItem with CurrentRequestSettings {
   def actionLinkWithContextPath: String = WebContext.path + actionLink
 
   private def queryString = {
-    val keyValues = items.collect({case item: BaseField if item.isModified => item.strings.map(string => item.name -> string)}).flatten.toList
+    val keyValues = components.collect({ case component: BaseField if component.isModified => component.strings.map(string => component.name -> string)}).flatten.toList
     val all = if (ApplicationSettings.name != ApplicationSettings.DEFAULT_NAME) (ApplicationSettings.PN_NAME -> ApplicationSettings.name) :: keyValues else keyValues
     if (all.isEmpty) "" else "?" + all.map(e => e._1 + "=" + e._2).mkString("&")
   }
 
   def accessAllowed: Boolean
 
-  def displayJs: JsCmd
+  override def selfIsEnabled = accessAllowed
 
-  val renderer: Renderer = new Renderer {
-    override def renderMessage(message: Message): NodeSeq = message.text
+  def reloadFormJs = displayJs
+
+  def displayJs = Request.method match {
+    case GetMethod => openModalJs
+    case PostMethod => refreshJs
+    case _ => JsEmpty
   }
 
-  // Form is the root item
+  def openModalJs = jQuery("body").call("append", modalHtml) ~ jQuery(modalId).call("twibsModal") ~ javascript
+
+  def modalHtml: NodeSeq
+
+  def refreshJs = replaceContentJs ~ javascript ~ focusJs
+
+  def javascript: JsCmd = if (isVisible) components.collect({ case component: JavascriptComponent => component.javascript}) else JsEmpty
+
+  def focusJs = components.collectFirst({ case field: BaseField if field.needsFocus => field.focusJs}) getOrElse JsEmpty
+
+  def replaceContentJs = jQuery(contentId).call("html", enrichedHtml)
+
+  def hideModalJs = jQuery(modalId).call("modal", "hide")
+
+  def renderer: Renderer
+
+  def deferred(response: Response): Result.Value = {
+    val id = IdGenerator.next()
+    BaseForm.deferredResponses.put(id, response)
+    AfterFormDisplay(JsCmd(s"location.href = '${deferredAction.executionLink(id)}'"))
+  }
+
+  private val deferredAction = new Executor("deferred-download") with StringValues {
+    override def execute(): Unit =
+      result = values.headOption.flatMap(id => Option(BaseForm.deferredResponses.getIfPresent(id)).map(response => UseResponse(response))) getOrElse (throw new IOException("File does not exists"))
+  }
+
+  def respond(request: Request): Response = {
+    val result: List[Result.Value] = {
+      prepare(request)
+      parse(request)
+      execute(request)
+      components.collect { case r: Result if r.result != Result.Ignored => r.result}.toList
+    }
+
+    result.collectFirst { case Result.UseResponse(response) => response} match {
+      case Some(response) => response
+      case None =>
+
+        val beforeDisplayJs = result.collect { case Result.BeforeFormDisplay(js) => js}
+
+        val insteadOfFormDisplayJs = result.collect { case Result.InsteadOfFormDisplay(js) => js} match {
+          case Nil => displayJs :: Nil
+          case l => l
+        }
+
+        val afterDisplayJs = result.collect { case Result.AfterFormDisplay(js) => js}
+
+        val javascript: JsCmd = beforeDisplayJs ::: insteadOfFormDisplayJs ::: afterDisplayJs
+
+        new StringResponse with VolatileResponse with TextMimeType {
+          val asString = javascript.toString
+        }
+    }
+  }
+
+  // Form is the root component
   override def form = this
+
+  override def parent = this
 
   override def prefixForChildNames: String = ""
 
@@ -280,52 +354,53 @@ trait BaseForm extends BaseParentItem with CurrentRequestSettings {
   override def anchestorIsVisible: Boolean = true
 }
 
-trait Executable extends BaseChildItemWithName {
-  override def execute(request: Request): Unit = request.parameters.getStringsOption(name).foreach(execute)
+trait Executable extends InteractiveComponent {
+  override def execute(request: Request): Unit = request.parameters.getStringsOption(name).foreach(parameters => if (isEnabled) execute())
 
-  def execute(strings: Seq[String]): Unit
+  def execute(): Unit = if (callValidation()) executeValidated()
 
-  def executionLink(string: String) = parent.form.actionLinkWithContextPath + "?" + name + "=" + string
+  def callValidation() = form.validate()
+
+  def executeValidated(): Unit = Unit
+
+  def executionLink(value: ValueType) = form.actionLinkWithContextPath + "?" + name + "=" + valueToString(value)
 }
 
-trait ExecuteValidated extends Executable {
-  def execute(parameters: Seq[String]): Unit = if (callValidation()) executeValidated()
-
-  def callValidation() = parent.form.validate()
-
-  def executeValidated(): Unit
+abstract class Executor(override val ilk: String)(implicit val parent: Container) extends Executable with Result with Floating {
+  override def html: NodeSeq = NodeSeq.Empty
 }
 
-abstract class Executor(val ilk: String)(implicit val parent: BaseParentItem) extends Executable {
-
+trait DefaultExecutable extends Executable {
+  def renderAsDefault = <input type="submit" class="concealed" tabindex="-1" name={name} value="" />
 }
 
-trait BaseField extends BaseChildItemWithName with Values {
-  def submitOnChange = false
-
+trait InteractiveComponent extends Component with Values {
   override def parse(request: Request): Unit = request.parameters.getStringsOption(name).foreach(parse)
 
   def parse(parameters: Seq[String]): Unit = strings = parameters
 
-  /* Convenience methods */
-  def input = inputs.head
-
-  def string = strings.head
-
-  def string_=(string: String) = strings = string :: Nil
-
-  def value = values.head
-
-  def value_=(value: ValueType) = values = value :: Nil
-
-  def valueOption = values.headOption
-
-  def valueOption_=(valueOption: Option[ValueType]) = valueOption.map(v => values = v :: Nil)
-
   override def reset(): Unit = resetInputs()
+
+  def link(value: ValueType) = form.actionLinkWithContextPath + "?" + name + "=" + valueToString(value)
 }
 
-class LazyCacheItem[T](calculate: => T)(implicit val parent: BaseParentItem) extends LazyCache[T] with BaseChildItem {
+trait BaseField extends InteractiveComponent with Validatable {
+  def submitOnChange = false
+
+  def needsFocus = !isDisabled && !isValid
+
+  def focusJs = jQuery(id).call("focus")
+}
+
+trait SubmitOnChange extends BaseField {
+  override def submitOnChange = true
+}
+
+trait UseLastParameterOnly extends BaseField {
+  override def parse(parameters: Seq[String]): Unit = super.parse(parameters.lastOption.map(_ :: Nil) getOrElse Nil)
+}
+
+class LazyCacheComponent[T](calculate: => T)(implicit val parent: Container) extends LazyCache[T] with Component with Floating {
   private val lazyCache = LazyCache(calculate)
 
   def valueOption: Option[T] = lazyCache.valueOption
@@ -336,4 +411,6 @@ class LazyCacheItem[T](calculate: => T)(implicit val parent: BaseParentItem) ext
     super.reset()
     lazyCache.reset()
   }
+
+  override def html: NodeSeq = NodeSeq.Empty
 }

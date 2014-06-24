@@ -4,7 +4,7 @@
 
 package twibs.util
 
-import EmailUtils.isValidEmailAddress
+import EmailUtils._
 import twibs.TwibsTest
 
 class EmailUtilsTest extends TwibsTest {
@@ -46,5 +46,9 @@ class EmailUtilsTest extends TwibsTest {
     isValidEmailAddress("me@") should beFalse
     isValidEmailAddress("@example.com") should beFalse
     isValidEmailAddress("me(at)example.com") should beFalse
+  }
+
+  test("Email clean up") {
+    cleanupEmailAddress(" mE. @example.com.") should be("me@example.com")
   }
 }

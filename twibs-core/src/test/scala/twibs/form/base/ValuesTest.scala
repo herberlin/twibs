@@ -148,7 +148,17 @@ class ValuesTest extends TwibsTest {
     field.values.size should be(0)
   }
 
-  test("Check enumeration values") {
+  test("Double value format") {
+    val field = new TestField with DoubleValues
+
+    field.string = "3,0"
+    field.string should be("3,00")
+
+    field.strings = "3,0" :: "4,0" :: Nil
+    field.string should be("3,00")
+  }
+
+    test("Check enumeration values") {
     object X extends Enumeration {
       val A, B = Value
     }
@@ -179,5 +189,21 @@ class ValuesTest extends TwibsTest {
     input.strings = "x" :: Nil
     input.computeIsValid should beFalse
     input.values should be('empty)
+  }
+
+  test("Modified input") {
+    val input = new TestField with LongValues
+    input.isModified should beFalse
+    input.values should be ('empty)
+    input.isModified should beFalse
+
+    input.strings = "" :: Nil
+    input.isModified should beTrue
+
+    input.values should be ('empty)
+    input.isModified should beTrue
+    input.resetInputs()
+    input.values should be ('empty)
+    input.isModified should beFalse
   }
 }

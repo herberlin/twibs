@@ -4,27 +4,25 @@
 
 package twibs.form.bootstrap3
 
-import scala.xml.{Elem, Unparsed, NodeSeq}
+import scala.xml.{Elem, NodeSeq, Unparsed}
+
 import twibs.form.base._
-import twibs.util.JavaScript._
-import twibs.util._
-import twibs.web.{PostMethod, GetMethod, Request}
+import twibs.util.{ApplicationSettings, IdString, Message, Translator}
 
-abstract class Form(val name: String) extends BaseForm {
+abstract class Form(override val ilk: String) extends BaseForm {
+  self =>
 
-  abstract class OpenModalLink(implicit val parent: BaseParentItem) extends BaseChildItemWithName with BaseButton {
-    def ilk = "open-modal-link"
+  override protected def computeName: String = ilk
 
-    def html = buttonAsHtml
+  abstract class OpenModalLink extends BootstrapButton with StringValues with Floating with LinkButton {
+    override def parent: Container = self
 
-    override def buttonAsElem: Elem = <a href="#" data-call={actionLinkWithContextPathAndParameters}>{buttonTitleWithIconHtml}</a>
+    override def ilk = "open-modal-link"
   }
 
   protected def enctype = "multipart/form-data"
 
   def formCssClasses = "form-horizontal" :: "twibs-form" :: Nil
-
-  override def form: Form = this
 
   /* Rendering */
   def inlineHtml =
@@ -33,8 +31,6 @@ abstract class Form(val name: String) extends BaseForm {
       {formHtml(modal = false)}
       {javascript.toString match {case "" => NodeSeq.Empty case js => <script>{Unparsed("$(function () {" + js + "});")}</script>}}
     </div>
-
-  def openModalJs = jQuery("body").call("append", modalHtml) ~ jQuery(modalId).call("twibsModal") ~ javascript
 
   def modalHtml =
     <div id={modalId} class="modal fade" role="dialog" name={name + "-modal"} tabindex="-1">
@@ -51,10 +47,10 @@ abstract class Form(val name: String) extends BaseForm {
      </div>
     </div>
 
-  def formHtml(modal: Boolean) = if (!accessAllowed) noAccessHtml
+  def formHtml(modal: Boolean) = if (!isEnabled) noAccessHtml
   else
     <form id={id} name={name} class={formCssClasses} action={actionLinkWithContextPath} method="post" enctype={enctype}>
-      {HiddenInputRenderer(BaseForm.PN_ID, id) ++ HiddenInputRenderer(BaseForm.PN_MODAL, "" + modal) ++ HiddenInputRenderer(ApplicationSettings.PN_NAME, requestSettings.applicationSettings.name)}
+      {renderer.hiddenInput(pnId, id) ++ renderer.hiddenInput(pnModal, "" + modal) ++ renderer.hiddenInput(ApplicationSettings.PN_NAME, requestSettings.applicationSettings.name)}
       <div class="modal transfer-modal">
         <div class="modal-dialog">
           <div class="modal-content">
@@ -77,33 +73,17 @@ abstract class Form(val name: String) extends BaseForm {
       </div>
     </form>
 
-  override def html = defaultButtonHtml ++ super.html
-
-  private def defaultButtonHtml = items.collectFirst({case e: DefaultButton => e.renderAsDefault}) getOrElse NodeSeq.Empty
-
   def formHeader = if (formHeaderContent.isEmpty) formHeaderContent else <header class="form-header">{formHeaderContent}</header>
 
-  def formHeaderContent: NodeSeq = formTitle
+  def formHeaderContent: NodeSeq = formTitle ++ formDescription
 
   def formTitle = formTitleString match {case "" => NodeSeq.Empty case s => <h3>{s}</h3> }
 
   def formTitleString = t"form-title: #$name"
 
-  def refreshJs = replaceContentJs ~ javascript ~ focusJs
+  def formDescription = formDescriptionString match { case "" => NodeSeq.Empty case s => Unparsed(s)}
 
-  def displayJs = Request.method match {
-    case GetMethod => openModalJs
-    case PostMethod => refreshJs
-    case _ => JsEmpty
-  }
-
-  def javascript: JsCmd = if (!accessAllowed) JsEmpty else items.collect({case item: JavascriptItem => item.javascript})
-
-  def focusJs = items.collectFirst({case item: Field if item.needsFocus => item.focusJs}) getOrElse JsEmpty
-
-  def replaceContentJs = jQuery(contentId).call("html", enrichedHtml)
-
-  def hideModalJs = jQuery(modalId).call("modal", "hide")
+  def formDescriptionString = t"form-description:"
 
   def noAccessHtml: NodeSeq = <div class="alert alert-warning">{t"no-access-body: You have no permission to use this method."}</div>
 
@@ -116,13 +96,11 @@ class BootstrapRenderer extends Renderer {
         <div class={"alert" :: ("alert-" + message.displayTypeString) :: "alert-dismissable" :: Nil}><button type="button" class="close" data-dismiss="alert">×</button>{message.text}</div>
     else
         <div class={"alert" :: ("alert-" + message.displayTypeString) :: Nil}>{message.text}</div>
+
+  override def hiddenInput(name: String, value: String): NodeSeq = <input type="hidden" autocomplete="off" name={name} value={value} />
 }
 
-trait JavascriptItem extends BaseItem {
-  def javascript: JsCmd
-}
-
-trait FormGroupItem extends RenderedItem {
+trait FormGroupComponent extends Component {
   override def html: NodeSeq =
     <div class={formGroupCssClasses}>
       <label class={formGroupTitleCssClasses} for={id}>{formGroupTitle}</label>
@@ -144,18 +122,18 @@ trait FormGroupItem extends RenderedItem {
   def id: IdString
 }
 
-trait LargeGridSize extends FormGroupItem {
+trait LargeGridSize extends FormGroupComponent {
   override def gridSize = "lg"
 }
 
-abstract class DisplayField private(val ilk: String, val parent: BaseParentItem, unit: Unit = Unit) extends BaseChildItemWithName with FormGroupItem {
-  def this(ilk: String)(implicit parent: BaseParentItem) = this(ilk, parent)
+abstract class DisplayField private(override val ilk: String, val parent: Container, unit: Unit = Unit) extends Component with FormGroupComponent {
+  def this(ilk: String)(implicit parent: Container) = this(ilk, parent)
 
   def formGroupTitle: NodeSeq = t"field-title: #$ilk"
 }
 
-abstract class Field private(val ilk: String, val parent: BaseParentItem, unit: Unit = Unit) extends BaseField with FormGroupItem {
-  def this(ilk: String)(implicit parent: BaseParentItem) = this(ilk, parent)
+abstract class Field private(override val ilk: String, val parent: Container, unit: Unit = Unit) extends BaseField with FormGroupComponent {
+  def this(ilk: String)(implicit parent: Container) = this(ilk, parent)
 
   override def formGroupCssClasses = messageDisplayTypeOption.fold("")("has-" + _) :: super.formGroupCssClasses.addClass(required, "required")
 
@@ -173,7 +151,7 @@ abstract class Field private(val ilk: String, val parent: BaseParentItem, unit: 
     case "" => NodeSeq.Empty
     case m =>
       val title = infoTitle
-      <span class="btn btn-default text-info" data-toggle="popover" data-placement="left" data-container={parent.form.id.toCssId} data-content={m} data-html="true"><span class="glyphicon glyphicon-info-sign"></span></span>
+      <span class="btn btn-default text-info" data-toggle="popover" data-placement="left" data-container={form.id.toCssId} data-content={m} data-html="true"><span class="glyphicon glyphicon-info-sign"></span></span>
         .setIfMissing(!title.isEmpty, "title", title)
         .setIfMissing(!title.isEmpty, "data-title", title)
   }
@@ -211,10 +189,6 @@ abstract class Field private(val ilk: String, val parent: BaseParentItem, unit: 
 
   def inputCssClasses: List[String] = "form-control" :: Nil
 
-  def needsFocus = !isDisabled && !isValid
-
-  def focusJs = jQuery(id).call("focus")
-
   override def translator: Translator = super.translator.kind("FIELD")
 }
 
@@ -230,10 +204,6 @@ trait Inline extends Field {
   override def formGroupTitleCssClasses = "sr-only" :: Nil
 }
 
-trait DefaultButton extends BaseButton with Executable {
-  def renderAsDefault = <input type="submit" class="concealed" tabindex="-1" name={name} value="" />
-}
-
 object Bootstrap {
   def withUntitledFormGroup(html: NodeSeq) =
     <div class="form-group">
@@ -241,36 +211,27 @@ object Bootstrap {
     </div>
 }
 
-abstract class Button(val ilk: String)(implicit val parent: BaseParentItem) extends Executable with BootstrapButton with RenderedItem {
-  override def html: NodeSeq =
-    <div class={formGroupCssClasses}>
-      <div class={controlContainerCssClasses}>{buttonAsHtml}</div>
-    </div>
+abstract class Button(override val ilk: String)(implicit val parent: Container) extends Executable with Result with BootstrapButton
 
-  def formGroupCssClasses = "form-group" :: Nil
+trait LinkButton extends BootstrapButton {
+  override def buttonAsElem: Elem = <a href="#" data-call={dataCall}>{renderButtonTitle}</a>
 
-  def controlContainerCssClasses = "col-sm-offset-3" :: "col-sm-9" :: "controls" :: Nil
-
-  override def enrichButtonElem(elem: Elem) =
-    super.enrichButtonElem(elem)
-      .setIfMissing("name", name)
-      .setIfMissing(name != ilk, "data-ilk", ilk)
-      .addClass(isDisabled, "disabled")
-      .addClass(!isDisabled, "can-be-disabled")
-      .setIfMissing(isDisabled, "disabled", "disabled")
-
-  override def translator: Translator = super.translator.kind("BUTTON")
+  def dataCall = {
+    val ret = form.actionLinkWithContextPathAndParameters
+    valueOption match {
+      case Some(v) => (if (ret.contains("?")) ret + "&" else ret + "?") + name + "=" + v
+      case None => ret
+    }
+  }
 }
 
-abstract class SpecialButton(val ilk: String)(implicit val parent: BaseParentItem) extends BootstrapButton
+trait EnabledForm extends Button {
+  override def buttonCssClasses: List[String] = "enabled-form" :: super.buttonCssClasses
+}
 
 trait FieldWithOptions extends Field with Options {
   override def reset(): Unit = {
     super.reset()
     resetOptions()
   }
-}
-
-trait UseLastParameterOnly extends Field {
-  override def parse(parameters: Seq[String]): Unit = super.parse(parameters.lastOption.map(_ :: Nil) getOrElse Nil)
 }
