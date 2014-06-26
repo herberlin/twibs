@@ -1,21 +1,22 @@
 package twibs.db
 
-import com.google.common.base.Stopwatch
 import java.sql._
-import org.threeten.bp.{LocalDate, LocalDateTime}
-import scala.Some
+
 import twibs.util.Loggable
 import twibs.util.Predef._
 import twibs.util.SortOrder.SortOrder
 import twibs.util.ThreeTenTransition._
+
+import com.google.common.base.Stopwatch
+import org.threeten.bp.{LocalDate, LocalDateTime}
 
 object Sql extends Loggable
 
 class Table(val tableName: String) {
   protected implicit def table: Table = this
 
-  case class StringColumn(name: String) extends Column[String] {
-    def get(rs: ResultSet, pos: Int) = rs.getString(pos)
+  case class StringColumn(name: String, default: String = "") extends Column[String] {
+    def get(rs: ResultSet, pos: Int) = Option(rs.getString(pos)) getOrElse default
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setString(pos, value.asInstanceOf[String])
 
@@ -31,8 +32,8 @@ class Table(val tableName: String) {
     }
   }
 
-  case class LongColumn(name: String) extends Column[Long] {
-    def get(rs: ResultSet, pos: Int) = rs.getLong(pos)
+  case class LongColumn(name: String, default: Long = Long.MinValue) extends Column[Long] {
+    def get(rs: ResultSet, pos: Int) = Option(rs.getLong(pos)) getOrElse default
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setLong(pos, value.asInstanceOf[Long])
   }
@@ -46,8 +47,8 @@ class Table(val tableName: String) {
     }
   }
 
-  case class IntColumn(name: String) extends Column[Int] {
-    def get(rs: ResultSet, pos: Int) = rs.getInt(pos)
+  case class IntColumn(name: String, default: Int = Int.MinValue) extends Column[Int] {
+    def get(rs: ResultSet, pos: Int) = Option(rs.getInt(pos)) getOrElse default
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setInt(pos, value.asInstanceOf[Int])
   }
@@ -61,14 +62,14 @@ class Table(val tableName: String) {
     }
   }
 
-  case class BooleanColumn(name: String) extends Column[Boolean] {
-    def get(rs: ResultSet, pos: Int) = rs.getBoolean(pos)
+  case class BooleanColumn(name: String, default: Boolean = false) extends Column[Boolean] {
+    def get(rs: ResultSet, pos: Int) = Option(rs.getBoolean(pos)) getOrElse default
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setBoolean(pos, value.asInstanceOf[Boolean])
   }
 
-  case class DoubleColumn(name: String) extends Column[Double] {
-    def get(rs: ResultSet, pos: Int) = rs.getDouble(pos)
+  case class DoubleColumn(name: String, default: Double = Double.MinValue) extends Column[Double] {
+    def get(rs: ResultSet, pos: Int) = Option(rs.getDouble(pos)) getOrElse default
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setDouble(pos, value.asInstanceOf[Double])
   }
@@ -82,8 +83,8 @@ class Table(val tableName: String) {
     }
   }
 
-  case class LocalDateTimeColumn(name: String) extends Column[LocalDateTime] {
-    def get(rs: ResultSet, pos: Int) = rs.getTimestamp(pos).toLocalDateTime
+  case class LocalDateTimeColumn(name: String, default: LocalDateTime = LocalDateTime.MIN) extends Column[LocalDateTime] {
+    def get(rs: ResultSet, pos: Int) = Option(rs.getTimestamp(pos)).fold(default)(_.toLocalDateTime)
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setTimestamp(pos, value.asInstanceOf[LocalDateTime].toTimestamp)
   }
@@ -97,8 +98,8 @@ class Table(val tableName: String) {
     }
   }
 
-  case class LocalDateColumn(name: String) extends Column[LocalDate] {
-    def get(rs: ResultSet, pos: Int) = rs.getDate(pos).toLocalDate
+  case class LocalDateColumn(name: String, default: LocalDate = LocalDate.MIN) extends Column[LocalDate] {
+    def get(rs: ResultSet, pos: Int) = Option(rs.getDate(pos)).fold(default)(_.toLocalDate)
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setDate(pos, value.asInstanceOf[LocalDate].toDate)
   }
@@ -112,8 +113,8 @@ class Table(val tableName: String) {
     }
   }
 
-  case class EnumColumn[T <: Enumeration](name: String, enum: T) extends Column[T#Value] {
-    def get(rs: ResultSet, pos: Int) = enum(rs.getInt(pos))
+  case class EnumColumn[T <: Enumeration](name: String, enum: T, defaultIndex: Int = 0) extends Column[T#Value] {
+    def get(rs: ResultSet, pos: Int) = Option(rs.getInt(pos)).fold(enum(defaultIndex))(i => enum(i))
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setInt(pos, value.asInstanceOf[T#Value].id)
   }
@@ -131,8 +132,7 @@ class Table(val tableName: String) {
 }
 
 class AggregateColumn[T](delegatee: Column[T]) extends Column[T]()(delegatee.table) {
-  override def set(ps: PreparedStatement, pos: Int, value: Any): Unit =
-    throw new IllegalArgumentException("Aggregate columns can not be set")
+  override def set(ps: PreparedStatement, pos: Int, value: Any): Unit = throw new IllegalArgumentException("Aggregate columns can not be set")
 
   override def name: String = delegatee.name
 
@@ -145,7 +145,7 @@ abstract class Column[T](implicit val table: Table) {
 
   def fullName: String = table.tableName + "." + name
 
-  private[db] def sget(rs: ResultSet, pos: Int): T = try get(rs,pos) catch {case e: Exception => Sql.logger.error(s"Retrieving value $fullName failed"); throw e}
+  private[db] def sget(rs: ResultSet, pos: Int): T = try get(rs, pos) catch {case e: Exception => Sql.logger.error(s"Retrieving value $fullName failed"); throw e}
 
   def get(rs: ResultSet, pos: Int): T
 
@@ -199,6 +199,7 @@ trait OptionalColumn {
   def isNotNull = new Where {
     private[db] override def toStatement = Statement(s"$fullName IS NOT NULL")
   }
+
   def isNull = new Where {
     private[db] override def toStatement = Statement(s"$fullName IS NULL")
   }
@@ -297,7 +298,7 @@ trait Query[T <: Product] {
 
   def orderBy(orderBy: OrderBy): Query[T]
 
-  def orderBy(orderBys: List[OrderBy]) : Query[T]
+  def orderBy(orderBys: List[OrderBy]): Query[T]
 
   def orderByName(orderBy: List[(String, SortOrder)]): Query[T]
 
@@ -345,7 +346,7 @@ trait Query[T <: Product] {
 
   def isEmpty(implicit connection: Connection): Boolean = size(connection) == 0
 
-  def convert[R <: Product](to: (T) => R,from: (R) => Option[T] = (x:R) => None): Query[R]
+  def convert[R <: Product](to: (T) => R, from: (R) => Option[T] = (x: R) => None): Query[R]
 }
 
 private[db] class AutoCounter {

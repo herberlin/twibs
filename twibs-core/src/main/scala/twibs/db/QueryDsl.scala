@@ -185,7 +185,7 @@ object QueryDsl {
 
     private def selectStatement = sizeOrSelectStatement ~ orderBy.toStatement ~ offsetStatement ~ limitStatement
 
-    private def sizeOrSelectStatement = Statement(s"SELECT${if (isDistinct) " DISTINCT" else ""} $columnListSql FROM $tableListSql", Nil) ~ where.toStatement ~ joinStatement ~ groupByStatement
+    private def sizeOrSelectStatement = Statement(s"SELECT${if (isDistinct) " DISTINCT" else ""} $columnListSql FROM $tableListSql", Nil) ~ joinStatement ~ where.toStatement ~ groupByStatement
 
     private def joinStatement = Statement(joins.map { case (l, r) => s" JOIN ${r.table.tableName} ON ${r.fullName} = ${l.fullName}"}.mkString)
 

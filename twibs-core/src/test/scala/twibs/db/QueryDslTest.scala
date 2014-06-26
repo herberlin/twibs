@@ -59,8 +59,8 @@ class QueryDslTest extends TwibsTest {
   }
 
   test("Group by sql statement") {
-    val q = query(userTable.firstName, userTable.id.max).join(userTable.id, newsTable.userId).groupBy(userTable.firstName).offset(10).limit(20)
-    q.toSelectSql should be("SELECT users.first_name,max(users.id) FROM users JOIN ns ON ns.user_id = users.id GROUP BY users.first_name OFFSET 10 LIMIT 20")
+    val q = query(userTable.firstName, userTable.id.max).join(userTable.id, newsTable.userId).groupBy(userTable.firstName).offset(10).limit(20).where(userTable.firstName =!= "Frank")
+    q.toSelectSql should be("SELECT users.first_name,max(users.id) FROM users JOIN ns ON ns.user_id = users.id WHERE users.first_name <> ? GROUP BY users.first_name OFFSET 10 LIMIT 20")
   }
 
   test("Empty order by") {
