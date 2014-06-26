@@ -4,15 +4,18 @@
 
 package twibs.util
 
-import JavaScript._
-import xml.NodeSeq
+import scala.xml.NodeSeq
+
+import twibs.util.JavaScript._
 
 trait Message extends DisplayType {
   def text: NodeSeq
 
   def dismissable = true
 
-  def showNotification = JsCmd("$").call("pnotify", Map("text" -> text, "type" -> displayTypeString, "nonblock" -> true, "nonblock_opacity" -> 0.2))
+  def showNotification: JsCmd = showNotification(Map())
+
+  def showNotification(options: Map[String, Any] = Map()): JsCmd = JsCmd("").call("new PNotify",Map("text" -> text, "type" -> displayTypeString.replace("danger", "error"), "nonblock" -> true, "nonblock_opacity" -> 0.2) ++ options)
 
   override def toString: String = s"$displayTypeString: $text"
 }

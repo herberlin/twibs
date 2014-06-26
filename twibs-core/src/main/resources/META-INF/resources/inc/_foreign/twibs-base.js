@@ -16,7 +16,7 @@ includeFile("bootstrap/js/scrollspy.js");
 includeFile("bootstrap/js/tab.js");
 includeFile("bootstrap-datetimepicker.js");
 includeFile("bootstrap-datetimepicker-locales/bootstrap-datetimepicker.de.js");
-includeFile("jquery.pnotify.js");
+includeFile("pnotify.custom.js");
 includeFile("jquery.form.js");
 includeFile("chosen.jquery.js");
 
@@ -259,9 +259,9 @@ $(function () {
     }
 
     function showError(content) {
-        $.pnotify({
+        new PNotify({
             text: content,
-            type: 'danger',
+            type: 'error',
             nonblock: true,
             nonblock_opacity: 0.2
         });
