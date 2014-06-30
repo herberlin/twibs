@@ -5,7 +5,7 @@
 package twibs.web
 
 import java.beans.Transient
-import javax.servlet.http.HttpServletRequest
+import javax.servlet.http.{Cookie, HttpServletRequest, HttpServletResponse}
 
 import scala.collection.JavaConverters._
 
@@ -19,7 +19,7 @@ import org.apache.commons.io.FileUtils
 import org.apache.sling.api.SlingHttpServletRequest
 import org.apache.sling.api.request.RequestParameter
 
-private[web] abstract class HttpRequest(httpServletRequest: HttpServletRequest) extends Request {
+private[web] abstract class HttpRequest(httpServletRequest: HttpServletRequest, httpServletResponse: HttpServletResponse) extends Request {
   val timestamp = Request.now()
 
   val method: RequestMethod = httpServletRequest.getMethod match {
@@ -75,10 +75,24 @@ private[web] abstract class HttpRequest(httpServletRequest: HttpServletRequest) 
 
   def multiPartParameters: Map[String, Seq[String]]
 
-  def getCookieValue(cookieName: String) = httpServletRequest.getCookies.find(_.getName.equalsIgnoreCase(cookieName)).map(_.getValue)
+  def getCookie(name: String) = httpServletRequest.getCookies.find(_.getName.equalsIgnoreCase(name)).map(_.getValue)
+
+  def removeCookie(name: String) = {
+    val cookie: Cookie = new Cookie(name, "empty")
+    cookie.setMaxAge(0)
+    cookie.setPath("/")
+    httpServletResponse.addCookie(cookie)
+  }
+
+  def setCookie(name: String, value: String) = {
+    val cookie: Cookie = new Cookie(name, value)
+    cookie.setMaxAge(5 * 365 * 24 * 60 * 60)
+    cookie.setPath("/")
+    httpServletResponse.addCookie(cookie)
+  }
 }
 
-private[web] class HttpRequestWithCommonsFileUpload(httpServletRequest: HttpServletRequest) extends HttpRequest(httpServletRequest) {
+class HttpRequestWithCommonsFileUpload(httpServletRequest: HttpServletRequest, httpServletResponse: HttpServletResponse) extends HttpRequest(httpServletRequest, httpServletResponse) {
   def multiPartParameters: Map[String, Seq[String]] =
     if (isMultiPart) CollectionUtils.zipToMap(formFieldsFromMultipartRequest.map(fileItem => (fileItem.getFieldName, fileItem.getString("UTF-8"))))
     else Map()
@@ -116,7 +130,7 @@ private[web] class HttpRequestWithCommonsFileUpload(httpServletRequest: HttpServ
   }
 }
 
-private[web] class HttpRequestWithSlingUpload(httpServletRequest: SlingHttpServletRequest) extends HttpRequest(httpServletRequest) {
+private[web] class HttpRequestWithSlingUpload(httpServletRequest: SlingHttpServletRequest, httpServletResponse: HttpServletResponse) extends HttpRequest(httpServletRequest, httpServletResponse) {
   def multiPartParameters: Map[String, Seq[String]] = CollectionUtils.zipToMap(formFieldsFromMultipartRequest.map(e => (e._1, e._2.getString("UTF-8"))))
 
   def uploads: Map[String, Seq[Upload]] = CollectionUtils.zipToMap(fileItemsFromMultipartRequest.map(e => (e._1, toUpload(e._1, e._2))))

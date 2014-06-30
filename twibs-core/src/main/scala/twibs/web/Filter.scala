@@ -6,8 +6,10 @@ package twibs.web
 
 import javax.servlet._
 import javax.servlet.http._
-import twibs.util.{SystemSettings, RunMode}
-import util.DynamicVariable
+
+import scala.util.DynamicVariable
+
+import twibs.util.{RunMode, SystemSettings}
 
 class Filter extends javax.servlet.Filter {
   private var servletContextVar: ServletContext = null
@@ -42,7 +44,7 @@ class Filter extends javax.servlet.Filter {
     httpRequest.setCharacterEncoding("UTF-8")
     httpResponse.setCharacterEncoding("UTF-8")
     httpResponse.setHeader("X-Twibs", if (RunMode.isProduction) SystemSettings.Twibs.version else SystemSettings.Twibs.version + " - " + RunMode.name)
-    val request = createRequest(httpRequest)
+    val request = createRequest(httpRequest, httpResponse)
     request.use {
       combiningResponderVar.respond(request) match {
         case Some(response) =>
@@ -58,7 +60,7 @@ class Filter extends javax.servlet.Filter {
     }
   }
 
-  def createRequest(httpRequest: HttpServletRequest): HttpRequest = new HttpRequestWithCommonsFileUpload(httpRequest)
+  def createRequest(httpRequest: HttpServletRequest, httpResponse: HttpServletResponse): HttpRequest = new HttpRequestWithCommonsFileUpload(httpRequest, httpResponse)
 }
 
 object Filter {

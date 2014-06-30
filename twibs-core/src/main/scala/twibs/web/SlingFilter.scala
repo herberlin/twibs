@@ -4,13 +4,14 @@
 
 package twibs.web
 
-import javax.servlet.http.HttpServletRequest
+import javax.servlet.http.{HttpServletRequest, HttpServletResponse}
+
 import org.apache.sling.api.SlingHttpServletRequest
 
 class SlingFilter extends Filter {
-  override def createRequest(httpRequest: HttpServletRequest): HttpRequest =
+  override def createRequest(httpRequest: HttpServletRequest, httpResponse: HttpServletResponse): HttpRequest =
     httpRequest match {
-      case slingRequest: SlingHttpServletRequest => new HttpRequestWithSlingUpload(slingRequest)
-      case _ => super.createRequest(httpRequest)
+      case slingRequest: SlingHttpServletRequest => new HttpRequestWithSlingUpload(slingRequest, httpResponse)
+      case _ => super.createRequest(httpRequest, httpResponse)
     }
 }

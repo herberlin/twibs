@@ -36,6 +36,7 @@ trait Request extends Serializable with AttributeContainer {
   def remoteHost: String
 
   def userAgent: String
+
   //
   //  def uri: String
   //
@@ -51,6 +52,8 @@ trait Request extends Serializable with AttributeContainer {
 
   def use[R](f: => R): R = Request.use(this)(f)
 
+  def useIt[R](f: (Request) => R): R = Request.use(this)(f(this))
+
   def relative(relativePath: String) = new RequestWrapper(this) {
     override def path = new URI(super.path).resolve(relativePath).normalize().toString
   }
@@ -59,7 +62,11 @@ trait Request extends Serializable with AttributeContainer {
 
   def desiredLocale: ULocale
 
-  def getCookieValue(cookieName: String): Option[String]
+  def getCookie(name: String): Option[String]
+
+  def removeCookie(name: String): Unit
+
+  def setCookie(name: String, value: String): Unit
 }
 
 class RequestWrapper(val delegatee: Request) extends Request {
@@ -101,7 +108,11 @@ class RequestWrapper(val delegatee: Request) extends Request {
     responder.respond(this)
   }
 
-  def getCookieValue(cookieName: String) = delegatee.getCookieValue(cookieName)
+  def getCookie(name: String) = delegatee.getCookie(name)
+
+  def removeCookie(name: String): Unit = delegatee.removeCookie(name)
+
+  def setCookie(name: String, value: String) = delegatee.setCookie(name, value)
 }
 
 object Request extends DynamicVariableWithDynamicDefault[Request](ImmutableRequest) {
@@ -151,7 +162,11 @@ private object ImmutableRequest extends Request {
 
   val desiredLocale = SystemSettings.locale
 
-  def getCookieValue(cookieName: String) = None
+  def getCookie(name: String) = None
+
+  def removeCookie(name: String) = Unit
+
+  def setCookie(name: String, value: String) = Unit
 }
 
 trait Upload {

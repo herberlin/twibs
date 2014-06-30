@@ -40,5 +40,9 @@ class StaticRequest(val path: String,
 
   val desiredLocale: ULocale = ApplicationSettings.locales.head
 
-  def getCookieValue(cookieName: String) = None
+  def getCookie(name: String) = None
+
+  def removeCookie(name: String) = Unit
+
+  def setCookie(name: String, value: String) = Unit
 }

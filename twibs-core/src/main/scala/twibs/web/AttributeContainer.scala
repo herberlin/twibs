@@ -11,6 +11,8 @@ trait AttributeContainer {
 
   def getAttribute(name: String): Option[Any]
 
+  def getAttribute[T](name: String, cls: Class[T]): Option[T] = getAttribute(name).map(_.asInstanceOf[T])
+
   def getAttribute[T <: Any](attributeName: String, default: => T): T =
     getAttribute(attributeName).fold(default)(_.asInstanceOf[T])
 
