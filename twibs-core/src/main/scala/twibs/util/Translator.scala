@@ -6,6 +6,8 @@ package twibs.util
 
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.ArrayBuffer
+import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 import com.ibm.icu.text.MessageFormat
 import com.ibm.icu.util.ULocale
@@ -80,7 +82,11 @@ abstract class Translator(id: String, usages: List[String], kinds: List[String])
 
   private def format(messageFormatString: String, args: Any*): String =
     try {
-      new MessageFormat(messageFormatString, locale).format(args.toArray)
+      val mf = new MessageFormat(messageFormatString, locale)
+      args match {
+        case Seq(m: Map[String, Any]) => mf.format(m.asJava)
+        case _ => mf.format(args.toArray)
+      }
     } catch {
       case e: IllegalArgumentException =>
         Translator.logger.error(s"Invalid format '$messageFormatString'", e)

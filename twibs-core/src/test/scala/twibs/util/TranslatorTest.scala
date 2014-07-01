@@ -4,10 +4,12 @@
 
 package twibs.util
 
-import Translator._
-import collection.mutable.ListBuffer
-import com.ibm.icu.util.ULocale
+import scala.collection.mutable.ListBuffer
+
 import twibs.TwibsTest
+import twibs.util.Translator._
+
+import com.ibm.icu.util.ULocale
 
 class TranslatorTest extends TwibsTest {
   test("Translation") {
@@ -109,10 +111,14 @@ class TranslatorTest extends TwibsTest {
   }
 
   test("Translation with fallback") {
-    implicit val root : Translator = ApplicationSettings.translators(ULocale.GERMAN)
+    implicit val root: Translator = ApplicationSettings.translators(ULocale.GERMAN)
 
-    t"label: L" should be ("Herr")
-    t"sub.label: S" should be ("Du")
-    t"sub2.label: N" should be ("Herr")
+    t"label: L" should be("Herr")
+    t"sub.label: S" should be("Du")
+    t"sub2.label: N" should be("Herr")
+  }
+
+  test("Translation with named replacement") {
+    ApplicationSettings.translators(ULocale.GERMAN).translate("aged", "{name} is {age} years old", Map("name" -> "Frank", "age" -> 73)) should be("Frank is 73 years old")
   }
 }
