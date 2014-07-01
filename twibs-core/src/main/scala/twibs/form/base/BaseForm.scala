@@ -276,6 +276,8 @@ trait BaseForm extends Container with CurrentRequestSettings {
 
   override def selfIsEnabled = accessAllowed
 
+  override def selfIsRevealed = accessAllowed
+
   def reloadFormJs = displayJs
 
   def displayJs = Request.method match {

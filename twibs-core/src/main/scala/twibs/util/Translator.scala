@@ -6,7 +6,6 @@ package twibs.util
 
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.ArrayBuffer
-import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 
 import com.ibm.icu.text.MessageFormat
@@ -84,7 +83,7 @@ abstract class Translator(id: String, usages: List[String], kinds: List[String])
     try {
       val mf = new MessageFormat(messageFormatString, locale)
       args match {
-        case Seq(m: Map[String, Any]) => mf.format(m.asJava)
+        case Seq(m: Map[_, _]) => mf.format(m.asJava)
         case _ => mf.format(args.toArray)
       }
     } catch {

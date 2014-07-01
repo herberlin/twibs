@@ -128,6 +128,8 @@ trait Values extends TranslationSupport {
 
   def isModified = _modified
 
+  def isChanged = values != defaultValues
+
   def minimumNumberOfInputs = 1
 
   def maximumNumberOfInputs = 1

@@ -90,5 +90,7 @@ trait Database {
 }
 
 object Database extends DynamicVariableWithDynamicDefault[Database](null) {
-  implicit def connection: Connection = SlickDatabase.dynamicSession.conn
+  implicit def implicitConnection: Connection = SlickDatabase.dynamicSession.conn
+
+  def connection: Connection = SlickDatabase.dynamicSession.conn
 }

@@ -119,7 +119,7 @@ trait ButtonWithPopover extends BootstrapButton {
 
     override def stringOrEmpty: String = self.stringOrEmpty
 
-    override def buttonUseIconOnly = orgButtonUseIconOnly
+    override def buttonUseIconOnly = buttonUseIconOnly2
 
     override def buttonAsElem: Elem =
       if (isEnabled)
@@ -138,9 +138,9 @@ trait ButtonWithPopover extends BootstrapButton {
     def openPopoverJs = jQuery(id).call("popover", popoverOptions).call("addClass", "popover-by-script").call("popover", "show")
   }
 
-  private def orgButtonUseIconOnly = super.buttonUseIconOnly
+  override final def buttonUseIconOnly = if (usePopover) false else buttonUseIconOnly2
 
-  override def buttonUseIconOnly = if (usePopover) false else super.buttonUseIconOnly
+  def buttonUseIconOnly2: Boolean = super.buttonUseIconOnly
 
   final val openPopoverButton = computeOpenPopoverButton
 
@@ -158,7 +158,9 @@ trait ButtonWithPopover extends BootstrapButton {
 
   def popoverTitle = translator.translateOrUseDefault("popover-title", buttonTitle)
 
-  def popoverContent: NodeSeq = enrichButtonElem(buttonAsElem)
+  def popoverContentText = t"popover-text:"
+
+  def popoverContent: NodeSeq = Unparsed(popoverContentText) ++ enrichButtonElem(buttonAsElem)
 
   def popoverPlacement = "bottom"
 

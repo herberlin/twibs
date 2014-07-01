@@ -19,6 +19,7 @@ includeFile("bootstrap-datetimepicker-locales/bootstrap-datetimepicker.de.js");
 includeFile("pnotify.custom.js");
 includeFile("jquery.form.js");
 includeFile("chosen.jquery.js");
+includeFile("jquery.bootstrap-touchspin.js");
 
 function mailme(host, name, subject) {
     if (subject) {
@@ -132,7 +133,9 @@ $(function () {
         })
         .on('change', 'form.twibs-form .submit-on-change', function () {
             var $this = $(this);
-            $this.reloadForm($this.attr('name'));
+            window.setTimeout(function () {
+                $this.reloadForm($this.attr('name'))
+            }, 1);
         })
         .on('click', '[data-dismiss="detachable"]', function (e) {
             e.preventDefault();
@@ -160,6 +163,8 @@ $(function () {
             });
 
             $('[data-toggle="popover"]').popover();
+
+            $('input.numeric').TouchSpin();
 
             $('textarea.hidden-print').each(function () {
                 var $this = $(this);
@@ -221,6 +226,7 @@ $(function () {
         var $bar = $modal.find('.progress-bar');
         var $percent = $modal.find('.transfer-percent');
         var modalTimeout;
+        var focusedId = $(document.activeElement).attr("id");
 
         function update(percent) {
             $bar.width(percent + '%');
@@ -247,6 +253,7 @@ $(function () {
                 clearTimeout(modalTimeout);
                 $modal.modal("hide");
                 twibsUpdateAfterDomChange();
+                if (focusedId) $("#" + focusedId).focus();
             }
         });
     }

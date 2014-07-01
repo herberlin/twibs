@@ -52,6 +52,12 @@ trait SingleLineField extends TextField {
   override def inputAsElem(input: Input) = <input type="text" placeholder={placeholder} value={input.string} />
 }
 
+trait NumberField extends TextField with NumberValues {
+  override def inputCssClasses: List[String] = "numeric" :: super.inputCssClasses
+
+  override def inputAsElem(input: Input) = <input type="text" data-min={minimum.toString} data-max={maximum.toString} placeholder={placeholder} value={input.string} />
+}
+
 trait AbstractDateTimeField extends SingleLineField with JavascriptComponent {
   def datePickerOptions = Map("autoclose" -> autoClose, "pickerPosition" -> "bottom-left", "language" -> "de")
 
