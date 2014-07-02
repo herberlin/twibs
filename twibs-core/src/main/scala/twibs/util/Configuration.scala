@@ -4,11 +4,12 @@
 
 package twibs.util
 
-import collection.JavaConversions._
+import scala.collection.JavaConversions._
+import scala.collection.concurrent.TrieMap
+
 import com.ibm.icu.util.ULocale
 import com.typesafe.config.ConfigException.Missing
-import com.typesafe.config.{ConfigFactory, Config}
-import scala.collection.concurrent.TrieMap
+import com.typesafe.config.{Config, ConfigFactory}
 
 trait Configuration {
   def getStringList(key: String): Option[List[String]]
@@ -70,7 +71,7 @@ object ConfigurationForTypesafeConfig {
   def baseConfig(settings: SystemSettings = SystemSettings) = {
     def config = {
       ConfigFactory.invalidateCaches()
-      ConfigFactory.load() withFallback ConfigFactory.load(getClass.getClassLoader)
+      configWithFallbackForOsgi
     }
 
     def hostConfig = childConfig(config, "HOSTS." + settings.hostName)
@@ -79,9 +80,13 @@ object ConfigurationForTypesafeConfig {
   }
 
   def forSettings(applicationName: String, settings: SystemSettings = SystemSettings) =
-    new ConfigurationForTypesafeConfig(userConfig(childConfig(baseConfig(settings), "APPLICATIONS." + applicationName)))
+    new ConfigurationForTypesafeConfig(wrapWithUserConfig(childConfig(baseConfig(settings), "APPLICATIONS." + applicationName)))
 
-  private def userConfig(wrapped: Config) = ConfigFactory.parseResourcesAnySyntax("user").withFallback(wrapped)
+  private def wrapWithUserConfig(wrapped: Config) = userConfigWithFallbackForOsgi.withFallback(wrapped)
 
   private def childConfig(parent: Config, path: String) = if (parent.hasPath(path)) parent.getConfig(path).withFallback(parent) else parent
+
+  private def configWithFallbackForOsgi = ConfigFactory.load() withFallback ConfigFactory.load(getClass.getClassLoader)
+
+  private def userConfigWithFallbackForOsgi = ConfigFactory.parseResourcesAnySyntax("user").withFallback(ConfigFactory.parseResourcesAnySyntax(getClass.getClassLoader, "user"))
 }
