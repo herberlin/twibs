@@ -38,7 +38,7 @@ abstract class Form(override val ilk: String) extends BaseForm {
        <div class="modal-content">
          <div class="modal-header">
            <button type="button" class="close" data-dismiss="modal">×</button>
-           {formTitle}
+           {formHeaderContent}
          </div>
          <div class="modal-body">
            {formHtml(modal = true)}
@@ -47,7 +47,7 @@ abstract class Form(override val ilk: String) extends BaseForm {
      </div>
     </div>
 
-  def formHtml(modal: Boolean) = if (!isEnabled) noAccessHtml
+  def formHtml(modal: Boolean) = if (isConcealed) noAccessHtml
   else
     <form id={id} name={name} class={formCssClasses} action={actionLinkWithContextPath} method="post" enctype={enctype}>
       {renderer.hiddenInput(pnId, id) ++ renderer.hiddenInput(pnModal, "" + modal) ++ renderer.hiddenInput(ApplicationSettings.PN_NAME, requestSettings.applicationSettings.name)}
