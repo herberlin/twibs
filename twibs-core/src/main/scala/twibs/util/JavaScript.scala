@@ -22,6 +22,8 @@ object JavaScript {
 
     def call(method: String, parameters: JsParameter*) = new JsCmd(withDot + method + "(" + parameters.mkString(",") + ")")
 
+    def property(property: String) = new JsCmd(withDot + property)
+
     private def withDot = if (string.isEmpty) "" else string + "."
 
     def toJsonString: String = string

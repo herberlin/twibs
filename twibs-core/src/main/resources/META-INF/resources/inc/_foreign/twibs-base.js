@@ -251,7 +251,8 @@ $(function () {
             success: function () {
                 update(100);
                 clearTimeout(modalTimeout);
-                $modal.modal("hide");
+                if (jQuery.contains(document, $modal[0])) $modal.modal("hide");
+                else $('.modal-backdrop').detach();
                 twibsUpdateAfterDomChange();
                 if (focusedId) $("#" + focusedId).focus();
             }

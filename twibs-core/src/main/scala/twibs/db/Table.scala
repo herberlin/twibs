@@ -33,13 +33,13 @@ class Table(val tableName: String) {
   }
 
   case class LongColumn(name: String, default: Long = Long.MinValue) extends Column[Long] {
-    def get(rs: ResultSet, pos: Int) = Option(rs.getLong(pos)) getOrElse default
+    def get(rs: ResultSet, pos: Int) = rs.getLong(pos) match {case r if rs.wasNull() => default case r => r }
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setLong(pos, value.asInstanceOf[Long])
   }
 
   case class LongOptionColumn(name: String) extends Column[Option[Long]] with OptionalColumn {
-    def get(rs: ResultSet, pos: Int) = Option(rs.getLong(pos))
+    def get(rs: ResultSet, pos: Int) = rs.getLong(pos) match {case r if rs.wasNull() => None case r => Some(r) }
 
     def set(ps: PreparedStatement, pos: Int, valueOption: Any) = valueOption.asInstanceOf[Option[Long]] match {
       case Some(value) => ps.setLong(pos, value)
@@ -48,13 +48,13 @@ class Table(val tableName: String) {
   }
 
   case class IntColumn(name: String, default: Int = Int.MinValue) extends Column[Int] {
-    def get(rs: ResultSet, pos: Int) = Option(rs.getInt(pos)) getOrElse default
+    def get(rs: ResultSet, pos: Int) = rs.getInt(pos) match {case r if rs.wasNull() => default case r => r }
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setInt(pos, value.asInstanceOf[Int])
   }
 
   case class IntOptionColumn(name: String) extends Column[Option[Int]] with OptionalColumn {
-    def get(rs: ResultSet, pos: Int) = Option(rs.getInt(pos))
+    def get(rs: ResultSet, pos: Int) = rs.getInt(pos) match {case r if rs.wasNull() => None case r => Some(r) }
 
     def set(ps: PreparedStatement, pos: Int, valueOption: Any) = valueOption.asInstanceOf[Option[Int]] match {
       case Some(value) => ps.setInt(pos, value)
@@ -63,19 +63,19 @@ class Table(val tableName: String) {
   }
 
   case class BooleanColumn(name: String, default: Boolean = false) extends Column[Boolean] {
-    def get(rs: ResultSet, pos: Int) = Option(rs.getBoolean(pos)) getOrElse default
+    def get(rs: ResultSet, pos: Int) = rs.getBoolean(pos) match {case r if rs.wasNull() => default case r => r }
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setBoolean(pos, value.asInstanceOf[Boolean])
   }
 
   case class DoubleColumn(name: String, default: Double = Double.MinValue) extends Column[Double] {
-    def get(rs: ResultSet, pos: Int) = Option(rs.getDouble(pos)) getOrElse default
+    def get(rs: ResultSet, pos: Int) = rs.getDouble(pos) match {case r if rs.wasNull() => default case r => r }
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setDouble(pos, value.asInstanceOf[Double])
   }
 
   case class DoubleOptionColumn(name: String) extends Column[Option[Double]] with OptionalColumn {
-    def get(rs: ResultSet, pos: Int) = Option(rs.getDouble(pos))
+    def get(rs: ResultSet, pos: Int) = rs.getDouble(pos) match {case r if rs.wasNull() => None case r => Some(r) }
 
     def set(ps: PreparedStatement, pos: Int, valueOption: Any) = valueOption.asInstanceOf[Option[Double]] match {
       case Some(value) => ps.setDouble(pos, value)
@@ -114,13 +114,13 @@ class Table(val tableName: String) {
   }
 
   case class EnumColumn[T <: Enumeration](name: String, enum: T, defaultIndex: Int = 0) extends Column[T#Value] {
-    def get(rs: ResultSet, pos: Int) = Option(rs.getInt(pos)).fold(enum(defaultIndex))(i => enum(i))
+    def get(rs: ResultSet, pos: Int) = enum(rs.getInt(pos) match { case r if rs.wasNull() => defaultIndex case r => r})
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setInt(pos, value.asInstanceOf[T#Value].id)
   }
 
   case class EnumOptionColumn[T <: Enumeration](name: String, enum: T) extends Column[Option[T#Value]] {
-    def get(rs: ResultSet, pos: Int) = Option(rs.getInt(pos)).map(t => enum(t))
+    def get(rs: ResultSet, pos: Int) = rs.getInt(pos) match {case r if rs.wasNull() => None case r => Some(enum(r)) }
 
     def set(ps: PreparedStatement, pos: Int, valueOption: Any) = valueOption.asInstanceOf[Option[T#Value]] match {
       case Some(value) => ps.setInt(pos, value.id)
@@ -203,6 +203,10 @@ trait OptionalColumn {
   def isNull = new Where {
     private[db] override def toStatement = Statement(s"$fullName IS NULL")
   }
+}
+
+trait SqlFunction[T] extends Column[T] {
+  override def fullName: String = name
 }
 
 trait Where {

@@ -31,3 +31,7 @@ trait WarningDisplayType extends DisplayType {
 trait DangerDisplayType extends DisplayType {
   override def displayTypeString = "danger"
 }
+
+trait LinkDisplayType extends DisplayType {
+  override def displayTypeString = "link"
+}
