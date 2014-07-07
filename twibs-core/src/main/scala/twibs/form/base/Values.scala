@@ -484,6 +484,8 @@ trait EnumerationValues[E <: Enumeration] extends Options {
   override def valueToString: ValueToString = value => value.id.toString
 
   def computeOptions = enumeration.values.toList
+
+  override def titleForOption(value: ValueType): String = translator.usage("option-title").translate(value.toString, titleForValue(value))
 }
 
 trait Required extends Values {

@@ -325,7 +325,7 @@ trait Query[T <: Product] {
   def select(implicit connection: Connection): Iterator[T] with AutoCloseable
 
   def firstOption(implicit connection: Connection): Option[T] = {
-    val s = select(connection)
+    val s = limit(1).select(connection)
     val it = s.toIterator
     val ret = if (it.hasNext) Some(it.next()) else None
     s.close()

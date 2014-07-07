@@ -55,6 +55,8 @@ trait Component extends TranslationSupport {
 
   def reset(): Unit = Unit
 
+  def initialize(): Unit = Unit
+
   def prepare(request: Request): Unit = Unit
 
   def parse(request: Request): Unit = Unit
@@ -129,6 +131,8 @@ trait Container extends Component with Validatable {
   def prefixForChildNames: String = parent.prefixForChildNames
 
   override def reset(): Unit = children.foreach(_.reset())
+
+  override def initialize(): Unit = children.foreach(_.initialize())
 
   override def prepare(request: Request): Unit = children.foreach(_.prepare(request))
 
@@ -392,6 +396,14 @@ trait BaseField extends InteractiveComponent with Validatable {
   def needsFocus = !isDisabled && !isValid
 
   def focusJs = jQuery(id).call("focus")
+}
+
+trait RequiredIfRevealed extends BaseField {
+  private def checkRevealed: StringProcessor = (string: String) => if (isRevealed) Success(string) else SuccessAndTerminate(string)
+
+  override def stringProcessors: List[StringProcessor] = checkRevealed :: super.stringProcessors
+
+  override def required = true
 }
 
 trait SubmitOnChange extends BaseField {
