@@ -20,6 +20,7 @@ includeFile("pnotify.custom.js");
 includeFile("jquery.form.js");
 includeFile("chosen.jquery.js");
 includeFile("jquery.bootstrap-touchspin.js");
+includeFile("jquery.appear.js");
 
 function mailme(host, name, subject) {
     if (subject) {
@@ -177,6 +178,8 @@ $(function () {
 
             initFixedContainers();
             positionFixedContainers();
+
+            $('.click-on-appear').removeClass('.click-on-appear').filter("[data-call]").appear(function () {$(this).trigger("click");});
         });
 
     $('body')
@@ -188,10 +191,15 @@ $(function () {
         })
         .on("click", '[data-call]', function (e) {
             e.preventDefault();
+            var $this = $(this);
+            $this.addClass("disabled");
             $.ajax({
-                url: $(this).attr('data-call'),
+                url: $this.attr('data-call'),
                 dataType: "script"
-            }).fail(failError);
+            }).fail(failError).done(function() {
+                $this.removeClass("disabled");
+                twibsUpdateAfterDomChange();
+            });
         });
 
     $('a[data-toggle="tab"]')

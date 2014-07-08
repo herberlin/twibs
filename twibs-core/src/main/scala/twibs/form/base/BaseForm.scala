@@ -4,17 +4,20 @@
 
 package twibs.form.base
 
-import com.google.common.cache.{Cache, CacheBuilder}
 import java.io.IOException
 import java.util.concurrent.TimeUnit
+
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
 import scala.xml.{Elem, NodeSeq}
+
 import twibs.form.base.Result.AfterFormDisplay
 import twibs.util.JavaScript._
 import twibs.util.XmlUtils._
 import twibs.util._
 import twibs.web._
+
+import com.google.common.cache.{Cache, CacheBuilder}
 
 trait Component extends TranslationSupport {
   def selfIsVisible: Boolean = true
@@ -266,15 +269,17 @@ trait BaseForm extends Container with CurrentRequestSettings {
   private def getClassForActionLink(classToCheck: Class[_]): Class[_] =
     if (classToCheck.isLocalClass) getClassForActionLink(classToCheck.getSuperclass) else classToCheck
 
-  def actionLinkWithContextPathAndParameters: String = actionLinkWithContextPath + queryString
+  def actionLinkWithContextPathAndParameters(parameters: (String, String)*): String = actionLinkWithContextPath + queryString(parameters:_*)
 
   def actionLinkWithContextPath: String = WebContext.path + actionLink
 
-  private def queryString = {
-    val keyValues = components.collect({ case component: BaseField if component.isModified => component.strings.map(string => component.name -> string)}).flatten.toList
+  private def queryString(parameters: (String, String)*) = {
+    val keyValues = (pnId -> id.string) :: (pnModal -> modal) :: parameters.toList ::: componentParameters
     val all = if (ApplicationSettings.name != ApplicationSettings.DEFAULT_NAME) (ApplicationSettings.PN_NAME -> ApplicationSettings.name) :: keyValues else keyValues
-    if (all.isEmpty) "" else "?" + all.map(e => e._1 + "=" + e._2).mkString("&")
+    "?" + all.map(e => e._1 + "=" + e._2).mkString("&")
   }
+
+  def componentParameters: List[(String, String)] = components.collect({ case component: BaseField if component.isModified => component.strings.map(string => component.name -> string)}).flatten.toList
 
   def accessAllowed: Boolean
 
@@ -370,6 +375,8 @@ trait Executable extends InteractiveComponent {
   def executeValidated(): Unit = Unit
 
   def executionLink(value: ValueType) = form.actionLinkWithContextPath + "?" + name + "=" + valueToString(value)
+
+  def commitLink(value: ValueType) = form.actionLinkWithContextPathAndParameters(name -> valueToString(value))
 }
 
 abstract class Executor(override val ilk: String)(implicit val parent: Container) extends Executable with Result with Floating {

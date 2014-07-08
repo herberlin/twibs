@@ -48,9 +48,14 @@ trait BootstrapButton extends InteractiveComponent with Values with DisplayType 
 
   def buttonIconOrButtonTitleIfEmptyHtml: NodeSeq = buttonIconHtml match {case NodeSeq.Empty => buttonTitleHtml case s => s }
 
-  def buttonIconHtml: NodeSeq = buttonIconName match {case "" => NodeSeq.Empty case s => <span class={s"glyphicon glyphicon-$s"}></span> }
+  def buttonIconHtml: NodeSeq = buttonIconName match {
+    case "" => NodeSeq.Empty
+    case s if s.startsWith("fa-") => <span class={s"fa $s"}></span>
+    case s if s.startsWith("glyphicon-") => <span class={s"glyphicon $s"}></span>
+    case s => <span class={s"glyphicon glyphicon-$s"}></span>
+  }
 
-  def buttonTitleHtml = Unparsed(buttonTitle)
+  def buttonTitleHtml: NodeSeq = Unparsed(buttonTitle)
 
   def buttonTitle = t"button-title: #$ilk"
 
@@ -94,6 +99,16 @@ trait BootstrapButton extends InteractiveComponent with Values with DisplayType 
   def controlContainerCssClasses = "col-sm-offset-3" :: "col-sm-9" :: "controls" :: Nil
 
   override def translator: Translator = super.translator.kind("BUTTON")
+}
+
+trait Spinner extends BootstrapButton {
+  override def buttonCssClasses: List[String] = "has-spinner" :: super.buttonCssClasses
+
+  override def buttonTitleHtml = { <span class="fa fa-refresh spinner"></span> ++ super.buttonTitleHtml }
+}
+
+trait ClickOnAppear extends BootstrapButton {
+  override def buttonCssClasses: List[String] = "click-on-appear" :: super.buttonCssClasses
 }
 
 trait ButtonWithPopover extends BootstrapButton {

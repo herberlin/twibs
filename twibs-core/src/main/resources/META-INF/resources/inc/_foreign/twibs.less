@@ -263,3 +263,28 @@ span.placeholder {
 .panel-body > .form-group:last-child {
   margin-bottom: 0px;
 }
+
+.has-spinner {
+  .spinner {
+    opacity: 0;
+    width: 0;
+    .animation(~"none");
+  }
+
+  .fa {
+    .transition(~"opacity 0.25s, width 0.25s, margin-right 0.25s");
+  }
+
+  &.disabled, &[disabled] {
+    .fa, .glyphicon {
+      width: 0;
+      opacity: 0;
+    }
+    .fa.spinner {
+      opacity: 1;
+      width: auto;
+      margin-right: 0.5em;
+      .animation(~"spin 2s infinite linear");
+    }
+  }
+}

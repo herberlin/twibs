@@ -21,7 +21,7 @@ trait ReadOnlyField extends Field {
 
 trait Emptiable extends Field {
   override def inputAsEnrichedHtml(input: Input, index: Int): NodeSeq =
-    <span class="emptiable">{super.inputAsEnrichedHtml(input, index)}<span class="input-clear glyphicon glyphicon-remove"></span></span>
+    <span class="emptiable">{super.inputAsEnrichedHtml(input, index)}<span class="input-clear fa fa-times"></span></span>
 }
 
 trait FieldWithSuffixes extends Field {
@@ -73,7 +73,7 @@ trait AbstractDateTimeField extends SingleLineField with JavascriptComponent {
   private def inputGroupId = id ~ "input-group"
 
   override def suffixes: List[NodeSeq] =
-    if (isEnabled) clearButton :: <span class="glyphicon glyphicon-calendar"></span> :: super.suffixes
+    if (isEnabled) clearButton :: <span class="fa fa-calendar"></span> :: super.suffixes
     else super.suffixes
 
   override def surroundWithInputGroup(input: Input, nodeSeq: NodeSeq): Elem =
@@ -85,7 +85,7 @@ trait AbstractDateTimeField extends SingleLineField with JavascriptComponent {
 
   def withClearButton = false
 
-  def clearButton = if (withClearButton) <span class="glyphicon glyphicon-remove"></span> else NodeSeq.Empty
+  def clearButton = if (withClearButton) <span class="fa fa-times"></span> else NodeSeq.Empty
 
   def formatPatternForBrowser: String
 

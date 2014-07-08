@@ -151,7 +151,7 @@ abstract class Field private(override val ilk: String, val parent: Container, un
     case "" => NodeSeq.Empty
     case m =>
       val title = infoTitle
-      <span class="btn btn-default text-info" data-toggle="popover" data-placement="left" data-container={form.id.toCssId} data-content={m} data-html="true"><span class="glyphicon glyphicon-info-sign"></span></span>
+      <span class="btn btn-default text-info" data-toggle="popover" data-placement="left" data-container={form.id.toCssId} data-content={m} data-html="true"><span class="fa fa-info-circle"></span></span>
         .setIfMissing(!title.isEmpty, "title", title)
         .setIfMissing(!title.isEmpty, "data-title", title)
   }
@@ -214,15 +214,13 @@ object Bootstrap {
 abstract class Button(override val ilk: String)(implicit val parent: Container) extends Executable with Result with BootstrapButton
 
 trait LinkButton extends BootstrapButton {
-  override def buttonAsElem: Elem = <a href="#" data-call={dataCall}>{renderButtonTitle}</a>
+  override def buttonAsElem: Elem =
+    if (isEnabled)
+      <a href="#" data-call={dataCall}>{renderButtonTitle}</a>
+    else
+      <span>{renderButtonTitle}</span>
 
-  def dataCall = {
-    val ret = form.actionLinkWithContextPathAndParameters
-    valueOption match {
-      case Some(v) => (if (ret.contains("?")) ret + "&" else ret + "?") + name + "=" + v
-      case None => ret
-    }
-  }
+  def dataCall = form.actionLinkWithContextPathAndParameters(name -> stringOrEmpty)
 }
 
 trait EnabledForm extends Button {
