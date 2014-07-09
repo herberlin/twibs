@@ -4,13 +4,16 @@
 
 package twibs.db
 
-import concurrent.duration._
 import java.sql.Connection
 import javax.sql.DataSource
-import org.apache.tomcat.jdbc.pool.{DataSource => TomcatDataSource, PoolProperties}
-import org.flywaydb.core.Flyway
+
+import scala.concurrent.duration._
 import scala.slick.jdbc.JdbcBackend.{Database => SlickDatabase}
-import twibs.util.{RunMode, DynamicVariableWithDynamicDefault}
+
+import twibs.util.DynamicVariableWithDynamicDefault
+
+import org.apache.tomcat.jdbc.pool.{PoolProperties, DataSource => TomcatDataSource}
+import org.flywaydb.core.Flyway
 
 trait Database {
   def password: String
@@ -60,7 +63,7 @@ trait Database {
     ret
   }
 
-  private lazy val database: SlickDatabase = {
+  private lazy val database: SlickDatabase = synchronized {
     migrate()
     SlickDatabase.forDataSource(dataSource)
   }
@@ -71,7 +74,7 @@ trait Database {
       flyway.setInitOnMigrate(true)
       flyway.setLocations(migrationLocations: _*)
       flyway.setDataSource(dataSource)
-      flyway.setValidateOnMigrate(RunMode.isProduction || RunMode.isStaging)
+      flyway.setValidateOnMigrate(false) //(RunMode.isProduction || RunMode.isStaging)
       flyway.migrate()
     }
 

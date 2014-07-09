@@ -56,6 +56,8 @@ $(function () {
     $.fn.submitForm = function (key, value, enabledForm) {
         var data = {};
         data[key] = value;
+        var bf = $("html").attr("class");
+        if (bf) data["browser-features"] = bf;
         var config = {data: data};
         if (!enabledForm) {
             config["beforeSubmit"] = disableForm;
@@ -93,10 +95,12 @@ $(function () {
 
     $(window)
         .on('hashchange', hashchange)
+        .on('load', twibsUpdateAfterDomChange)
+        .on('popstate', function(e) {if(e.originalEvent.state == "twibs-reload") location.reload()})
         .scroll(positionFixedContainers);
 
     $(document)
-        .on('click', 'button[type="submit"]', function (e) {
+        .on('click', 'button[type="submit"],input[type="submit"]', function (e) {
             var $this = $(this);
             $this.closest('form').submitForm($this.attr('name'), $this.val(), $this.hasClass("enabled-form"));
             e.preventDefault();
@@ -179,7 +183,9 @@ $(function () {
             initFixedContainers();
             positionFixedContainers();
 
-            $('.click-on-appear').removeClass('.click-on-appear').filter("[data-call]").appear(function () {$(this).trigger("click");});
+            $('.click-on-appear').removeClass('.click-on-appear').filter("[data-call]").appear(function () {
+                $(this).trigger("click");
+            });
         });
 
     $('body')
@@ -196,7 +202,7 @@ $(function () {
             $.ajax({
                 url: $this.attr('data-call'),
                 dataType: "script"
-            }).fail(failError).done(function() {
+            }).fail(failError).done(function () {
                 $this.removeClass("disabled");
                 twibsUpdateAfterDomChange();
             });
@@ -345,7 +351,5 @@ $(function () {
             this.selected = this.hasAttribute("selected");
         });
     }
-
-    twibsUpdateAfterDomChange();
 })
 ;

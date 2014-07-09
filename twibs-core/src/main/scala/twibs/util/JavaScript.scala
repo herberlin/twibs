@@ -22,7 +22,8 @@ object JavaScript {
 
     def call(method: String, parameters: JsParameter*) = new JsCmd(withDot + method + "(" + parameters.mkString(",") + ")")
 
-    def property(property: String) = new JsCmd(withDot + property)
+    def get(property: String) = new JsCmd(withDot + property)
+    def set(property: String, parameter: JsParameter) = new JsCmd(withDot + property + "=" + parameter)
 
     private def withDot = if (string.isEmpty) "" else string + "."
 

@@ -32,7 +32,7 @@ class Table(val tableName: String) {
     }
   }
 
-  case class LongColumn(name: String, default: Long = Long.MinValue) extends Column[Long] {
+  case class LongColumn(name: String, default: Long = 0L) extends Column[Long] {
     def get(rs: ResultSet, pos: Int) = rs.getLong(pos) match {case r if rs.wasNull() => default case r => r }
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setLong(pos, value.asInstanceOf[Long])
@@ -47,7 +47,7 @@ class Table(val tableName: String) {
     }
   }
 
-  case class IntColumn(name: String, default: Int = Int.MinValue) extends Column[Int] {
+  case class IntColumn(name: String, default: Int = 0) extends Column[Int] {
     def get(rs: ResultSet, pos: Int) = rs.getInt(pos) match {case r if rs.wasNull() => default case r => r }
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setInt(pos, value.asInstanceOf[Int])
@@ -68,7 +68,7 @@ class Table(val tableName: String) {
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setBoolean(pos, value.asInstanceOf[Boolean])
   }
 
-  case class DoubleColumn(name: String, default: Double = Double.MinValue) extends Column[Double] {
+  case class DoubleColumn(name: String, default: Double = 0d) extends Column[Double] {
     def get(rs: ResultSet, pos: Int) = rs.getDouble(pos) match {case r if rs.wasNull() => default case r => r }
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setDouble(pos, value.asInstanceOf[Double])
@@ -325,7 +325,7 @@ trait Query[T <: Product] {
   def select(implicit connection: Connection): Iterator[T] with AutoCloseable
 
   def firstOption(implicit connection: Connection): Option[T] = {
-    val s = limit(1).select(connection)
+    val s = select(connection)
     val it = s.toIterator
     val ret = if (it.hasNext) Some(it.next()) else None
     s.close()

@@ -219,7 +219,10 @@ trait Values extends TranslationSupport {
 
   def valueOption = values.headOption
 
-  def valueOption_=(valueOption: Option[ValueType]) = valueOption.map(v => values = v :: Nil)
+  def valueOption_=(valueOption: Option[ValueType]) = valueOption match {
+    case Some(v) => values = v :: Nil
+    case None => values = Nil
+  }
 
   def withValue[R](valueArg: ValueType)(f: this.type => R): R = withValues(valueArg :: Nil)(f)
 
