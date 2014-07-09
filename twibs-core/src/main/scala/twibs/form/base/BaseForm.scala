@@ -269,14 +269,14 @@ trait BaseForm extends Container with CurrentRequestSettings {
   private def getClassForActionLink(classToCheck: Class[_]): Class[_] =
     if (classToCheck.isLocalClass) getClassForActionLink(classToCheck.getSuperclass) else classToCheck
 
-  def actionLinkWithContextPathAndParameters(parameters: (String, String)*): String = actionLinkWithContextPath + queryString(parameters:_*)
+  def actionLinkWithContextPathAndParameters(parameters: (String, String)*): String = actionLinkWithContextPath + queryString(parameters: _*)
 
   def actionLinkWithContextPath: String = WebContext.path + actionLink
 
   private def queryString(parameters: (String, String)*) = {
-    val keyValues = (pnId -> id.string) :: (pnModal -> modal) :: parameters.toList ::: componentParameters
+    val keyValues = (pnId -> id.string) :: (pnModal -> modal) :: componentParameters ::: parameters.toList
     val all = if (ApplicationSettings.name != ApplicationSettings.DEFAULT_NAME) (ApplicationSettings.PN_NAME -> ApplicationSettings.name) :: keyValues else keyValues
-    "?" + all.map(e => e._1 + "=" + e._2).mkString("&")
+    "?" + all.distinct.map(e => e._1 + "=" + e._2).mkString("&")
   }
 
   def componentParameters: List[(String, String)] = components.collect({ case component: BaseField if component.isModified => component.strings.map(string => component.name -> string)}).flatten.toList
@@ -394,7 +394,9 @@ trait InteractiveComponent extends Component with Values {
 
   override def reset(): Unit = resetInputs()
 
-  def link(value: ValueType) = form.actionLinkWithContextPath + "?" + name + "=" + valueToString(value)
+  def link(value: ValueType) = form.actionLinkWithContextPathAndParameters(name -> valueToString(value))
+
+  def clearLink = form.actionLinkWithContextPathAndParameters(name -> "")
 }
 
 trait BaseField extends InteractiveComponent with Validatable {

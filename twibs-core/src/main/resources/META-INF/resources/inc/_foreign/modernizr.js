@@ -1,5 +1,5 @@
-/* Modernizr 2.7.1 (Custom Build) | MIT & BSD
- * Build: http://modernizr.com/download/#-borderradius-boxshadow-input-cssclasses-testprop-testallprops-prefixes-domprefixes-load
+/* Modernizr 2.8.3 (Custom Build) | MIT & BSD
+ * Build: http://modernizr.com/download/#-borderradius-boxshadow-history-input-cssclasses-testprop-testallprops-hasevent-prefixes-domprefixes-load
  */
 ;
 
@@ -7,7 +7,7 @@
 
 window.Modernizr = (function( window, document, undefined ) {
 
-    var version = '2.7.1',
+    var version = '2.8.3',
 
         Modernizr = {},
 
@@ -45,6 +45,41 @@ window.Modernizr = (function( window, document, undefined ) {
 
         featureName,
 
+        isEventSupported = (function() {
+
+            var TAGNAMES = {
+                'select': 'input', 'change': 'input',
+                'submit': 'form', 'reset': 'form',
+                'error': 'img', 'load': 'img', 'abort': 'img'
+            };
+
+            function isEventSupported( eventName, element ) {
+
+                element = element || document.createElement(TAGNAMES[eventName] || 'div');
+                eventName = 'on' + eventName;
+
+                var isSupported = eventName in element;
+
+                if ( !isSupported ) {
+                    if ( !element.setAttribute ) {
+                        element = document.createElement('div');
+                    }
+                    if ( element.setAttribute && element.removeAttribute ) {
+                        element.setAttribute(eventName, '');
+                        isSupported = is(element[eventName], 'function');
+
+                        if ( !is(element[eventName], 'undefined') ) {
+                            element[eventName] = undefined;
+                        }
+                        element.removeAttribute(eventName);
+                    }
+                }
+
+                element = null;
+                return isSupported;
+            }
+            return isEventSupported;
+        })(),
 
 
         _hasOwnProperty = ({}).hasOwnProperty, hasOwnProp;
@@ -158,11 +193,9 @@ window.Modernizr = (function( window, document, undefined ) {
             props = (prop + ' ' + (domPrefixes).join(ucProp + ' ') + ucProp).split(' ');
             return testDOMProps(props, prefixed, elem);
         }
-    }
-
-
-
-    tests['borderradius'] = function() {
+    }    tests['history'] = function() {
+        return !!(window.history && history.pushState);
+    };    tests['borderradius'] = function() {
         return testPropsAll('borderRadius');
     };
 
@@ -231,6 +264,7 @@ window.Modernizr = (function( window, document, undefined ) {
     Modernizr._cssomPrefixes  = cssomPrefixes;
 
 
+    Modernizr.hasEvent      = isEventSupported;
 
     Modernizr.testProp      = function(prop){
         return testProps([prop]);
