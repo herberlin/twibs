@@ -134,8 +134,6 @@ trait ButtonWithPopover extends BootstrapButton {
 
     override def displayTypeString = self.displayTypeString
 
-    override def stringOrEmpty: String = self.stringOrEmpty
-
     override def buttonUseIconOnly = buttonUseIconOnly2
 
     override def buttonAsElem: Elem =

@@ -255,7 +255,7 @@ trait FileEntryField extends Field with FileEntryValues with Result {
 
   override def inputAsEnrichedHtml(input: Input, index: Int): NodeSeq = {
     val link = input match {
-      case ValidInput(_, _, Some(fileEntry)) => fileEntry.path
+      case Input(_, _, Some(fileEntry), None, _) => fileEntry.path
       case _ => "#"
     }
     <p class="form-control-static clearfix"><div class="pull-right">{deleteButton.withValue(input.string)(_.buttonAsHtml)}</div><a href={link} target="_blank">{input.title}</a></p>
@@ -268,15 +268,10 @@ trait FileEntryField extends Field with FileEntryValues with Result {
   override def selfIsVisible: Boolean = values.length > 0
 
   private def processDeleteParameters(parameters: Seq[String]): Unit = {
-    def doit(output: ValueType) = {
+    val ret = parameters.flatMap(stringToValueOption).map{ output =>
       val message = Message.info(t"deleted-message: File ${output.title} was deleted")
       deleteFileEntry(output)
       message.showNotification
-    }
-
-    val ret = parameters.map(stringToValueConverter).collect {
-      case Success(output) => doit(output)
-      case SuccessAndTerminate(output) => doit(output)
     }
 
     reset()
@@ -350,8 +345,7 @@ trait UploadWithOverwrite extends Container {
     }
 
     private def processOverwriteParameters(strings: Seq[String]) = {
-      result = AfterFormDisplay(JsEmpty +: strings.map(stringToValueConverter).collect {
-        case Success(upload) =>
+      result = AfterFormDisplay(JsEmpty +: strings.flatMap(stringToValueOption).map { upload =>
           registerUpload(upload)
           Uploads.deregister(upload)
           values = values.filterNot(_ == upload)
@@ -360,8 +354,7 @@ trait UploadWithOverwrite extends Container {
     }
 
     private def processDeleteParameters(parameters: Seq[String]) = {
-      val ret = parameters.map(stringToValueConverter).collect {
-        case Success(value) =>
+      val ret = parameters.flatMap(stringToValueOption).map { value =>
           values = values.filterNot(_ == value)
           Message.info(t"deleted-message: File ${value.name} was deleted").showNotification
       }

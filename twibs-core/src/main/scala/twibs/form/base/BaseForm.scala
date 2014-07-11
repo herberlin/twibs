@@ -408,15 +408,17 @@ trait BaseField extends InteractiveComponent with Validatable {
 }
 
 trait RequiredIfRevealed extends BaseField {
-  private def checkRevealed: StringProcessor = (string: String) => if (isRevealed) Success(string) else SuccessAndTerminate(string)
+  private def checkRevealed(input: Input) = if (isRevealed) input else input.terminate()
 
-  override def stringProcessors: List[StringProcessor] = checkRevealed :: super.stringProcessors
+  override def stringProcessors: List[StringProcessor] = checkRevealed _ :: super.stringProcessors
 
   override def required = true
 }
 
 trait SubmitOnChange extends BaseField {
   override def submitOnChange = true
+
+  def isSubmittedOnChange = Request.parameters.getString("form-change", "") == name
 }
 
 trait UseLastParameterOnly extends BaseField {

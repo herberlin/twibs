@@ -27,4 +27,9 @@ class HtmlUtilsTest extends TwibsTest {
         |Das beste Rezept für kalte Tage: Dick einpacken, gemütlich zusammenrücken und einander warme Gedanken senden.
         | """.stripMargin.trim)
   }
+
+  test("Anything goes") {
+    HtmlUtils.cleanup("<font color='red'>50% RABATT (bereits im") should be("50% RABATT (bereits im")
+    HtmlUtils.cleanup("""<span class="red"><strong><b>50</b></strong>""") should be("""<span class="red"><strong><b>50</b></strong></span>""")
+  }
 }

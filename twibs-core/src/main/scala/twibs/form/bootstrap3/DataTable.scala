@@ -32,9 +32,9 @@ trait DataTable[T] extends StaticContainer {
 
     override def defaultValues = optionValues(1) :: Nil
 
-    override def titleForValue(value: ValueType): String = value match {
+    override def computeTitleForValue(value: ValueType): String = value match {
       case Int.MaxValue => t"all-table-items: All"
-      case _ => super.titleForValue(value)
+      case _ => super.computeTitleForValue(value)
     }
   }
 

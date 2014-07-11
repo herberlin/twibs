@@ -15,9 +15,13 @@ trait Message extends DisplayType {
 
   def showNotification: JsCmd = showNotification(Map())
 
-  def showNotification(options: Map[String, Any] = Map()): JsCmd = JsCmd("").call("new PNotify",Map("text" -> text, "type" -> displayTypeString.replace("danger", "error"), "nonblock" -> true, "nonblock_opacity" -> 0.2) ++ options)
+  def showNotification(options: Map[String, Any] = Map()): JsCmd = JsCmd("").call("new PNotify", Map("text" -> text, "type" -> displayTypeString.replace("danger", "error"), "nonblock" -> true, "nonblock_opacity" -> 0.2) ++ options)
 
   override def toString: String = s"$displayTypeString: $text"
+
+  override def hashCode(): Int = text.hashCode + displayTypeString.hashCode
+
+  override def equals(obj: Any): Boolean = obj match {case o: Message if o.text == text && o.displayTypeString == displayTypeString => true case _ => false }
 }
 
 abstract class MessageImpl(val text: NodeSeq) extends Message

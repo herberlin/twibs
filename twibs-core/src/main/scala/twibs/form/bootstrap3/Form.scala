@@ -164,10 +164,7 @@ abstract class Field private(override val ilk: String, val parent: Container, un
 
   def inputWithMessageHtml(input: Input, index: Int): NodeSeq = inputAsEnrichedHtml(input, index) ++ messageHtmlFor(input)
 
-  def messageHtmlFor(input: Input): NodeSeq = input match {
-    case i: InvalidInput if validated => <div class="help-block">{i.message}</div>
-    case _ => NodeSeq.Empty
-  }
+  def messageHtmlFor(input: Input): NodeSeq = input.messageOption.fold(NodeSeq.Empty)(_.text)
 
   def inputAsEnrichedHtml(input: Input, index: Int): NodeSeq = inputAsEnrichedElem(input, index)
 

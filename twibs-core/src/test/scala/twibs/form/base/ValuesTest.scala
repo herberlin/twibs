@@ -4,9 +4,11 @@
 
 package twibs.form.base
 
-import org.threeten.bp.LocalDateTime
 import twibs.TwibsTest
-import twibs.util.Translator
+import twibs.util.XmlUtils._
+import twibs.util.{Message, Translator}
+
+import org.threeten.bp.LocalDateTime
 
 class ValuesTest extends TwibsTest {
 
@@ -14,10 +16,12 @@ class ValuesTest extends TwibsTest {
     override def translator: Translator = Translator
   }
 
+  implicit def w(text: String): Option[Message] = Some(Message.warning(text))
+
   test("Optional string validation") {
     val validator = new TestField with LongValues
 
-    validator.validateString("") should be(validator.ValidInput("", "", None))
+    validator.validateString("") should be(validator.Input("", "", None, None, false))
     validator.strings = "" :: Nil
     validator.validate() should beTrue
   }
@@ -25,8 +29,8 @@ class ValuesTest extends TwibsTest {
   test("Required string validation") {
     val validator = new TestField with StringValues with Required with Untrimmed
 
-    validator.validateString("") should be(validator.InvalidInput("", "", "This field is required.", None))
-    validator.validateString(" ") should be(validator.ValidInput(" ", " ", Some(" ")))
+    validator.validateString("") should be(validator.Input("", "", None, "This field is required."))
+    validator.validateString(" ") should be(validator.Input(" ", " ", Some(" ")))
   }
 
   test("Required string validation with trim") {
@@ -34,9 +38,9 @@ class ValuesTest extends TwibsTest {
       override def required: Boolean = true
     }
 
-    validator.validateString("") should be(validator.InvalidInput("", "", "This field is required.", None))
-    validator.validateString(" ") should be(validator.InvalidInput("", " ", "This field is required.", None))
-    validator.validateString(" r ") should be(validator.ValidInput("r", "r", Some("r")))
+    validator.validateString("") should be(validator.Input("", "", None, "This field is required."))
+    validator.validateString(" ") should be(validator.Input("", " ", None, "This field is required."))
+    validator.validateString(" r ") should be(validator.Input("r", "r", Some("r")))
   }
 
   test("Minimal length validation") {
@@ -44,8 +48,8 @@ class ValuesTest extends TwibsTest {
       override def minimumLength: Int = 2
     }
 
-    validator.validateString("r") should be(validator.InvalidInput("r", "r", "Please enter at least 2 characters.", None))
-    validator.validateString("rr") should be(validator.ValidInput("rr", "rr", Some("rr")))
+    validator.validateString("r") should be(validator.Input("r", "r", None, "Please enter at least 2 characters."))
+    validator.validateString("rr") should be(validator.Input("rr", "rr", Some("rr")))
   }
 
   test("Maximum length validation") {
@@ -53,8 +57,8 @@ class ValuesTest extends TwibsTest {
       override def maximumLength: Int = 2
     }
 
-    validator.validateString("rr") should be(validator.ValidInput("rr", "rr", Some("rr")))
-    validator.validateString("rrr") should be(validator.InvalidInput("rrr", "rrr", "Please enter no more than 2 characters.", None))
+    validator.validateString("rr") should be(validator.Input("rr", "rr", Some("rr")))
+    validator.validateString("rrr") should be(validator.Input("rrr", "rrr", None, "Please enter no more than 2 characters."))
   }
 
   test("Regex validation") {
@@ -62,15 +66,15 @@ class ValuesTest extends TwibsTest {
       override def regex = "[0-9]+"
     }
 
-    validator.validateString("0123") should be(validator.ValidInput("0123", "0123", Some("0123")))
-    validator.validateString("r") should be(validator.InvalidInput("r", "r", "Please enter a string that matches '[0-9]+'.", None))
+    validator.validateString("0123") should be(validator.Input("0123", "0123", Some("0123")))
+    validator.validateString("r") should be(validator.Input("r", "r", None, "Please enter a string that matches '[0-9]+'."))
   }
 
   test("Email address validation") {
     val field = new TestField with EmailAddressValues
 
-    field.validateString("info@example.com") should be(field.ValidInput("info@example.com", "info@example.com", Some("info@example.com")))
-    field.validateString("info @example.com") should be(field.InvalidInput("info @example.com", "info @example.com", "Please enter a valid email address.", Some("info @example.com")))
+    field.validateString("info@example.com") should be(field.Input("info@example.com", "info@example.com", Some("info@example.com")))
+    field.validateString("info @example.com") should be(field.Input("info @example.com", "info @example.com", Some("info @example.com"), "Please enter a valid email address."))
     field.strings = "mb@example.com" :: "noemail" :: Nil
     field.strings should be("mb@example.com" :: "noemail" :: Nil)
     field.values should be("mb@example.com" :: Nil)
@@ -79,8 +83,8 @@ class ValuesTest extends TwibsTest {
   test("Web address validation") {
     val validator = new TestField with WebAddressValues
 
-    validator.validateString("http://www.example.com") should be(validator.ValidInput("http://www.example.com", "http://www.example.com", Some("http://www.example.com")))
-    validator.validateString("http://www") should be(validator.InvalidInput("http://www", "http://www", "Bitte geben Sie eine gültige URL ein.", Some("http://www")))
+    validator.validateString("http://www.example.com") should be(validator.Input("http://www.example.com", "http://www.example.com", Some("http://www.example.com")))
+    validator.validateString("http://www") should be(validator.Input("http://www", "http://www", Some("http://www"), "Bitte geben Sie eine gültige URL ein."))
   }
 
   test("Long validation") {
@@ -120,13 +124,27 @@ class ValuesTest extends TwibsTest {
 
 
   test("Options with titles") {
-    val field = new TestField with LongValues with Options with Required with TranslatedOptions {
+    val field = new TestField with LongValues with Options with Required with TranslatedValueTitles {
       override def computeOptions: List[OptionI] = toOptions(1L :: Nil)
 
       def optionShouldBe = OptionI("1", "One", 1L)
     }
 
     field.options should be(List(field.optionShouldBe))
+  }
+
+  test("String options with string values") {
+    val field = new TestField with StringValues with Options with Required {
+      override def computeOptions: List[OptionI] =
+        new OptionI("1", "One", "one", true) ::
+          new OptionI("3", "Three", "three", true) :: Nil
+    }
+    field.value = "three"
+    field.string should be("3")
+    field.string = "1"
+    field.value should be("one")
+    field.titleForValue("one") should be("One")
+    field.titleForValue("any") should be("any")
   }
 
   test("Empty strings are padded") {
