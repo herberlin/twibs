@@ -81,6 +81,7 @@ class QueryDslTest extends TwibsTest {
         query(userTable.sort).where(userTable.lastName === "Zappa").update(1L) should be(2)
         deleteFrom(userTable).where(userTable.firstName === "Dweezil").delete should be(1)
         query(userTable.lastName).where(userTable.firstName like "Frank").size should be(1)
+        query(userTable.firstName, userTable.lastName).convert(User.tupled,User.unapply).where(userTable.id like "%1%").size should be(1)
         query(userTable.firstName).where(userTable.lastName === "Zappa").orderBy(userTable.sort asc).orderBy(userTable.firstName desc).select.map(_._1).toList should be(List("Frank"))
         query(userTable.firstName).orderBy(userTable.sort desc).select.map(_._1).toList should be(List("Tommy", "Ike", "Frank"))
         query(userTable.firstName, userTable.lastName).convert(User.tupled,User.unapply).where(userTable.firstName === "Tommy").first.lastName should be ("Mars")

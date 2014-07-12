@@ -1,7 +1,7 @@
 package twibs.db
 
 import java.sql.{Connection, PreparedStatement, ResultSet}
-import scala.Tuple1
+
 import twibs.util.SortOrder
 import twibs.util.SortOrder.SortOrder
 
@@ -131,8 +131,8 @@ object QueryDsl {
       orderBy(orderBys.map { case (name, sort) =>
         columnForName(name).flatMap(column =>
             sort match {
-              case SortOrder.Ascending => Some(column.asc)
-              case SortOrder.Descending => Some(column.desc)
+              case SortOrder.Ascending => Some(column.asc.nullsLast)
+              case SortOrder.Descending => Some(column.desc.nullsLast)
               case _ => None
             }
         )

@@ -41,6 +41,14 @@ function twibsClosePopoversByScript() {
     $('.popover.in').detach();
 }
 
+function twibsPushState(state, title, pathname) {
+    if (window.location.pathname != pathname) {
+        window.history.replaceState("twibs-reload", document.title, document.location.href);
+        window.history.pushState(state, title, pathname);
+        document.title = title;
+    }
+}
+
 $(function () {
     var cp = typeof contextPath !== 'undefined' ? contextPath : '';
 
@@ -96,7 +104,11 @@ $(function () {
     $(window)
         .on('hashchange', hashchange)
         .on('load', twibsUpdateAfterDomChange)
-        .on('popstate', function(e) {if(e.originalEvent.state == "twibs-reload") location.reload()})
+        .on('popstate', function (e) {
+            if (e.originalEvent.state == "twibs-reload") {
+                location.reload()
+            }
+        })
         .scroll(positionFixedContainers);
 
     $(document)

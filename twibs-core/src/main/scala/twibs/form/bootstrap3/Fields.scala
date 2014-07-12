@@ -72,8 +72,9 @@ trait AbstractDateTimeField extends SingleLineField with JavascriptComponent {
 
   private def inputGroupId = id ~ "input-group"
 
+
   override def suffixes: List[NodeSeq] =
-    if (isEnabled) clearButton :: <span class="fa fa-calendar"></span> :: super.suffixes
+    if (isEnabled) clearButton :: <span class="glyphicon glyphicon-calendar"></span> :: super.suffixes // ATTENTION: datetimepicker needs glyphicon!!
     else super.suffixes
 
   override def surroundWithInputGroup(input: Input, nodeSeq: NodeSeq): Elem =

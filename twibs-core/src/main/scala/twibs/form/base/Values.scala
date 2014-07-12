@@ -53,7 +53,7 @@ trait Values extends TranslationSupport {
           values.map(validateValue)
         case None =>
           val ret = defaultValues.map(validateValue)
-          ret.toList ::: (for (i <- ret.size until minimumNumberOfInputs) yield validateString("")).toList
+          ret.toList ::: (for (i <- ret.size until minimumNumberOfInputs) yield stringToInput("")).toList
       }
     }
   }
@@ -203,6 +203,8 @@ trait Values extends TranslationSupport {
   }
 
   final def defaultValue = defaultValues.head
+
+  final def defaultValueOption = defaultValues.headOption
 
   final def valueOrDefault = valueOption getOrElse defaultValue
 

@@ -2,7 +2,7 @@ package twibs.db
 
 import java.sql._
 
-import twibs.util.Loggable
+import twibs.util.{Translator, Loggable}
 import twibs.util.Predef._
 import twibs.util.SortOrder.SortOrder
 import twibs.util.ThreeTenTransition._
@@ -20,7 +20,7 @@ class Table(val tableName: String) {
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setString(pos, value.asInstanceOf[String])
 
-    def like(right: String): Where = new ColumnWhere("LIKE", right)
+    override def asVarChar: String = s"LOWER($fullName)"
   }
 
   case class StringOptionColumn(name: String) extends Column[Option[String]] with OptionalColumn {
@@ -30,12 +30,16 @@ class Table(val tableName: String) {
       case Some(value) => ps.setString(pos, value)
       case None => ps.setNull(pos, Types.VARCHAR)
     }
+
+    override def asVarChar: String = s"LOWER($fullName)"
   }
 
   case class LongColumn(name: String, default: Long = 0L) extends Column[Long] {
     def get(rs: ResultSet, pos: Int) = rs.getLong(pos) match {case r if rs.wasNull() => default case r => r }
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setLong(pos, value.asInstanceOf[Long])
+
+    override def asVarChar: String = s"$fullName::varchar"
   }
 
   case class LongOptionColumn(name: String) extends Column[Option[Long]] with OptionalColumn {
@@ -45,12 +49,16 @@ class Table(val tableName: String) {
       case Some(value) => ps.setLong(pos, value)
       case None => ps.setNull(pos, Types.BIGINT)
     }
+
+    override def asVarChar: String = s"$fullName::varchar"
   }
 
   case class IntColumn(name: String, default: Int = 0) extends Column[Int] {
     def get(rs: ResultSet, pos: Int) = rs.getInt(pos) match {case r if rs.wasNull() => default case r => r }
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setInt(pos, value.asInstanceOf[Int])
+
+    override def asVarChar: String = s"$fullName::varchar"
   }
 
   case class IntOptionColumn(name: String) extends Column[Option[Int]] with OptionalColumn {
@@ -60,18 +68,24 @@ class Table(val tableName: String) {
       case Some(value) => ps.setInt(pos, value)
       case None => ps.setNull(pos, Types.BIGINT)
     }
+
+    override def asVarChar: String = s"$fullName::varchar"
   }
 
   case class BooleanColumn(name: String, default: Boolean = false) extends Column[Boolean] {
     def get(rs: ResultSet, pos: Int) = rs.getBoolean(pos) match {case r if rs.wasNull() => default case r => r }
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setBoolean(pos, value.asInstanceOf[Boolean])
+
+    override def asVarChar: String = s"$fullName::varchar"
   }
 
   case class DoubleColumn(name: String, default: Double = 0d) extends Column[Double] {
     def get(rs: ResultSet, pos: Int) = rs.getDouble(pos) match {case r if rs.wasNull() => default case r => r }
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setDouble(pos, value.asInstanceOf[Double])
+
+    override def asVarChar: String = s"$fullName::varchar"
   }
 
   case class DoubleOptionColumn(name: String) extends Column[Option[Double]] with OptionalColumn {
@@ -81,12 +95,16 @@ class Table(val tableName: String) {
       case Some(value) => ps.setDouble(pos, value)
       case None => ps.setNull(pos, Types.DOUBLE)
     }
+
+    override def asVarChar: String = s"$fullName::varchar"
   }
 
   case class LocalDateTimeColumn(name: String, default: LocalDateTime = LocalDateTime.MIN) extends Column[LocalDateTime] {
     def get(rs: ResultSet, pos: Int) = Option(rs.getTimestamp(pos)).fold(default)(_.toLocalDateTime)
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setTimestamp(pos, value.asInstanceOf[LocalDateTime].toTimestamp)
+
+    override def asVarChar: String = s"to_char($fullName, '${Translator.translate("date-time-format-sql", "DD.MM.YYYY HH24:MI:SS")}')"
   }
 
   case class LocalDateTimeOptionColumn(name: String) extends Column[Option[LocalDateTime]] with OptionalColumn {
@@ -96,12 +114,16 @@ class Table(val tableName: String) {
       case Some(value) => ps.setTimestamp(pos, value.toTimestamp)
       case None => ps.setNull(pos, Types.TIMESTAMP)
     }
+
+    override def asVarChar: String = s"to_char($fullName, '${Translator.translate("date-time-format-sql", "DD.MM.YYYY HH24:MI:SS")}')"
   }
 
   case class LocalDateColumn(name: String, default: LocalDate = LocalDate.MIN) extends Column[LocalDate] {
     def get(rs: ResultSet, pos: Int) = Option(rs.getDate(pos)).fold(default)(_.toLocalDate)
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setDate(pos, value.asInstanceOf[LocalDate].toDate)
+
+    override def asVarChar: String = s"to_char($fullName, '${Translator.translate("date-format-sql", "DD.MM.YYYY")}')"
   }
 
   case class LocalDateOptionColumn(name: String) extends Column[Option[LocalDate]] with OptionalColumn {
@@ -111,12 +133,16 @@ class Table(val tableName: String) {
       case Some(value) => ps.setDate(pos, value.toDate)
       case None => ps.setNull(pos, Types.DATE)
     }
+
+    override def asVarChar: String = s"to_char($fullName, '${Translator.translate("date-format-sql", "DD.MM.YYYY")}')"
   }
 
   case class EnumColumn[T <: Enumeration](name: String, enum: T, defaultIndex: Int = 0) extends Column[T#Value] {
     def get(rs: ResultSet, pos: Int) = enum(rs.getInt(pos) match { case r if rs.wasNull() => defaultIndex case r => r})
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setInt(pos, value.asInstanceOf[T#Value].id)
+
+    override def asVarChar: String = s"$fullName::varchar"
   }
 
   case class EnumOptionColumn[T <: Enumeration](name: String, enum: T) extends Column[Option[T#Value]] {
@@ -126,6 +152,8 @@ class Table(val tableName: String) {
       case Some(value) => ps.setInt(pos, value.id)
       case None => ps.setNull(pos, Types.INTEGER)
     }
+
+    override def asVarChar: String = s"$fullName::varchar"
   }
 
   def size(implicit connection: Connection) = Statement(s"SELECT count(*) FROM $tableName").size(connection)
@@ -134,9 +162,11 @@ class Table(val tableName: String) {
 class AggregateColumn[T](delegatee: Column[T]) extends Column[T]()(delegatee.table) {
   override def set(ps: PreparedStatement, pos: Int, value: Any): Unit = throw new IllegalArgumentException("Aggregate columns can not be set")
 
-  override def name: String = delegatee.name
+  override def name = delegatee.name
 
   override def get(rs: ResultSet, pos: Int): T = delegatee.get(rs, pos)
+
+  override def asVarChar = delegatee.asVarChar
 }
 
 abstract class Column[T](implicit val table: Table) {
@@ -150,6 +180,12 @@ abstract class Column[T](implicit val table: Table) {
   def get(rs: ResultSet, pos: Int): T
 
   def set(ps: PreparedStatement, pos: Int, value: Any): Unit
+
+  def asVarChar: String
+
+  private lazy val asStringColumn =  new table.StringColumn(asVarChar) {
+    override def fullName: String = name
+  }
 
   protected class ColumnWhere(operator: String, right: T) extends Where {
     private[db] override def toStatement = Statement(s"$fullName $operator ?", (self, right) :: Nil)
@@ -176,6 +212,8 @@ abstract class Column[T](implicit val table: Table) {
   def in(vals: Seq[T]): Where = new Where {
     private[db] override def toStatement = Statement(s"$fullName in (${vals.map(_ => "?").mkString(",")})", vals.map(right => (self, right)))
   }
+
+  def like(string: String): Where = new asStringColumn.ColumnWhere("LIKE", string)
 
   def asc: OrderBy = new OrderBy {
     override def toStatement = Statement(s"$fullName ASC")
@@ -243,6 +281,14 @@ trait OrderBy {
   }
 
   private[db] def toStatement: Statement
+
+  def nullsLast: OrderBy = new OrderBy {
+    override private[db] def toStatement: Statement = self.toStatement ~ Statement(" NULLS LAST")
+  }
+
+  def nullsFirst: OrderBy = new OrderBy {
+    override private[db] def toStatement: Statement = self.toStatement ~ Statement(" NULLS FIRST")
+  }
 }
 
 private case class Statement(sql: String, parameters: Seq[(Column[_], Any)] = Nil) {
