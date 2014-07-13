@@ -2,7 +2,7 @@ package twibs.db
 
 import java.sql._
 
-import twibs.util.{Translator, Loggable}
+import twibs.util.{SqlUtils, Translator, Loggable}
 import twibs.util.Predef._
 import twibs.util.SortOrder.SortOrder
 import twibs.util.ThreeTenTransition._
@@ -284,7 +284,7 @@ trait OrderBy {
 
   def nullsLast: OrderBy = new OrderBy {
     override private[db] def toStatement: Statement = self.toStatement ~ Statement(" NULLS LAST")
-  }
+}
 
   def nullsFirst: OrderBy = new OrderBy {
     override private[db] def toStatement: Statement = self.toStatement ~ Statement(" NULLS FIRST")
@@ -397,6 +397,31 @@ trait Query[T <: Product] {
   def isEmpty(implicit connection: Connection): Boolean = size(connection) == 0
 
   def convert[R <: Product](to: (T) => R, from: (R) => Option[T] = (x: R) => None): Query[R]
+
+  def tableData(queryString: String, offset: Long, limit: Int, sortBy: List[(String, SortOrder)])(implicit connection: Connection): TableData[T] = {
+    val total = size
+
+    val q =
+      queryString.toLowerCase.split("\\s+").toList.flatMap { qs =>
+        columns.map(_.like("%" + SqlUtils.escapeForLike(qs) + "%")) match {
+          case Nil => None
+          case l => Some(l.tail.foldLeft(l.head)(_ || _))
+        }
+      } match {
+        case Nil => this
+        case l => this.where(l.tail.foldLeft(l.head)(_ && _))
+      }
+
+    val displayed = q.size
+
+    val start = Math.min(displayed - displayed % limit, offset)
+
+    val end = Math.min(displayed, start + limit)
+
+    val ret = q.offset(start.toInt).limit(limit).orderByName(sortBy).select
+
+    TableData(limit, start, end, displayed, total, ret)
+  }
 }
 
 private[db] class AutoCounter {

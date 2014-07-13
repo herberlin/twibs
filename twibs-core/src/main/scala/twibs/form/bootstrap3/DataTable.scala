@@ -222,6 +222,9 @@ trait DataTable[T] extends StaticContainer {
 
   object DataColumn {
     def apply(name: String): DataColumn = DataColumn(name, name)
-    def apply(column: twibs.db.Column[_]) : DataColumn = DataColumn(column.name)
+    def apply(column: twibs.db.Column[_]) : DataColumn =
+      new DataColumn(column.name) {
+        override def titleString = translator.usage("tables").usage(column.table.tableName).usage(column.name).translate("column-title", super.titleString)
+      }
   }
 }

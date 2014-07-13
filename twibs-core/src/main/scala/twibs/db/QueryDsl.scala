@@ -131,8 +131,8 @@ object QueryDsl {
       orderBy(orderBys.map { case (name, sort) =>
         columnForName(name).flatMap(column =>
             sort match {
-              case SortOrder.Ascending => Some(column.asc.nullsLast)
-              case SortOrder.Descending => Some(column.desc.nullsLast)
+              case SortOrder.Ascending => Some(column.asc)
+              case SortOrder.Descending => Some(column.desc)
               case _ => None
             }
         )
