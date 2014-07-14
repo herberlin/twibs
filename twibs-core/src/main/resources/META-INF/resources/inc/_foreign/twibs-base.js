@@ -112,7 +112,7 @@ $(function () {
         .scroll(positionFixedContainers);
 
     $(document)
-        .on('click', 'button[type="submit"],input[type="submit"]', function (e) {
+        .on('click', '.twibs-form button[type="submit"],.twibs-form input[type="submit"]', function (e) {
             var $this = $(this);
             $this.closest('form').submitForm($this.attr('name'), $this.val(), $this.hasClass("enabled-form"));
             e.preventDefault();
@@ -148,7 +148,7 @@ $(function () {
             $prev.focus();
             $prev.trigger("change");
         })
-        .on('change', 'form.twibs-form .submit-on-change', function () {
+        .on('change', '.twibs-form .submit-on-change', function () {
             var $this = $(this);
             window.setTimeout(function () {
                 $this.reloadForm($this.attr('name'))

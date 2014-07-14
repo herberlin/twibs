@@ -229,16 +229,16 @@ trait RadioField extends CheckOrRadioField {
   def checkOrRadioType = "radio"
 }
 
-trait BooleanCheckBoxField extends Field with BooleanValues with FloatingInfo {
+trait BooleanCheckBoxField extends Field with BooleanValues with FloatingInfo with UseLastParameterOnly {
   override def inputsAsHtml: NodeSeq = infoHtml ++ super.inputsAsHtml
 
   override def formGroupTitle = Unparsed("&nbsp;") // IE8 needs this to show empty divs after page break in print view.
 
   override def inputAsEnrichedHtml(value: Input, index: Int) =
-      <div class="checkbox"><label>{super.inputAsEnrichedHtml(value, index)}{super.formGroupTitle}</label></div>
+    form.renderer.hiddenInput(name, "false") ++ <div class="checkbox"><label>{super.inputAsEnrichedHtml(value, index)}{super.formGroupTitle}</label></div>
 
   override def inputAsElem(input: Input) =
-      <input type="checkbox" value="true" />.set(input.string == "true", "checked")
+    <input type="checkbox" value="true" />.set(input.string == "true", "checked")
 
   override def inputCssClasses: List[String] = super.inputCssClasses.filterNot(_ == "form-control")
 

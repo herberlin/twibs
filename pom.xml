@@ -77,7 +77,7 @@
                 <plugin>
                     <groupId>net.alchim31.maven</groupId>
                     <artifactId>scala-maven-plugin</artifactId>
-                    <version>3.1.6</version>
+                    <version>3.2.0</version>
                     <executions>
                         <execution>
                             <id>scala-compile-first</id>
@@ -103,8 +103,7 @@
                         </execution>
                     </executions>
                     <configuration>
-                        <!--<recompileMode>incremental</recompileMode>-->
-                        <recompileMode>all</recompileMode>
+                        <recompileMode>incremental</recompileMode>
                         <scalaVersion>${scala.version}</scalaVersion>
                         <checkMultipleScalaVersions>false</checkMultipleScalaVersions>
                         <args>

@@ -354,7 +354,7 @@ trait Query[T <: Product] {
 
   def join(left: Column[_], right: Column[_]): Query[T]
 
-  def groupBy(column: Column[_]): Query[T]
+  def groupBy(columns: Column[_]*): Query[T]
 
   def offset(offset: Long): Query[T]
 

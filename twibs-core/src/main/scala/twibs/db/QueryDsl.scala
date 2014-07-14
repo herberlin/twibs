@@ -110,7 +110,7 @@ object QueryDsl {
 
     override def where(whereArg: Where): Query[T] = copy(where = where && whereArg)
 
-    override def groupBy(column: Column[_]): Query[T] = copy(groupBy = column :: groupBy)
+    override def groupBy(columns: Column[_]*): Query[T] = copy(groupBy = columns.toList ::: groupBy)
 
     override def join(left: Column[_], right: Column[_]): Query[T] = copy(joins = (left, right) :: joins)
 
