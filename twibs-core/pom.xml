@@ -3,10 +3,10 @@
     <parent>
         <groupId>net.twibs</groupId>
         <artifactId>twibs-parent</artifactId>
-        <version>0.10-SNAPSHOT</version>
+        <version>0.10</version>
     </parent>
     <artifactId>twibs-core</artifactId>
-    <version>0.10-SNAPSHOT</version>
+    <version>0.10</version>
     <packaging>jar</packaging>
     <name>Twibs: Core Libraries</name>
     <url>https://github.com/hombre/twibs</url>
@@ -33,7 +33,7 @@
         <url>https://github.com/hombre/twibs.git</url>
         <connection>scm:git:https://github.com/hombre/twibs.git</connection>
         <developerConnection>scm:git:https://github.com/hombre/twibs.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>v0.10</tag>
     </scm>
     <build>
         <defaultGoal>install</defaultGoal>
