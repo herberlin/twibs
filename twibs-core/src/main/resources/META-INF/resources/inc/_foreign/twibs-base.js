@@ -115,6 +115,7 @@ $(function () {
         .on('click', '.twibs-form button[type="submit"],.twibs-form input[type="submit"]', function (e) {
             var $this = $(this);
             $this.closest('form').submitForm($this.attr('name'), $this.val(), $this.hasClass("enabled-form"));
+            e.stopPropagation();
             e.preventDefault();
         })
         .on('click', '.submit', function (e) {
