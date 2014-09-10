@@ -47,9 +47,11 @@ abstract class Form(override val ilk: String) extends BaseForm {
      </div>
     </div>
 
-  def formHtml(modal: Boolean) = if (isConcealed) noAccessHtml
-  else
-    <form id={id} name={name} class={formCssClasses} action={actionLinkWithContextPath} method="post" enctype={enctype}>
+  def formHtml(modal: Boolean) = state match {
+    case ComponentState.Hidden => noAccessHtml
+    case ComponentState.Ignored => NodeSeq.Empty
+    case _ =>
+      <form id={id} name={name} class={formCssClasses} action={actionLinkWithContextPath} method="post" enctype={enctype}>
       {renderer.hiddenInput(pnId, id) ++ renderer.hiddenInput(pnModal, "" + modal) ++ renderer.hiddenInput(ApplicationSettings.PN_NAME, requestSettings.applicationSettings.name)}
       <div class="modal transfer-modal">
         <div class="modal-dialog">
@@ -72,6 +74,7 @@ abstract class Form(override val ilk: String) extends BaseForm {
         {enrichedHtml}
       </div>
     </form>
+  }
 
   def formHeader = if (formHeaderContent.isEmpty) formHeaderContent else <header class="form-header">{formHeaderContent}</header>
 
@@ -175,10 +178,10 @@ abstract class Field private(override val ilk: String, val parent: Container, un
     elem.setIfMissing("name", name)
       .setIfMissing("id", idForIndex(index))
       .addClasses(inputCssClasses)
-      .addClass(isDisabled, "disabled")
-      .addClass(!isDisabled, "can-be-disabled")
+      .addClass(state.isDisabled, "disabled")
+      .addClass(state.isEnabled, "can-be-disabled")
       .addClass(submitOnChange, "submit-on-change")
-      .setIfMissing(isDisabled, "disabled", "disabled")
+      .setIfMissing(state.isDisabled, "disabled", "disabled")
       .setIfMissing(name != ilk, "data-ilk", ilk)
 
   private def idForIndex(index: Int): String = id + (if (index > 0) index.toString else "")
@@ -209,11 +212,13 @@ object Bootstrap {
     </div>
 }
 
-abstract class Button(override val ilk: String)(implicit val parent: Container) extends Executable with Result with BootstrapButton
+abstract class Button private(override val ilk: String, val parent: Container, unit: Unit = Unit) extends Executable with Result with BootstrapButton {
+  def this(ilk: String)(implicit parent: Container) = this(ilk, parent)
+}
 
 trait LinkButton extends BootstrapButton {
   override def buttonAsElem: Elem =
-    if (isEnabled)
+    if (state.isEnabled)
       <a href="#" data-call={dataCall}>{renderButtonTitle}</a>
     else
       <span>{renderButtonTitle}</span>

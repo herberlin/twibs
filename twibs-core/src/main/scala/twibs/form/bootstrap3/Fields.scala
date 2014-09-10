@@ -4,19 +4,23 @@
 
 package twibs.form.bootstrap3
 
-import org.threeten.bp.format.DateTimeFormatter
-import org.threeten.bp.{LocalDate, LocalDateTime}
+import scala.xml._
+
+import twibs.form.base.ComponentState.ComponentState
 import twibs.form.base._
 import twibs.util.JavaScript._
-import twibs.util.{InfoDisplayType, DangerDisplayType, Message, Translator}
+import twibs.util.{DangerDisplayType, InfoDisplayType, Message, Translator}
 import twibs.web.Upload
-import xml._
 
-trait ReadOnlyField extends Field {
-  override def inputAsEnrichedHtml(input: Input, index: Int) =
-    form.renderer.hiddenInput(name, input.string) ++ <p class="form-control-static">{input.title}</p>
+import org.threeten.bp.format.DateTimeFormatter
+import org.threeten.bp.{LocalDate, LocalDateTime}
 
-  override def inputAsElem(input: Input) = <span></span>
+trait DisabledField extends Field {
+//  override def inputAsEnrichedHtml(input: Input, index: Int) =
+//    form.renderer.hiddenInput(name, input.string) ++ <p class="form-control-static">{input.title}</p>
+//
+//  override def inputAsElem(input: Input) = <span></span>
+  override def state: ComponentState = super.state.disabled
 }
 
 trait Emptiable extends Field {
@@ -64,7 +68,7 @@ trait AbstractDateTimeField extends SingleLineField with JavascriptComponent {
   def autoClose = true
 
   override def javascript =
-    if (isEnabled)
+    if (state.isEnabled)
       if (submitOnChange) initDateTimeJs.call("on", "changeDate", JsCmd("$(this).reloadForm()")) else initDateTimeJs
     else JsEmpty
 
@@ -74,7 +78,7 @@ trait AbstractDateTimeField extends SingleLineField with JavascriptComponent {
 
 
   override def suffixes: List[NodeSeq] =
-    if (isEnabled) clearButton :: <span class="glyphicon glyphicon-calendar"></span> :: super.suffixes // ATTENTION: datetimepicker needs glyphicon!!
+    if (state.isEnabled) clearButton :: <span class="glyphicon glyphicon-calendar"></span> :: super.suffixes // ATTENTION: datetimepicker needs glyphicon!!
     else super.suffixes
 
   override def surroundWithInputGroup(input: Input, nodeSeq: NodeSeq): Elem =
@@ -266,7 +270,7 @@ trait FileEntryField extends Field with FileEntryValues with Result {
 
   override def maximumNumberOfInputs: Int = Int.MaxValue
 
-  override def selfIsVisible: Boolean = values.length > 0
+  override def state = super.state.hideIf(values.length <= 0)
 
   private def processDeleteParameters(parameters: Seq[String]): Unit = {
     val ret = parameters.flatMap(stringToValueOption).map{ output =>
@@ -302,12 +306,12 @@ trait UploadWithOverwrite extends Container {
     override def defaultValues: Seq[ValueType] = defaultFileEntries
   }
 
-  val uploadsField = new Field("overwriting-uploads") with UploadValues with ReadOnlyField with Executable with Result {
+  val uploadsField = new Field("overwriting-uploads") with UploadValues with Executable with Result {
     override def minimumNumberOfInputs: Int = 0
 
     override def maximumNumberOfInputs: Int = 0
 
-    override def selfIsVisible: Boolean = values.length > 0
+    override def state = super.state.ignoreIf(values.length <= 0)
 
     override def execute(): Unit = {
       val (ex, no) = values.partition(exists)
@@ -324,6 +328,8 @@ trait UploadWithOverwrite extends Container {
     override def inputAsEnrichedHtml(input: Input, index: Int): NodeSeq =
       form.renderer.hiddenInput(name, input.string) ++ <p class="form-control-static clearfix">{actionButtonsHtml(input.string)}<a href="#">{input.title}</a></p>
 
+    override def inputAsElem(input: Input) = <span></span>
+
     private val deleteButton = new Button("delete") with ButtonWithPopover with DangerDisplayType with StringValues with Floating {
       override def execute() = processDeleteParameters(values)
 
@@ -337,7 +343,7 @@ trait UploadWithOverwrite extends Container {
     }
 
     private def actionButtonsHtml(string: String): NodeSeq = {
-      if (isDisabled) NodeSeq.Empty
+      if (!state.isEnabled) NodeSeq.Empty
       else
         <div class="pull-right btn-group">
           {deleteButton.withValue(string)(_.buttonAsHtml)}

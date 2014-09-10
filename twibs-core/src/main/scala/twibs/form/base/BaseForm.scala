@@ -16,45 +16,12 @@ import twibs.util.JavaScript._
 import twibs.util.XmlUtils._
 import twibs.util._
 import twibs.web._
+import twibs.form.base.ComponentState.ComponentState
 
 import com.google.common.cache.{Cache, CacheBuilder}
 
 trait Component extends TranslationSupport {
-  def selfIsVisible: Boolean = true
-
-  def selfIsRevealed: Boolean = true
-
-  def selfIsEnabled: Boolean = true
-
-  def anchestorIsVisible: Boolean = parent.selfIsVisible && parent.anchestorIsVisible
-
-  def anchestorIsRevealed: Boolean = parent.selfIsRevealed && parent.anchestorIsRevealed
-
-  def anchestorIsEnabled: Boolean = parent.selfIsEnabled && parent.anchestorIsEnabled
-
-  def isVisible: Boolean = selfIsVisible && anchestorIsVisible
-
-  def isRevealed: Boolean = selfIsRevealed && anchestorIsRevealed
-
-  def isEnabled: Boolean = selfIsEnabled && anchestorIsEnabled
-
-  final def selfIsDisabled: Boolean = !selfIsEnabled
-
-  final def selfIsConcealed: Boolean = !selfIsRevealed
-
-  final def selfIsHidden: Boolean = !selfIsVisible
-
-  final def anchestorIsDisabled: Boolean = !anchestorIsEnabled
-
-  final def anchestorIsConcealed: Boolean = !anchestorIsRevealed
-
-  final def anchestorIsHidden: Boolean = !anchestorIsVisible
-
-  final def isDisabled: Boolean = !isEnabled
-
-  final def isConcealed: Boolean = !isRevealed
-
-  final def isHidden: Boolean = !isVisible
+  def state: ComponentState = parent.state
 
   def reset(): Unit = Unit
 
@@ -88,20 +55,29 @@ trait Component extends TranslationSupport {
     recursive(parent.prefixForChildNames + ilk, 0)
   }
 
-  def html: NodeSeq
-
-  final def enrichedHtml: NodeSeq = selfIsVisible match {
-    case false => NodeSeq.Empty
-    case true => isRevealed match {
-      case true => html
-      case false =>
-        html match {
-          case s@NodeSeq.Empty => s
-          case n: Elem => n.addClass(selfIsConcealed, "concealed")
-          case n: NodeSeq => <div>{n}</div>.addClass(selfIsConcealed, "concealed")
-        }
+  final def enrichedHtml: NodeSeq = {
+    import twibs.form.base.ComponentState._
+    state match {
+      case Ignored => htmlIgnored
+      case Hidden => htmlHidden match {
+        case s@NodeSeq.Empty => s
+        case n: Elem => n.addClass("concealed")
+        case n: NodeSeq => <div class="concealed">{n}</div>
+      }
+      case Disabled => htmlDisabled
+      case Enabled => htmlEnabled
     }
   }
+
+  def htmlEnabled: NodeSeq = html
+
+  def htmlDisabled: NodeSeq = html
+
+  def htmlHidden: NodeSeq = html
+
+  def htmlIgnored: NodeSeq = NodeSeq.Empty
+
+  def html: NodeSeq
 
   parent.registerChild(this)
 
@@ -254,17 +230,19 @@ trait BaseForm extends Container with CurrentRequestSettings {
     override def execute(): Unit = result = InsteadOfFormDisplay(reloadFormJs)
   }
 
-  override def html: NodeSeq = defaultButtonHtml ++ super.html
+  override def html = defaultButtonHtml ++ super.html
 
-  private def defaultButtonHtml = components.collectFirst({ case e: DefaultExecutable => e.renderAsDefault}) getOrElse NodeSeq.Empty
+  def defaultButtonHtml = defaultExecutableOption.fold(NodeSeq.Empty)(_.renderAsDefault)
+
+  def defaultExecutableOption = components.collectFirst { case e: DefaultExecutable if e.state.isEnabled => e}
 
   def modalId = id ~ "modal"
 
-  def contentId: IdString = id ~ "content"
+  def contentId = id ~ "content"
 
-  override def translator: Translator = super.translator.usage("FORM").usage(name)
+  override def translator = super.translator.usage("FORM").usage(name)
 
-  def actionLink: String = "/forms" + ClassUtils.toPath(getClassForActionLink(getClass))
+  def actionLink = "/forms" + ClassUtils.toPath(getClassForActionLink(getClass))
 
   private def getClassForActionLink(classToCheck: Class[_]): Class[_] =
     if (classToCheck.isLocalClass) getClassForActionLink(classToCheck.getSuperclass) else classToCheck
@@ -283,10 +261,6 @@ trait BaseForm extends Container with CurrentRequestSettings {
 
   def accessAllowed: Boolean
 
-  override def selfIsEnabled = accessAllowed
-
-  override def selfIsRevealed = accessAllowed
-
   def reloadFormJs = displayJs
 
   def displayJs = Request.method match {
@@ -301,7 +275,7 @@ trait BaseForm extends Container with CurrentRequestSettings {
 
   def refreshJs = replaceContentJs ~ javascript ~ focusJs
 
-  def javascript: JsCmd = if (isVisible) components.collect({ case component: JavascriptComponent => component.javascript}) else JsEmpty
+  def javascript: JsCmd = if (!state.isIgnored) components.collect({ case component: JavascriptComponent => component.javascript}) else JsEmpty
 
   def focusJs = components.collectFirst({ case field: BaseField if field.needsFocus => field.focusJs}) getOrElse JsEmpty
 
@@ -358,15 +332,11 @@ trait BaseForm extends Container with CurrentRequestSettings {
 
   override def prefixForChildNames: String = ""
 
-  override def anchestorIsEnabled: Boolean = true
-
-  override def anchestorIsRevealed: Boolean = true
-
-  override def anchestorIsVisible: Boolean = true
+  override def state = ComponentState.Enabled.hideIf(!accessAllowed)
 }
 
 trait Executable extends InteractiveComponent {
-  override def execute(request: Request): Unit = request.parameters.getStringsOption(name).foreach(parameters => if (isEnabled) execute())
+  override def execute(request: Request): Unit = request.parameters.getStringsOption(name).foreach(parameters => if (state.isEnabled) execute())
 
   def execute(): Unit = if (callValidation()) executeValidated()
 
@@ -397,20 +367,22 @@ trait InteractiveComponent extends Component with Values {
   def link(value: ValueType) = form.actionLinkWithContextPathAndParameters(name -> valueToString(value))
 
   def clearLink = form.actionLinkWithContextPathAndParameters(name -> "")
+
+  override def validated: Boolean = state.isEnabled && super.validated
 }
 
 trait BaseField extends InteractiveComponent with Validatable {
   def submitOnChange = false
 
-  def needsFocus = !isDisabled && !isValid
+  def needsFocus = state.isEnabled && !isValid
 
   def focusJs = jQuery(id).call("focus")
 }
 
-trait RequiredIfRevealed extends BaseField {
-  private def checkRevealed(input: Input) = if (isRevealed) input else input.terminate()
+trait RequiredIfEnabled extends BaseField {
+  private def checkEnabled(input: Input) = if (state.isEnabled) input else input.terminate()
 
-  override def stringProcessors: List[StringProcessor] = checkRevealed _ :: super.stringProcessors
+  override def stringProcessors: List[StringProcessor] = checkEnabled _ :: super.stringProcessors
 
   override def required = true
 }

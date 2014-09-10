@@ -19,55 +19,55 @@ class ValuesTest extends TwibsTest {
   implicit def w(text: String): Option[Message] = Some(Message.warning(text))
 
   test("Optional string validation") {
-    val validator = new TestField with LongValues
+    val field = new TestField with LongValues
 
-    validator.validateString("") should be(validator.Input("", "", None, None, false))
-    validator.strings = "" :: Nil
-    validator.validate() should beTrue
+    field.validateString("") should be(field.Input("", "", None, None, false))
+    field.strings = "" :: Nil
+    field.validate() should beTrue
   }
 
   test("Required string validation") {
-    val validator = new TestField with StringValues with Required with Untrimmed
+    val field = new TestField with StringValues with Required with Untrimmed
 
-    validator.validateString("") should be(validator.Input("", "", None, "This field is required."))
-    validator.validateString(" ") should be(validator.Input(" ", " ", Some(" ")))
+    field.validateString("") should be(field.Input("", "", None, "This field is required."))
+    field.validateString(" ") should be(field.Input(" ", " ", Some(" ")))
   }
 
   test("Required string validation with trim") {
-    val validator = new TestField with StringValues {
+    val field = new TestField with StringValues {
       override def required: Boolean = true
     }
 
-    validator.validateString("") should be(validator.Input("", "", None, "This field is required."))
-    validator.validateString(" ") should be(validator.Input("", " ", None, "This field is required."))
-    validator.validateString(" r ") should be(validator.Input("r", "r", Some("r")))
+    field.validateString("") should be(field.Input("", "", None, "This field is required."))
+    field.validateString(" ") should be(field.Input("", " ", None, "This field is required."))
+    field.validateString(" r ") should be(field.Input("r", "r", Some("r")))
   }
 
   test("Minimal length validation") {
-    val validator = new TestField with StringValues {
+    val field = new TestField with StringValues {
       override def minimumLength: Int = 2
     }
 
-    validator.validateString("r") should be(validator.Input("r", "r", None, "Please enter at least 2 characters."))
-    validator.validateString("rr") should be(validator.Input("rr", "rr", Some("rr")))
+    field.validateString("r") should be(field.Input("r", "r", None, "Please enter at least 2 characters."))
+    field.validateString("rr") should be(field.Input("rr", "rr", Some("rr")))
   }
 
   test("Maximum length validation") {
-    val validator = new TestField with StringValues {
+    val field = new TestField with StringValues {
       override def maximumLength: Int = 2
     }
 
-    validator.validateString("rr") should be(validator.Input("rr", "rr", Some("rr")))
-    validator.validateString("rrr") should be(validator.Input("rrr", "rrr", None, "Please enter no more than 2 characters."))
+    field.validateString("rr") should be(field.Input("rr", "rr", Some("rr")))
+    field.validateString("rrr") should be(field.Input("rrr", "rrr", None, "Please enter no more than 2 characters."))
   }
 
   test("Regex validation") {
-    val validator = new TestField with StringValues {
+    val field = new TestField with StringValues {
       override def regex = "[0-9]+"
     }
 
-    validator.validateString("0123") should be(validator.Input("0123", "0123", Some("0123")))
-    validator.validateString("r") should be(validator.Input("r", "r", None, "Please enter a string that matches '[0-9]+'."))
+    field.validateString("0123") should be(field.Input("0123", "0123", Some("0123")))
+    field.validateString("r") should be(field.Input("r", "r", None, "Please enter a string that matches '[0-9]+'."))
   }
 
   test("Email address validation") {
@@ -81,10 +81,10 @@ class ValuesTest extends TwibsTest {
   }
 
   test("Web address validation") {
-    val validator = new TestField with WebAddressValues
+    val field = new TestField with WebAddressValues
 
-    validator.validateString("http://www.example.com") should be(validator.Input("http://www.example.com", "http://www.example.com", Some("http://www.example.com")))
-    validator.validateString("http://www") should be(validator.Input("http://www", "http://www", Some("http://www"), "Bitte geben Sie eine gültige URL ein."))
+    field.validateString("http://www.example.com") should be(field.Input("http://www.example.com", "http://www.example.com", Some("http://www.example.com")))
+    field.validateString("http://www") should be(field.Input("http://www", "http://www", Some("http://www"), "Bitte geben Sie eine gültige URL ein."))
   }
 
   test("Long validation") {

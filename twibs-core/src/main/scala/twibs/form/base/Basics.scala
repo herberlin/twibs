@@ -5,11 +5,47 @@
 package twibs.form.base
 
 import scala.collection.mutable.ListBuffer
-import scala.xml.{Text, Elem, NodeSeq}
+import scala.xml.{NodeSeq, Text}
+
 import twibs.util.JavaScript.JsCmd
 import twibs.util.Message
-import twibs.util.XmlUtils._
-import twibs.web.{Request, Response}
+import twibs.web.Response
+
+object ComponentState {
+
+  class ComponentState(val id: Long) {
+    def merge(desiredState: ComponentState): ComponentState = if (desiredState.id > id) desiredState else this
+
+    def hideIf(condition: Boolean): ComponentState = if (condition && Hidden.id > id) Hidden else this
+
+    def disableIf(condition: Boolean): ComponentState = if (condition && Disabled.id > id) Hidden else this
+
+    def ignoreIf(condition: Boolean): ComponentState = if (condition && Ignored.id > id) Hidden else this
+
+    def isEnabled = this == Enabled
+
+    def isDisabled = this == Disabled
+
+    def isHidden = this == Hidden
+
+    def isIgnored = this == Ignored
+
+    def disabled = merge(Disabled)
+
+    def ignored = merge(Ignored)
+
+    def hidden = merge(Hidden)
+  }
+
+  case object Enabled extends ComponentState(0)
+
+  case object Disabled extends ComponentState(1)
+
+  case object Hidden extends ComponentState(2)
+
+  case object Ignored extends ComponentState(3)
+
+}
 
 trait Result {
   var result: Result.Value = Result.Ignored
@@ -45,26 +81,27 @@ trait Validatable {
   def isValid: Boolean
 }
 
-class DisplayMessage(condition: => Boolean, message: => Message)(implicit val parent: Container) extends Component {
+
+class DisplayMessage(visible: => Boolean, message: => Message)(implicit val parent: Container) extends Component {
   def this(message: => Message)(implicit parent: Container) = this(true, message)(parent)
 
-  override def selfIsVisible: Boolean = condition
+  override def state = super.state.ignoreIf(!visible)
 
   def html = form.renderer.renderMessage(message)
 }
 
-class DisplayHtml(condition: => Boolean, gethtml: => NodeSeq)(implicit val parent: Container) extends Component {
+class DisplayHtml(visible: => Boolean, gethtml: => NodeSeq)(implicit val parent: Container) extends Component {
   def this(gethtml: => NodeSeq)(implicit parent: Container) = this(true, gethtml)(parent)
 
-  override def selfIsVisible: Boolean = condition
+  override def state = super.state.ignoreIf(!visible)
 
   def html = gethtml
 }
 
-class DisplayText(condition: => Boolean, gettext: => String)(implicit val parent: Container) extends Component {
+class DisplayText(visible: => Boolean, gettext: => String)(implicit val parent: Container) extends Component {
   def this(gettext: => String)(implicit parent: Container) = this(true, gettext)(parent)
 
-  override def selfIsVisible: Boolean = condition
+  override def state = super.state.ignoreIf(!visible)
 
   override def html = Text(gettext)
 }

@@ -58,14 +58,16 @@ trait Detachable extends Container {
     </div>
 
   def closeButton =
-    if (isDisabled) NodeSeq.Empty
-    else <button type="button" class="close" data-toggle="popover" data-html="true" data-placement="auto left" data-title={t"delete-component.popover-title: Delete component?"} data-content={dismissButton}>&times;</button>
+    if (state.isEnabled) <button type="button" class="close" data-toggle="popover" data-html="true" data-placement="auto left" data-title={t"delete-component.popover-title: Delete component?"} data-content={dismissButton}>&times;</button>
+    else NodeSeq.Empty
 
   def dismissButton = <button type="button" class="btn btn-danger" data-dismiss="detachable">{t"delete-component.button-title: Delete"}</button>
 }
 
 trait UploadWithComment extends Dynamic with Detachable {
-  val upload = new Field("file") with UploadValues with ReadOnlyField
+  val upload = new Field("file") with UploadValues with DisabledField {
+    override def inputAsElem(input: Input) = <span></span>
+  }
 
   val comment = new Field("file-comment") with StringValues with MultiLineField with Required
 

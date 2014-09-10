@@ -50,3 +50,10 @@ Two formats need to be defined in configuration:
 1. "data-time-format": Java Format described [here](http://download.java.net/jdk8/docs/api/java/time/format/DateTimeFormatter.html). Example "dd.MM.yyy HH:mm"
 
 2. "date-time-format-browser": JavaScript Format described [here](http://www.malot.fr/bootstrap-datetimepicker). Example "yyyy-mm-ddThh:ii:ssZ"
+
+# Field states
+
+- Enabled:         shown,     validated,     submitted
+- Disabled:       shown, not validated,     submitted (encrypted)
+- Hidden:     not shown, not validated,     submitted (encrypted)
+- Unrendered: not shown, not validated, not submitted

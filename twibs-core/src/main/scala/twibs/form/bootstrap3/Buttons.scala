@@ -16,7 +16,7 @@ trait UploadButton extends Button with StringValues with PrimaryDisplayType {
     <span class={spanCssClasses}>
       {buttonTitleWithIconHtml}
       {super.buttonAsEnrichedElem.addClass(submitOnChange, "submit-on-change")}
-    </span>.addClass(if (isDisabled) "disabled" else "can-be-disabled-by-class")
+    </span>.addClass(if (state.isDisabled) "disabled" else "can-be-disabled-by-class")
 
   def spanCssClasses = super.buttonCssClasses ::: "file-upload-button" :: "inherit-focus-from-child" :: Nil
 
@@ -63,7 +63,7 @@ trait BootstrapButton extends InteractiveComponent with Values with DisplayType 
 
   def buttonCssClasses = "btn" :: "btn-" + displayTypeString :: Nil
 
-  def buttonAsHtml: NodeSeq = if (isVisible) buttonAsEnrichedElem else NodeSeq.Empty
+  def buttonAsHtml: NodeSeq = if (!state.isHidden) buttonAsEnrichedElem else NodeSeq.Empty
 
   def buttonAsEnrichedElem: Elem = enrichButtonElem(buttonAsElem)
 
@@ -73,9 +73,9 @@ trait BootstrapButton extends InteractiveComponent with Values with DisplayType 
       .setIfMissing("id", id.string)
       .addClass(isActive, "active")
       .addClasses(buttonCssClasses)
-      .addClass(isDisabled, "disabled")
-      .addClass(!isDisabled, "can-be-disabled")
-      .setIfMissing(isDisabled, "disabled", "disabled")
+      .addClass(state.isDisabled, "disabled")
+      .addClass(state.isEnabled, "can-be-disabled")
+      .setIfMissing(state.isDisabled, "disabled", "disabled")
       .setIfMissing(name != ilk, "data-ilk", ilk)
       .setIfMissing(buttonUseIconOnly, "title", buttonTitle)
 
@@ -84,7 +84,7 @@ trait BootstrapButton extends InteractiveComponent with Values with DisplayType 
   def isInactive = !isActive
 
   def buttonAsElem =
-    if (isEnabled)
+    if (state.isEnabled)
       <button type="submit" value={stringOrEmpty}>{renderButtonTitle}</button>
     else
       <span>{renderButtonTitle}</span>
@@ -122,11 +122,7 @@ trait ButtonWithPopover extends BootstrapButton {
 
     override def isActive = self.isActive
 
-    override def selfIsVisible = self.selfIsVisible
-
-    override def selfIsRevealed = self.selfIsRevealed
-
-    override def selfIsEnabled = self.selfIsEnabled
+    override def state = self.state
 
     override def ilk = self.ilk + "-popover"
 
@@ -137,7 +133,7 @@ trait ButtonWithPopover extends BootstrapButton {
     override def buttonUseIconOnly = buttonUseIconOnly2
 
     override def buttonAsElem: Elem =
-      if (isEnabled)
+      if (state.isEnabled)
         if (popoverNeedsCalculation)
           <button type="submit" value={self.stringOrEmpty}>{renderButtonTitle}</button>
         else

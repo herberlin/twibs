@@ -49,7 +49,7 @@ trait DataTable[T] extends StaticContainer {
       if (request.parameters.getStringsOption(name + "-submit-while-typing").isDefined)
         result = InsteadOfFormDisplay(refreshTableData)
 
-    override def selfIsVisible: Boolean = searchable
+    override def state = super.state.ignoreIf(!searchable)
   }
 
   def searchable = true
@@ -67,7 +67,7 @@ trait DataTable[T] extends StaticContainer {
           {pagination.pages.map {
           page =>
             <li>
-              {if (page.disabled || isDisabled)
+              {if (page.disabled || !state.isEnabled)
               <span>
                 {page.title}
               </span>
@@ -75,7 +75,7 @@ trait DataTable[T] extends StaticContainer {
               <a name={name} value={valueToString(page.firstElementNumber)} href="#">
                 {page.title}
               </a>
-                .addClass(!isDisabled, "submit")}
+                .addClass(state.isEnabled, "submit")}
             </li>
               .addClass(page.disabled, "disabled")
               .addClass(page.active, "active")
