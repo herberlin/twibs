@@ -59,7 +59,7 @@ trait DataTable[T] extends StaticContainer {
   private val offsetField = new Field("page-navigation") with LongValues {
     override def fieldAsDecoratedHtml = inputsAsHtml
 
-    override def inputAsEnrichedHtml(input: Input, index: Int): NodeSeq =
+    override def inputAsEnrichedHtml(input: Input): NodeSeq =
       <div class="pagination">
         {displayedElementsText}
       </div> ++

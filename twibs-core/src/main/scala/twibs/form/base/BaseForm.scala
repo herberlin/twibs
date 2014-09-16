@@ -374,14 +374,6 @@ trait BaseField extends InteractiveComponent with Validatable {
   def focusJs = jQuery(id).call("focus")
 }
 
-trait RequiredIfEnabled extends BaseField {
-  private def checkEnabled(input: Input) = if (state.isEnabled) input else input.terminate()
-
-  override def stringProcessors: List[StringProcessor] = checkEnabled _ :: super.stringProcessors
-
-  override def required = true
-}
-
 trait SubmitOnChange extends BaseField {
   override def submitOnChange = true
 

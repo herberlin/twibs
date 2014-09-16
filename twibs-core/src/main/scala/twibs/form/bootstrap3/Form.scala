@@ -7,7 +7,7 @@ package twibs.form.bootstrap3
 import scala.xml.{Text, Elem, NodeSeq, Unparsed}
 
 import twibs.form.base._
-import twibs.util.{ApplicationSettings, Message, Translator}
+import twibs.util.{IdString, ApplicationSettings, Message, Translator}
 
 abstract class Form(override val ilk: String) extends BaseForm {
   self =>
@@ -125,10 +125,12 @@ abstract class Field private(override val ilk: String, val parent: Container, un
   def inputsAsHiddenHtml = inputs.map(input => form.renderer.hiddenInput(disabledName, input.string)).flatten
 
   def fieldAsDecoratedHtml: NodeSeq =
-    <div class={formGroupCssClasses}>
+    <div class={formGroupCssClasses} id={formGroupId}>
       <label class={formGroupTitleCssClasses} for={id}>{fieldTitleHtml}</label>
       <div class={fieldContainerCssClasses}>{fieldAsHtml}</div>
     </div>
+
+  def formGroupId = id ~ "form-group"
 
   def formGroupCssClasses = (messageDisplayTypeOption.fold("")("has-" + _) :: "form-group" :: Nil).addClass(required, "required")
 
@@ -161,18 +163,18 @@ abstract class Field private(override val ilk: String, val parent: Container, un
 
   def infoMessage = translator.translate("info-message", "Info message")
 
-  def inputsAsHtml: NodeSeq = inputs.zipWithIndex.map(e => inputWithMessageHtml(e._1, e._2)).flatten
+  def inputsAsHtml: NodeSeq = inputs.map(inputWithMessageHtml).flatten
 
-  def inputWithMessageHtml(input: Input, index: Int): NodeSeq = inputAsSurroundedHtml(input, index) ++ messageHtmlFor(input)
+  def inputWithMessageHtml(input: Input): NodeSeq = inputAsSurroundedHtml(input) ++ messageHtmlFor(input)
 
   def suffixes: List[NodeSeq] = suffix :: Nil
 
   def suffix: NodeSeq = NodeSeq.Empty
 
-  def inputAsSurroundedHtml(input: Input, index: Int): NodeSeq = {
+  def inputAsSurroundedHtml(input: Input): NodeSeq = {
     (suffixes.filterNot(_.isEmpty).map(s => <span class="input-group-addon">{ s }</span>), infoHtmlDecorated) match {
-      case (Nil, NodeSeq.Empty) => inputAsEnrichedHtml(input, index)
-      case (suffixes, infoHtml) => surroundWithInputGroup(input, inputAsEnrichedHtml(input, index) ++ suffixes ++ infoHtml)
+      case (Nil, NodeSeq.Empty) => inputAsEnrichedHtml(input)
+      case (suffixes, infoHtml) => surroundWithInputGroup(input, inputAsEnrichedHtml(input) ++ suffixes ++ infoHtml)
     }
   }
 
@@ -186,18 +188,21 @@ abstract class Field private(override val ilk: String, val parent: Container, un
     case x => <span class="input-group-btn field-info">{x}</span>
   }
 
-  def inputAsEnrichedHtml(input: Input, index: Int): NodeSeq = enrichInputElem(inputAsElem(input), index)
+  def inputAsEnrichedHtml(input: Input): NodeSeq = enrichInputElem(inputAsElem(input), input)
 
-  def enrichInputElem(elem: Elem, index: Int): Elem =
+  def enrichInputElem(elem: Elem, input: Input): Elem = enrichInputElem(elem, idForInput(input))
+
+  def enrichInputElem(elem: Elem, inputId: IdString): Elem =
     elem.setIfMissing("name", name)
-      .setIfMissing("id", idForIndex(index))
+      .setIfMissing("id", inputId.string)
       .setIfMissing(state.isDisabled, "disabled", "disabled")
       .setIfMissing(name != ilk, "data-ilk", ilk)
       .addClasses(inputCssClasses)
 
-  private def idForIndex(index: Int): String = id + (if (index > 0) index.toString else "")
+  def idForInput(input: Input): IdString = id ~ (if (input.index > 0) input.index.toString else "")
 
-  def inputAsElem(input: Input): Elem
+  // TODO: Remove after transition to improved rendering process
+  def inputAsElem(input: Input): Elem = <span></span>
 
   def inputCssClasses: List[String] =
     ("form-control" :: Nil)

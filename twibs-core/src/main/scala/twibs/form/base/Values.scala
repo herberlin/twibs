@@ -22,7 +22,7 @@ import org.threeten.bp.{LocalDate, LocalDateTime}
 trait Values extends TranslationSupport {
   type ValueType
 
-  case class Input(string: String, title: String, valueOption: Option[ValueType] = None, messageOption: Option[Message] = None, continue: Boolean = true) {
+  case class Input(string: String, title: String, valueOption: Option[ValueType] = None, messageOption: Option[Message] = None, continue: Boolean = true, index: Int = 0) {
     def validate(valid: => Boolean, message: => String) = if (valid) this else failure(message)
 
     def failure(message: String) = copy(messageOption = Some(Message.warning(message)))
@@ -34,6 +34,8 @@ trait Values extends TranslationSupport {
     def value = valueOption.get
 
     def isValid = messageOption.isEmpty
+
+    def withIndex(newIndex: Int) = copy(index = newIndex)
   }
 
   type StringProcessor = Input => Input
@@ -43,18 +45,20 @@ trait Values extends TranslationSupport {
   private var bufferedValues: Option[Seq[ValueType]] = None
 
   private val cachedInputs = LazyCache {
-    bufferedStrings match {
-      case Some(strings) =>
-        bufferedStrings = None
-        strings.map(validateString)
-      case None => bufferedValues match {
-        case Some(values) =>
-          bufferedValues = None
-          values.map(validateValue)
-        case None =>
-          val ret = defaultValues.map(validateValue)
-          ret.toList ::: (for (i <- ret.size until minimumNumberOfInputs) yield stringToInput("")).toList
-      }
+    {
+      (bufferedStrings match {
+        case Some(strings) =>
+          bufferedStrings = None
+          strings.map(validateString)
+        case None => bufferedValues match {
+          case Some(values) =>
+            bufferedValues = None
+            values.map(validateValue)
+          case None =>
+            val ret = defaultValues.map(validateValue)
+            ret.toList ::: (for (i <- ret.size until minimumNumberOfInputs) yield stringToInput("")).toList
+        }
+      }).zipWithIndex.map { case (i, index) => i.withIndex(index)}
     }
   }
 
@@ -97,7 +101,7 @@ trait Values extends TranslationSupport {
 
   private def format(i: Int) = Formatters.integerFormat.format(i)
 
-  def messageDisplayTypeOption = if (validated) inputsMessageOption.map(_.displayTypeString) orElse inputs.collectFirst({ case Input(_, _, _, Some(message), _) => message.displayTypeString}) else None
+  def messageDisplayTypeOption = if (validated) inputsMessageOption.map(_.displayTypeString) orElse inputs.collectFirst({ case Input(_, _, _, Some(message), _, _) => message.displayTypeString}) else None
 
   def computeIsValid = areInputsValid && isNumberOfInputsValid
 
@@ -170,8 +174,8 @@ trait Values extends TranslationSupport {
   private def recursive[O](processors: Seq[StringProcessor], input: Input): Input = {
     if (processors.isEmpty) input
     else processors.head.apply(input) match {
-      case i@Input(_, _, _, Some(m), _) => i
-      case i@Input(_, _, _, _, false) => i
+      case i@Input(_, _, _, Some(m), _, _) => i
+      case i@Input(_, _, _, _, false, _) => i
       case i => recursive(processors.tail, i)
     }
   }
@@ -179,7 +183,7 @@ trait Values extends TranslationSupport {
   /* Convenience methods */
   final def isChanged = values != defaultValues
 
-  final def values = inputs.collect { case Input(_, _, Some(value), None, _) => value}
+  final def values = inputs.collect { case Input(_, _, Some(value), None, _, _) => value}
 
   final def input = inputs.head
 

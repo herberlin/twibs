@@ -24,8 +24,8 @@ trait DisabledField extends Field {
 }
 
 trait Emptiable extends Field {
-  override def inputAsEnrichedHtml(input: Input, index: Int): NodeSeq =
-    <span class="emptiable">{super.inputAsEnrichedHtml(input, index)}<span class="input-clear fa fa-times"></span></span>
+  override def inputAsEnrichedHtml(input: Input): NodeSeq =
+    <span class="emptiable">{super.inputAsEnrichedHtml(input)}<span class="input-clear fa fa-times"></span></span>
 }
 
 trait TextField extends Field {
@@ -33,11 +33,8 @@ trait TextField extends Field {
 }
 
 trait SingleLineField extends TextField {
-  override def inputAsEnrichedHtml(input: Input, index: Int): NodeSeq =
-    enrichInputElem(<input type="text" placeholder={placeholder} value={input.string} />, index)
-
-  // TODO: Remove after transition
-  override def inputAsElem(input: Input): Elem = <span></span>
+  override def inputAsEnrichedHtml(input: Input): NodeSeq =
+    enrichInputElem(<input type="text" placeholder={placeholder} value={input.string} />, input)
 }
 
 trait NumberField extends TextField with NumberValues {
@@ -47,7 +44,7 @@ trait NumberField extends TextField with NumberValues {
 }
 
 trait AbstractDateTimeField extends SingleLineField with JavascriptComponent {
-  def datePickerOptions = Map("autoclose" -> autoClose, "pickerPosition" -> "bottom-left", "language" -> "de")
+  def datePickerOptions = Map("fontAwesome" -> true, "autoclose" -> autoClose, "pickerPosition" -> "bottom-left", "language" -> "de")
 
   def autoClose = true
 
@@ -56,16 +53,16 @@ trait AbstractDateTimeField extends SingleLineField with JavascriptComponent {
       if (submitOnChange) initDateTimeJs.call("on", "changeDate", JsCmd("$(this).reloadForm()")) else initDateTimeJs
     else JsEmpty
 
-  private def initDateTimeJs = jQuery(inputGroupId).call("datetimepicker", datePickerOptions)
+  private def initDateTimeJs = inputs.map(input => jQuery(inputGroupId(input)).call("datetimepicker", datePickerOptions))
 
-  private def inputGroupId = id ~ "input-group"
+  private def inputGroupId(input: Input) = idForInput(input) ~ "input-group"
 
   override def suffixes: List[NodeSeq] =
-    if (state.isEnabled) clearButton :: <span class="glyphicon glyphicon-calendar"></span> :: super.suffixes // ATTENTION: datetimepicker needs glyphicon!!
+    if (state.isEnabled) clearButton :: <span class="fa fa-calendar"></span> :: super.suffixes // ATTENTION: datetimepicker needs glyphicon!!
     else super.suffixes
 
   override def surroundWithInputGroup(input: Input, nodeSeq: NodeSeq): Elem =
-    <div class="input-group date" id={inputGroupId} data-date={input.string} data-link-field={id} data-link-format={formatPatternForBrowser} data-date-format={formatPatternForBrowser} data-date-today-btn={todayButton} data-date-today-highlight={"" + todayHighlight}>{nodeSeq}</div>
+    <div class="input-group date" id={inputGroupId(input)} data-date={input.string} data-link-field={idForInput(input)} data-link-format={formatPatternForBrowser} data-date-format={formatPatternForBrowser} data-date-today-btn={todayButton} data-date-today-highlight={"" + todayHighlight}>{nodeSeq}</div>
       .setIfMissing(!minimumFormattedForBrowser.isEmpty, "data-date-startdate", minimumFormattedForBrowser)
       .setIfMissing(!maximumFormattedForBrowser.isEmpty, "data-date-enddate", maximumFormattedForBrowser)
 
@@ -158,7 +155,7 @@ trait SingleSelectField extends SelectField {
 }
 
 trait MultiSelectField extends SelectField {
-  override def inputsAsHtml: NodeSeq = inputs.headOption.fold(NodeSeq.Empty)(input => inputAsEnrichedHtml(input, 0))
+  override def inputsAsHtml: NodeSeq = inputs.headOption.fold(NodeSeq.Empty)(input => inputAsEnrichedHtml(input))
 
   override def inputAsElem(input: Input) =
     <select data-placeholder={t"placeholder: Please select some values"} multiple="multiple">{ optionsAsElems(input) }</select>
@@ -187,7 +184,7 @@ trait CheckOrRadioField extends FieldWithOptions with FloatingInfo {
     }
   })
 
-  def enrichedOptionAsElem(option: OptionI, index: Int) = enrichInputElem(optionAsElem(option), index)
+  def enrichedOptionAsElem(option: OptionI, index: Int) = enrichInputElem(optionAsElem(option), input)
 
   def optionAsElem(option: OptionI) = <input type={checkOrRadioType} value={option.string} />.set(strings.contains(option.string), "checked")
 
@@ -221,8 +218,8 @@ trait BooleanCheckBoxField extends Field with BooleanValues with FloatingInfo wi
 
   override def fieldTitleHtml = Unparsed("&nbsp;") // IE8 needs this to show empty divs after page break in print view.
 
-  override def inputAsEnrichedHtml(value: Input, index: Int) =
-    form.renderer.hiddenInput(name, "false") ++ <div class="checkbox"><label>{super.inputAsEnrichedHtml(value, index)}{super.fieldTitleHtml}</label></div>
+  override def inputAsEnrichedHtml(input: Input) =
+    form.renderer.hiddenInput(name, "false") ++ <div class="checkbox"><label>{super.inputAsEnrichedHtml(input)}{super.fieldTitleHtml}</label></div>
 
   override def inputAsElem(input: Input) =
       <input type="checkbox" value="true" />.set(input.string == "true", "checked")
@@ -241,9 +238,9 @@ trait FileEntryField extends Field with FileEntryValues with Result {
 
   override def inputAsElem(input: Input): Elem = <span>{input.title}</span>
 
-  override def inputAsEnrichedHtml(input: Input, index: Int): NodeSeq = {
+  override def inputAsEnrichedHtml(input: Input): NodeSeq = {
     val link = input match {
-      case Input(_, _, Some(fileEntry), None, _) => fileEntry.path
+      case Input(_, _, Some(fileEntry), None, _, _) => fileEntry.path
       case _ => "#"
     }
     <p class="form-control-static clearfix"><div class="pull-right">{deleteButton.withValue(input.string)(_.buttonAsHtml)}</div><a href={link} target="_blank">{input.title}</a></p>
@@ -308,7 +305,7 @@ trait UploadWithOverwrite extends Container {
         })
     }
 
-    override def inputAsEnrichedHtml(input: Input, index: Int): NodeSeq =
+    override def inputAsEnrichedHtml(input: Input): NodeSeq =
       form.renderer.hiddenInput(name, input.string) ++ <p class="form-control-static clearfix">{actionButtonsHtml(input.string)}<a href="#">{input.title}</a></p>
 
     override def inputAsElem(input: Input) = <span></span>
