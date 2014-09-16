@@ -22,13 +22,13 @@
   &,
   &:active,
   &.active {
-    &:focus, &.focused {
+    &:focus {
       .tab-focus();
     }
   }
 
   &:hover,
-  &:focus, &.focused {
+  &:focus {
     color: @btn-default-color;
     text-decoration: none;
   }
@@ -97,12 +97,12 @@
   }
   &,
   &:hover,
-  &:focus, &.focused,
+  &:focus,
   &:active {
     border-color: transparent;
   }
   &:hover,
-  &:focus, &.focused {
+  &:focus {
     color: @link-hover-color;
     text-decoration: underline;
     background-color: transparent;
@@ -110,7 +110,7 @@
   &[disabled],
   fieldset[disabled] & {
     &:hover,
-    &:focus, &.focused {
+    &:focus {
       color: @btn-link-disabled-color;
       text-decoration: none;
     }
@@ -140,8 +140,6 @@
 .btn-block {
   display: block;
   width: 100%;
-  padding-left: 0;
-  padding-right: 0;
 }
 
 // Vertically space out multiple block buttons
