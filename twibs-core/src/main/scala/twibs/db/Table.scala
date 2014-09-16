@@ -5,7 +5,6 @@ import java.sql._
 import twibs.util.{SqlUtils, Translator, Loggable}
 import twibs.util.Predef._
 import twibs.util.SortOrder.SortOrder
-import twibs.util.ThreeTenTransition._
 
 import com.google.common.base.Stopwatch
 import org.threeten.bp.{LocalDate, LocalDateTime}

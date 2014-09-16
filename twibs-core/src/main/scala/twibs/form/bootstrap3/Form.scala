@@ -4,10 +4,10 @@
 
 package twibs.form.bootstrap3
 
-import scala.xml.{Elem, NodeSeq, Unparsed}
+import scala.xml.{Text, Elem, NodeSeq, Unparsed}
 
 import twibs.form.base._
-import twibs.util.{ApplicationSettings, IdString, Message, Translator}
+import twibs.util.{ApplicationSettings, Message, Translator}
 
 abstract class Form(override val ilk: String) extends BaseForm {
   self =>
@@ -71,7 +71,7 @@ abstract class Form(override val ilk: String) extends BaseForm {
       </div>
 
       <div id={contentId}>
-        {enrichedHtml}
+        {asHtml}
       </div>
     </form>
   }
@@ -84,7 +84,7 @@ abstract class Form(override val ilk: String) extends BaseForm {
 
   def formTitleString = t"form-title: #$name"
 
-  def formDescription = formDescriptionString match { case "" => NodeSeq.Empty case s => Unparsed(s)}
+  def formDescription = formDescriptionString match {case "" => NodeSeq.Empty case s => Unparsed(s) }
 
   def formDescriptionString = t"form-description:"
 
@@ -101,50 +101,48 @@ class BootstrapRenderer extends Renderer {
         <div class={"alert" :: ("alert-" + message.displayTypeString) :: Nil}>{message.text}</div>
 
   override def hiddenInput(name: String, value: String): NodeSeq = <input type="hidden" autocomplete="off" name={name} value={value} />
+
+  override def renderAsDefaultExecutable(executable: Executable): NodeSeq = <input type="submit" class="concealed" tabindex="-1" name={executable.name} value="" />
 }
 
-trait FormGroupComponent extends Component {
-  override def html: NodeSeq =
-    <div class={formGroupCssClasses}>
-      <label class={formGroupTitleCssClasses} for={id}>{formGroupTitle}</label>
-      <div class={controlContainerCssClasses}>{controlContainerHtml}</div>
-    </div>
-
-  def formGroupCssClasses = "form-group" :: Nil
-
-  def formGroupTitleCssClasses = s"col-$gridSize-3" :: "control-label" :: Nil
-
-  def controlContainerCssClasses = s"col-$gridSize-9" :: "controls" :: Nil
-
-  def gridSize = "sm"
-
-  def controlContainerHtml: NodeSeq
-
-  def formGroupTitle: NodeSeq
-
-  def id: IdString
-}
-
-trait LargeGridSize extends FormGroupComponent {
+trait LargeGridSize extends Field {
   override def gridSize = "lg"
 }
 
-abstract class DisplayField private(override val ilk: String, val parent: Container, unit: Unit = Unit) extends Component with FormGroupComponent {
+abstract class Field private(override val ilk: String, val parent: Container, unit: Unit = Unit) extends BaseField {
   def this(ilk: String)(implicit parent: Container) = this(ilk, parent)
 
-  def formGroupTitle: NodeSeq = t"field-title: #$ilk"
-}
+  override def asHtml: NodeSeq = {
+    import twibs.form.base.ComponentState._
+    state match {
+      case Ignored => NodeSeq.Empty
+      case Hidden => inputs.map(input => form.renderer.hiddenInput(disabledName, input.string)).flatten
+      case Disabled => inputsAsHiddenHtml ++ fieldAsDecoratedHtml
+      case Enabled => fieldAsDecoratedHtml
+    }
+  }
 
-abstract class Field private(override val ilk: String, val parent: Container, unit: Unit = Unit) extends BaseField with FormGroupComponent {
-  def this(ilk: String)(implicit parent: Container) = this(ilk, parent)
+  def inputsAsHiddenHtml = inputs.map(input => form.renderer.hiddenInput(disabledName, input.string)).flatten
 
-  override def formGroupCssClasses = messageDisplayTypeOption.fold("")("has-" + _) :: super.formGroupCssClasses.addClass(required, "required")
+  def fieldAsDecoratedHtml: NodeSeq =
+    <div class={formGroupCssClasses}>
+      <label class={formGroupTitleCssClasses} for={id}>{fieldTitleHtml}</label>
+      <div class={fieldContainerCssClasses}>{fieldAsHtml}</div>
+    </div>
 
-  def formGroupTitle: NodeSeq = fieldTitle
+  def formGroupCssClasses = (messageDisplayTypeOption.fold("")("has-" + _) :: "form-group" :: Nil).addClass(required, "required")
+
+  def formGroupTitleCssClasses = s"col-$gridSize-3" :: "control-label" :: Nil
+
+  def fieldContainerCssClasses = s"col-$gridSize-9" :: "controls" :: Nil
+
+  def fieldTitleHtml: NodeSeq = Text(fieldTitle)
 
   def fieldTitle = t"field-title: #$ilk"
 
-  def controlContainerHtml: NodeSeq = inputsAsHtml ++ messageHtml
+  def gridSize = "sm"
+
+  def fieldAsHtml: NodeSeq = inputsAsHtml ++ messageHtml
 
   def messageHtml: NodeSeq = inputsMessageOption.fold(NodeSeq.Empty)(message => <div class="help-block">
     {message.text}
@@ -165,38 +163,55 @@ abstract class Field private(override val ilk: String, val parent: Container, un
 
   def inputsAsHtml: NodeSeq = inputs.zipWithIndex.map(e => inputWithMessageHtml(e._1, e._2)).flatten
 
-  def inputWithMessageHtml(input: Input, index: Int): NodeSeq = inputAsEnrichedHtml(input, index) ++ messageHtmlFor(input)
+  def inputWithMessageHtml(input: Input, index: Int): NodeSeq = inputAsSurroundedHtml(input, index) ++ messageHtmlFor(input)
+
+  def suffixes: List[NodeSeq] = suffix :: Nil
+
+  def suffix: NodeSeq = NodeSeq.Empty
+
+  def inputAsSurroundedHtml(input: Input, index: Int): NodeSeq = {
+    (suffixes.filterNot(_.isEmpty).map(s => <span class="input-group-addon">{ s }</span>), infoHtmlDecorated) match {
+      case (Nil, NodeSeq.Empty) => inputAsEnrichedHtml(input, index)
+      case (suffixes, infoHtml) => surroundWithInputGroup(input, inputAsEnrichedHtml(input, index) ++ suffixes ++ infoHtml)
+    }
+  }
+
+  def surroundWithInputGroup(input: Input, nodeSeq: NodeSeq) = <div class="input-group">{nodeSeq}</div>
 
   def messageHtmlFor(input: Input): NodeSeq =
     input.messageOption.filter(x => validated).fold(NodeSeq.Empty)(x => <div class="help-block">{x.text}</div>)
 
-  def inputAsEnrichedHtml(input: Input, index: Int): NodeSeq = inputAsEnrichedElem(input, index)
+  def infoHtmlDecorated: NodeSeq = infoHtml match {
+    case NodeSeq.Empty => NodeSeq.Empty
+    case x => <span class="input-group-btn field-info">{x}</span>
+  }
 
-  def inputAsEnrichedElem(input: Input, index: Int): Elem = enrichInputElem(inputAsElem(input), index)
+  def inputAsEnrichedHtml(input: Input, index: Int): NodeSeq = enrichInputElem(inputAsElem(input), index)
 
   def enrichInputElem(elem: Elem, index: Int): Elem =
     elem.setIfMissing("name", name)
       .setIfMissing("id", idForIndex(index))
-      .addClasses(inputCssClasses)
-      .addClass(state.isDisabled, "disabled")
-      .addClass(state.isEnabled, "can-be-disabled")
-      .addClass(submitOnChange, "submit-on-change")
       .setIfMissing(state.isDisabled, "disabled", "disabled")
       .setIfMissing(name != ilk, "data-ilk", ilk)
+      .addClasses(inputCssClasses)
 
   private def idForIndex(index: Int): String = id + (if (index > 0) index.toString else "")
 
   def inputAsElem(input: Input): Elem
 
-  def inputCssClasses: List[String] = "form-control" :: Nil
+  def inputCssClasses: List[String] =
+    ("form-control" :: Nil)
+      .addClass(submitOnChange && state.isEnabled, "submit-on-change")
+      .addClass(state.isDisabled, "disabled")
+      .addClass(state.isEnabled, "can-be-disabled")
 
   override def translator: Translator = super.translator.kind("FIELD")
 }
 
 trait Inline extends Field {
-  override def html =
+  override def fieldAsDecoratedHtml =
     <div class={formGroupCssClasses}>
-      <label class={formGroupTitleCssClasses} for={id}>{formGroupTitle}</label>
+      <label class={formGroupTitleCssClasses} for={id}>{fieldTitleHtml}</label>
       {inputsAsHtml}
     </div>
 

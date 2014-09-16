@@ -9,14 +9,14 @@ import java.util.concurrent.TimeUnit
 
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
-import scala.xml.{Elem, NodeSeq}
+import scala.xml.NodeSeq
 
+import twibs.form.base.ComponentState.ComponentState
 import twibs.form.base.Result.AfterFormDisplay
 import twibs.util.JavaScript._
 import twibs.util.XmlUtils._
 import twibs.util._
 import twibs.web._
-import twibs.form.base.ComponentState.ComponentState
 
 import com.google.common.cache.{Cache, CacheBuilder}
 
@@ -45,6 +45,8 @@ trait Component extends TranslationSupport {
 
   final val name: String = computeName
 
+  def disabledName = name + "-disabled"
+
   protected def computeName: String = {
     val names = form.components.map(_.name).toList
     def recursive(n: String, i: Int): String = {
@@ -55,29 +57,7 @@ trait Component extends TranslationSupport {
     recursive(parent.prefixForChildNames + ilk, 0)
   }
 
-  final def enrichedHtml: NodeSeq = {
-    import twibs.form.base.ComponentState._
-    state match {
-      case Ignored => htmlIgnored
-      case Hidden => htmlHidden match {
-        case s@NodeSeq.Empty => s
-        case n: Elem => n.addClass("concealed")
-        case n: NodeSeq => <div class="concealed">{n}</div>
-      }
-      case Disabled => htmlDisabled
-      case Enabled => htmlEnabled
-    }
-  }
-
-  def htmlEnabled: NodeSeq = html
-
-  def htmlDisabled: NodeSeq = html
-
-  def htmlHidden: NodeSeq = html
-
-  def htmlIgnored: NodeSeq = NodeSeq.Empty
-
-  def html: NodeSeq
+  def asHtml: NodeSeq = NodeSeq.Empty
 
   parent.registerChild(this)
 
@@ -119,7 +99,19 @@ trait Container extends Component with Validatable {
 
   override def execute(request: Request): Unit = children.foreach(_.execute(request))
 
-  override def html: NodeSeq = children collect { case child: Floating => NodeSeq.Empty case child => child.enrichedHtml} flatten
+  override def asHtml: NodeSeq = {
+    import ComponentState._
+    state match {
+      case Ignored => NodeSeq.Empty
+      case Hidden =>
+        <div class="concealed">{containerAsHtml}</div>
+      case _ => containerAsDecoratedHtml
+    }
+  }
+
+  def containerAsDecoratedHtml: NodeSeq = containerAsHtml
+
+  protected def containerAsHtml: NodeSeq = children collect { case child: Floating => NodeSeq.Empty case child => child.asHtml} flatten
 
   def components: Iterator[Component] = (children map {
     case container: Container => container.components
@@ -146,7 +138,7 @@ trait MinMaxContainer extends Container {
 
   def maximumNumberOfDynamics = Int.MaxValue
 
-  override def html = messageHtml ++ super.html
+  protected override def containerAsHtml = messageHtml ++ super.containerAsHtml
 
   override def isValid = super.isValid && (!validated || Range(minimumNumberOfDynamics, maximumNumberOfDynamics).contains(children.size))
 
@@ -206,7 +198,7 @@ class Dynamic protected(override val ilk: String, val dynamicId: String, val par
 
   override def prefixForChildNames: String = dynamicId
 
-  override def html: NodeSeq = super.html ++ form.renderer.hiddenInput(parent.name, dynamicId)
+  override protected def containerAsHtml = super.containerAsHtml ++ form.renderer.hiddenInput(parent.name, dynamicId)
 }
 
 object BaseForm {
@@ -230,9 +222,9 @@ trait BaseForm extends Container with CurrentRequestSettings {
     override def execute(): Unit = result = InsteadOfFormDisplay(reloadFormJs)
   }
 
-  override def html = defaultButtonHtml ++ super.html
+  override protected def containerAsHtml = defaultButtonHtml ++ super.containerAsHtml
 
-  def defaultButtonHtml = defaultExecutableOption.fold(NodeSeq.Empty)(_.renderAsDefault)
+  def defaultButtonHtml = defaultExecutableOption.fold(NodeSeq.Empty)(form.renderer.renderAsDefaultExecutable)
 
   def defaultExecutableOption = components.collectFirst { case e: DefaultExecutable if e.state.isEnabled => e}
 
@@ -279,7 +271,7 @@ trait BaseForm extends Container with CurrentRequestSettings {
 
   def focusJs = components.collectFirst({ case field: BaseField if field.needsFocus => field.focusJs}) getOrElse JsEmpty
 
-  def replaceContentJs = jQuery(contentId).call("html", enrichedHtml)
+  def replaceContentJs = jQuery(contentId).call("html", asHtml)
 
   def hideModalJs = jQuery(modalId).call("modal", "hide")
 
@@ -349,16 +341,19 @@ trait Executable extends InteractiveComponent {
   def commitLink(value: ValueType) = form.actionLinkWithContextPathAndParameters(name -> valueToString(value))
 }
 
-abstract class Executor(override val ilk: String)(implicit val parent: Container) extends Executable with Result with Floating {
-  override def html: NodeSeq = NodeSeq.Empty
-}
+abstract class Executor(override val ilk: String)(implicit val parent: Container) extends Executable with Result with Floating
 
-trait DefaultExecutable extends Executable {
-  def renderAsDefault = <input type="submit" class="concealed" tabindex="-1" name={name} value="" />
-}
+trait DefaultExecutable extends Executable
 
 trait InteractiveComponent extends Component with Values {
-  override def parse(request: Request): Unit = request.parameters.getStringsOption(name).foreach(parse)
+  override def parse(request: Request): Unit = {
+    import ComponentState._
+    state match {
+      case Enabled => request.parameters.getStringsOption(name).foreach(parse)
+      case Disabled | Hidden => request.parameters.getStringsOption(disabledName).foreach(parse)
+      case Ignored =>
+    }
+  }
 
   def parse(parameters: Seq[String]): Unit = strings = parameters
 
@@ -397,7 +392,7 @@ trait UseLastParameterOnly extends BaseField {
   override def parse(parameters: Seq[String]): Unit = super.parse(parameters.lastOption.map(_ :: Nil) getOrElse Nil)
 }
 
-class LazyCacheComponent[T](calculate: => T)(implicit val parent: Container) extends LazyCache[T] with Component with Floating {
+class LazyCacheComponent[T](calculate: => T)(implicit val parent: Container) extends LazyCache[T] with Floating {
   private val lazyCache = LazyCache(calculate)
 
   def valueOption: Option[T] = lazyCache.valueOption
@@ -408,6 +403,4 @@ class LazyCacheComponent[T](calculate: => T)(implicit val parent: Container) ext
     super.reset()
     lazyCache.reset()
   }
-
-  override def html: NodeSeq = NodeSeq.Empty
 }

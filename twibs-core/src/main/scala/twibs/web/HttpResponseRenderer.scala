@@ -8,7 +8,6 @@ import com.google.common.base.Charsets
 import com.google.common.io.ByteStreams
 import javax.servlet.http.{HttpServletRequest, HttpServletResponse}
 import twibs.util.Predef._
-import twibs.util.ThreeTenTransition._
 
 class HttpResponseRenderer(request: Request, response: Response, httpRequest: HttpServletRequest, httpResponse: HttpServletResponse) {
   private val currentDateTime = Request.now()

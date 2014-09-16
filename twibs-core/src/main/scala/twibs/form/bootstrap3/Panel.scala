@@ -15,11 +15,11 @@ trait Panel extends StaticContainer {
 
   def panelCssClasses: List[String] = "panel" :: "panel-default" :: Nil
 
-  override def html: NodeSeq =
+  override def containerAsDecoratedHtml: NodeSeq =
     <div class={panelCssClasses}>
       {panelHeading}
       <div class="panel-body">
-        {super.html}
+        {super.containerAsDecoratedHtml}
       </div>
     </div>
 
@@ -32,16 +32,16 @@ trait Panel extends StaticContainer {
   }
 }
 
-class ButtonFormGroup(implicit _parent: Container) extends StaticContainer("button-group")(_parent) {
-  override def html =
+class ButtonFormGroup(implicit parent: Container) extends StaticContainer("button-group")(parent) {
+  override def containerAsDecoratedHtml =
     <div class="form-group">
       <div class="col-sm-offset-3 col-sm-9">
-        {super.html}
+        {super.containerAsDecoratedHtml}
       </div>
     </div>
 }
 
-trait BoostratpMinMaxContainer extends MinMaxContainer {
+trait BoostrapMinMaxContainer extends MinMaxContainer {
   override def messageHtml: NodeSeq = messageOption match {
     case Some(message) => Bootstrap.withUntitledFormGroup(form.renderer.renderMessage(message))
     case _ => NodeSeq.Empty
@@ -49,11 +49,11 @@ trait BoostratpMinMaxContainer extends MinMaxContainer {
 }
 
 trait Detachable extends Container {
-  override def html: NodeSeq =
+  override def containerAsDecoratedHtml =
     <div class={ilk :: "detachable" :: Nil}>
       {closeButton}
       <div class="detachable-content">
-        {super.html}
+        {super.containerAsDecoratedHtml}
       </div>
     </div>
 

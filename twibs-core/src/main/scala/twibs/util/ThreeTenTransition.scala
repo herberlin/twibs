@@ -8,7 +8,7 @@ import java.sql.Timestamp
 import java.util.{Date, Calendar}
 import org.threeten.bp._
 
-object ThreeTenTransition {
+trait ThreeTenTransition {
   val zoneId = ZoneId.systemDefault()
 
   implicit def convertInstant(instant: Instant) = new {
@@ -53,3 +53,5 @@ object ThreeTenTransition {
     def toSystemEpochMillis = date.atStartOfDay.atZone(zoneId).toInstant.toEpochMilli
   }
 }
+
+object ThreeTenTransition extends ThreeTenTransition

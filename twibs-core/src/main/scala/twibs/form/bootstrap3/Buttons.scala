@@ -89,7 +89,16 @@ trait BootstrapButton extends InteractiveComponent with Values with DisplayType 
     else
       <span>{renderButtonTitle}</span>
 
-  override def html: NodeSeq =
+  override def asHtml: NodeSeq = {
+    import twibs.form.base.ComponentState._
+    state match {
+      case Ignored => NodeSeq.Empty
+      case Hidden => inputs.map(input => form.renderer.hiddenInput(name,input.string)).flatten
+      case _ => buttonAsDecoratedHtml
+    }
+  }
+
+  def buttonAsDecoratedHtml: NodeSeq =
     <div class={formGroupCssClasses}>
       <div class={controlContainerCssClasses}>{buttonAsHtml}</div>
     </div>

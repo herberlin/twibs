@@ -14,7 +14,7 @@ object IOUtils {
   }
 }
 
-object Predef {
+object Predef extends ThreeTenTransition {
   type WithCloseMethod = {def close(): Unit}
 
   implicit def toRichClosable[C <: WithCloseMethod](closable: C) = new {

@@ -18,11 +18,11 @@ trait DataTable[T] extends StaticContainer {
 
   override def translator: Translator = super.translator.kind("TABLE")
 
-  override def html: NodeSeq =
+  override def containerAsDecoratedHtml: NodeSeq =
     <div>
       <nav class="form-inline table-controls-top">
-        {pageSizeField.enrichedHtml}
-        <span class="display-text">{pageSizeField.formGroupTitle}</span>{queryStringField.enrichedHtml}
+        {pageSizeField.asHtml}
+        <span class="display-text">{pageSizeField.fieldTitleHtml}</span>{queryStringField.asHtml}
       </nav>
       {tableHtml}
     </div>
@@ -57,7 +57,7 @@ trait DataTable[T] extends StaticContainer {
   def refreshTableData = jQuery(tableId).call("html", NodeSeq.seqToNodeSeq(tableHtml.child))
 
   private val offsetField = new Field("page-navigation") with LongValues {
-    override def html: NodeSeq = inputsAsHtml
+    override def fieldAsDecoratedHtml = inputsAsHtml
 
     override def inputAsEnrichedHtml(input: Input, index: Int): NodeSeq =
       <div class="pagination">
@@ -121,9 +121,9 @@ trait DataTable[T] extends StaticContainer {
       </table>
       <style>{Unparsed(columnsStyle)}</style>
       <nav class="form-inline clearfix">
-        {offsetField.enrichedHtml}
+        {offsetField.asHtml}
       </nav>
-      {columns.map(_.sortField.enrichedHtml)}
+      {columns.map(_.sortField.asHtml)}
     </div>
 
   def tableCssClasses = "table" :: "table-bordered" :: "table-striped" :: "data-table" :: Nil

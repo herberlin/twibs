@@ -31,43 +31,53 @@ class FormTest extends TwibsTest {
     val f = new Form("f") {
       override def accessAllowed: Boolean = true
 
-      val normal = new Field("n") with StringValues with SingleLineField {
+      val enabled = new Field("enabled") with StringValues with SingleLineField {
         override def minimumLength: Int = 2
       }
-      val disabled = new Field("d") with StringValues with SingleLineField {
+      val disabled = new Field("disabled") with StringValues with SingleLineField {
         override def state = ComponentState.Disabled
 
         override def minimumLength: Int = 2
       }
-      val hidden = new Field("h") with StringValues with SingleLineField {
+      val hidden = new Field("hidden") with StringValues with SingleLineField {
         override def state = ComponentState.Hidden
 
         override def minimumLength: Int = 2
       }
-      val ignored = new Field("i") with StringValues with SingleLineField {
+      val ignored = new Field("ignored") with StringValues with SingleLineField {
         override def state = ComponentState.Ignored
 
         override def minimumLength: Int = 2
       }
     }
 
-    f.normal.isValid should beTrue
+    f.enabled.isValid should beTrue
     f.disabled.isValid should beTrue
     f.hidden.isValid should beTrue
     f.ignored.isValid should beTrue
 
     f.respond(new RequestWrapper(Request) {
-      override def parameters: Parameters = Map("n" -> Seq("n"), "d" -> Seq("d"), "h" -> Seq("h"))
+      override def parameters: Parameters =
+        Map(
+          "enabled" -> Seq("e"),
+          "enabled-disabled" -> Seq("e-d"),
+          "disabled" -> Seq("d"),
+          "disabled-disabled" -> Seq("d-d"),
+          "hidden" -> Seq("h"),
+          "hidden-disabled" -> Seq("h-d"),
+          "ignored" -> Seq("i"),
+          "ignored-disabled" -> Seq("i-d")
+        )
     })
 
-    f.normal.string should be("n")
-    f.disabled.string should be("d")
-    f.hidden.string should be("h")
+    f.enabled.string should be("e")
+    f.disabled.string should be("d-d")
+    f.hidden.string should be("h-d")
     f.ignored.string should be("")
 
     f.validate()
 
-    f.normal.isValid should beFalse
+    f.enabled.isValid should beFalse
     f.disabled.isValid should beTrue
     f.hidden.isValid should beTrue
     f.ignored.isValid should beTrue

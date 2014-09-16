@@ -16,10 +16,10 @@ import org.threeten.bp.format.DateTimeFormatter
 import org.threeten.bp.{LocalDate, LocalDateTime}
 
 trait DisabledField extends Field {
-//  override def inputAsEnrichedHtml(input: Input, index: Int) =
-//    form.renderer.hiddenInput(name, input.string) ++ <p class="form-control-static">{input.title}</p>
-//
-//  override def inputAsElem(input: Input) = <span></span>
+  //  override def inputAsEnrichedHtml(input: Input, index: Int) =
+  //    form.renderer.hiddenInput(name, input.string) ++ <p class="form-control-static">{input.title}</p>
+  //
+  //  override def inputAsElem(input: Input) = <span></span>
   override def state: ComponentState = super.state.disabled
 }
 
@@ -28,32 +28,16 @@ trait Emptiable extends Field {
     <span class="emptiable">{super.inputAsEnrichedHtml(input, index)}<span class="input-clear fa fa-times"></span></span>
 }
 
-trait FieldWithSuffixes extends Field {
-  def suffixes: List[NodeSeq] = suffix :: Nil
-
-  def suffix: NodeSeq = NodeSeq.Empty
-
-  def surroundWithInputGroup(input: Input, nodeSeq: NodeSeq) = <div class="input-group">{nodeSeq}</div>
-
-  override def inputAsEnrichedHtml(input: Input, index: Int): NodeSeq = {
-    (suffixes.filterNot(_.isEmpty).map(s => <span class="input-group-addon">{ s }</span>), infoHtml) match {
-      case (Nil, NodeSeq.Empty) => super.inputAsEnrichedHtml(input, index)
-      case (suffixes, infoHtml) => surroundWithInputGroup(input, super.inputAsEnrichedHtml(input, index) ++ suffixes ++ infoHtml)
-    }
-  }
-
-  protected override def infoHtml: NodeSeq = super.infoHtml match {
-    case NodeSeq.Empty => NodeSeq.Empty
-    case x => <span class="input-group-btn field-info">{x}</span>
-  }
-}
-
-trait TextField extends FieldWithSuffixes {
+trait TextField extends Field {
   def placeholder = t"placeholder: Please enter text"
 }
 
 trait SingleLineField extends TextField {
-  override def inputAsElem(input: Input) = <input type="text" placeholder={placeholder} value={input.string} />
+  override def inputAsEnrichedHtml(input: Input, index: Int): NodeSeq =
+    enrichInputElem(<input type="text" placeholder={placeholder} value={input.string} />, index)
+
+  // TODO: Remove after transition
+  override def inputAsElem(input: Input): Elem = <span></span>
 }
 
 trait NumberField extends TextField with NumberValues {
@@ -76,7 +60,6 @@ trait AbstractDateTimeField extends SingleLineField with JavascriptComponent {
 
   private def inputGroupId = id ~ "input-group"
 
-
   override def suffixes: List[NodeSeq] =
     if (state.isEnabled) clearButton :: <span class="glyphicon glyphicon-calendar"></span> :: super.suffixes // ATTENTION: datetimepicker needs glyphicon!!
     else super.suffixes
@@ -86,7 +69,7 @@ trait AbstractDateTimeField extends SingleLineField with JavascriptComponent {
       .setIfMissing(!minimumFormattedForBrowser.isEmpty, "data-date-startdate", minimumFormattedForBrowser)
       .setIfMissing(!maximumFormattedForBrowser.isEmpty, "data-date-enddate", maximumFormattedForBrowser)
 
-  override def inputAsEnrichedElem(input: Input, index: Int): Elem = super.inputAsEnrichedElem(input, index).removeClass("submit-on-change")
+  override def inputCssClasses: List[String] = super.inputCssClasses.filter(_ != "submit-on-change")
 
   def withClearButton = false
 
@@ -149,7 +132,7 @@ trait SearchField extends TextField with Emptiable {
   override def translator: Translator = super.translator.kind("SEARCH")
 }
 
-trait SelectField extends FieldWithSuffixes with FieldWithOptions {
+trait SelectField extends FieldWithOptions {
   override def translator: Translator = super.translator.kind("SELECT")
 }
 
@@ -236,13 +219,13 @@ trait RadioField extends CheckOrRadioField {
 trait BooleanCheckBoxField extends Field with BooleanValues with FloatingInfo with UseLastParameterOnly {
   override def inputsAsHtml: NodeSeq = infoHtml ++ super.inputsAsHtml
 
-  override def formGroupTitle = Unparsed("&nbsp;") // IE8 needs this to show empty divs after page break in print view.
+  override def fieldTitleHtml = Unparsed("&nbsp;") // IE8 needs this to show empty divs after page break in print view.
 
   override def inputAsEnrichedHtml(value: Input, index: Int) =
-    form.renderer.hiddenInput(name, "false") ++ <div class="checkbox"><label>{super.inputAsEnrichedHtml(value, index)}{super.formGroupTitle}</label></div>
+    form.renderer.hiddenInput(name, "false") ++ <div class="checkbox"><label>{super.inputAsEnrichedHtml(value, index)}{super.fieldTitleHtml}</label></div>
 
   override def inputAsElem(input: Input) =
-    <input type="checkbox" value="true" />.set(input.string == "true", "checked")
+      <input type="checkbox" value="true" />.set(input.string == "true", "checked")
 
   override def inputCssClasses: List[String] = super.inputCssClasses.filterNot(_ == "form-control")
 
@@ -273,7 +256,7 @@ trait FileEntryField extends Field with FileEntryValues with Result {
   override def state = super.state.hideIf(values.length <= 0)
 
   private def processDeleteParameters(parameters: Seq[String]): Unit = {
-    val ret = parameters.flatMap(stringToValueOption).map{ output =>
+    val ret = parameters.flatMap(stringToValueOption).map { output =>
       val message = Message.info(t"deleted-message: File ${output.title} was deleted")
       deleteFileEntry(output)
       message.showNotification
@@ -353,17 +336,17 @@ trait UploadWithOverwrite extends Container {
 
     private def processOverwriteParameters(strings: Seq[String]) = {
       result = AfterFormDisplay(JsEmpty +: strings.flatMap(stringToValueOption).map { upload =>
-          registerUpload(upload)
-          Uploads.deregister(upload)
-          values = values.filterNot(_ == upload)
-          Message.info(t"overwritten-message: Upload ${upload.name} overwritten.").showNotification
+        registerUpload(upload)
+        Uploads.deregister(upload)
+        values = values.filterNot(_ == upload)
+        Message.info(t"overwritten-message: Upload ${upload.name} overwritten.").showNotification
       })
     }
 
     private def processDeleteParameters(parameters: Seq[String]) = {
       val ret = parameters.flatMap(stringToValueOption).map { value =>
-          values = values.filterNot(_ == value)
-          Message.info(t"deleted-message: File ${value.name} was deleted").showNotification
+        values = values.filterNot(_ == value)
+        Message.info(t"deleted-message: File ${value.name} was deleted").showNotification
       }
       result = AfterFormDisplay(ret)
     }

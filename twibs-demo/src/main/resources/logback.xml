@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <appender name="MAIN" class="ch.qos.logback.core.FileAppender">
+        <File>${catalina.base}/logs/twibs-demo.log</File>
+        <encoder>
+            <pattern>%date{ISO8601} |-%-5level [%thread] %logger - %message%n</pattern>
+        </encoder>
+    </appender>
+    <appender name="ACCESS" class="ch.qos.logback.core.FileAppender">
+        <File>${catalina.base}/logs/twibs-demo-access.log</File>
+        <encoder>
+            <pattern>%m%n</pattern>
+        </encoder>
+    </appender>
+    <root level="DEBUG">
+        <appender-ref ref="MAIN"/>
+    </root>
+    <logger name="twibs.web.LoggingResponder" additivity="false" level="INFO">
+        <appender-ref ref="ACCESS"/>
+    </logger>
+</configuration>

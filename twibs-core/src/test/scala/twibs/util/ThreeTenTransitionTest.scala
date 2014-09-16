@@ -4,11 +4,13 @@
 
 package twibs.util
 
-import java.sql.{Date, Timestamp}
+import java.sql.Timestamp
 import java.util.Calendar
-import org.threeten.bp.{LocalDate, LocalDateTime}
+
 import twibs.TwibsTest
 import twibs.util.ThreeTenTransition._
+
+import org.threeten.bp.{LocalDate, LocalDateTime}
 
 class ThreeTenTransitionTest extends TwibsTest {
   test("From Timestamp to LocalDateTime and back") {

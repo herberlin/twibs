@@ -9,7 +9,7 @@ import org.threeten.bp.{LocalDate, LocalDateTime}
 //TODO: Replace PostgresDriver with generic type once someone knows how ;)
 import scala.slick.driver.PostgresDriver.simple._
 import scala.slick.jdbc.{PositionedParameters, PositionedResult, SetParameter, GetResult}
-import twibs.util.ThreeTenTransition._
+import twibs.util.Predef._
 
 object ThreeTenMapper {
   implicit val timestamp2dateTime = MappedColumnType.base[LocalDateTime, Timestamp](_.toTimestamp, _.toLocalDateTime)

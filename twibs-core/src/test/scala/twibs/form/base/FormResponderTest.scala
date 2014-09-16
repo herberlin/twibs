@@ -30,6 +30,8 @@ class FormResponderTest extends TwibsTest {
         override def renderMessage(message: Message): NodeSeq = message.text
 
         override def hiddenInput(name: String, value: String): NodeSeq = <input type="hidden" autocomplete="off" name={name} value={value} />
+
+        override def renderAsDefaultExecutable(executable: Executable): NodeSeq = <input type="submit" class="concealed" tabindex="-1" name={executable.name} value="" />
       }
 
       override def modalHtml: NodeSeq = NodeSeq.Empty
