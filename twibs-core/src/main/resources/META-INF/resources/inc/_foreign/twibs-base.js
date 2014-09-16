@@ -113,18 +113,18 @@ $(function () {
 
     $(document)
         .on('click', '.twibs-form button[type="submit"],.twibs-form input[type="submit"]', function (e) {
-            var $this = $(this);
-            $this.closest('form').submitForm($this.attr('name'), $this.val(), $this.hasClass("enabled-form"));
             e.stopPropagation();
             e.preventDefault();
+            var $this = $(this);
+            $this.closest('form').submitForm($this.attr('name'), $this.val(), $this.hasClass("enabled-form"));
         })
         .on('click', '.submit', function (e) {
             var $this = $(e.target);
             if (!$this.closest(".ignore-submit,.submit").hasClass("ignore-submit")) {
-                var $button = $this.closest(".submit");
-                $button.submitForm($button.attr('name'), $button.attr('value'), $this.hasClass("enabled-form"));
                 e.stopPropagation();
                 e.preventDefault();
+                var $button = $this.closest(".submit");
+                $button.submitForm($button.attr('name'), $button.attr('value'), $this.hasClass("enabled-form"));
             }
         })
         .on('keyup', '.submit-while-typing', function (e) {
@@ -281,7 +281,15 @@ $(function () {
                 if (jQuery.contains(document, $modal[0])) $modal.modal("hide");
                 else $('.modal-backdrop').detach();
                 twibsUpdateAfterDomChange();
-                if (focusedId) $("#" + focusedId).focus();
+                if (focusedId) {
+                    var e = $(document.activeElement);
+                    if (e.length > 0) {
+                        var n = e.prop("tagName");
+                        if (n != "INPUT" && n != "BUTTON" && n != "TEXTAREA") {
+                            $("#" + focusedId).focus();
+                        }
+                    }
+                }
             }
         });
     }
