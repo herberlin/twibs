@@ -21,7 +21,7 @@ class ValuesTest extends TwibsTest {
   test("Optional string validation") {
     val field = new TestField with LongValues
 
-    field.validateString("") should be(field.Input("", "", None, None, false))
+    field.validateString("") should be(field.Input("", "", None, None, continue = false))
     field.strings = "" :: Nil
     field.validate() should beTrue
   }
@@ -77,7 +77,8 @@ class ValuesTest extends TwibsTest {
     field.validateString("info @example.com") should be(field.Input("info @example.com", "info @example.com", Some("info @example.com"), "Please enter a valid email address."))
     field.strings = "mb@example.com" :: "noemail" :: Nil
     field.strings should be("mb@example.com" :: "noemail" :: Nil)
-    field.values should be("mb@example.com" :: Nil)
+    field.values should be("mb@example.com" :: "noemail" :: Nil)
+    field.validValues should be("mb@example.com" :: Nil)
   }
 
   test("Web address validation") {
@@ -95,7 +96,8 @@ class ValuesTest extends TwibsTest {
     }
 
     field.strings = "a" :: "-1" :: "1" :: "10" :: "9" :: Nil
-    field.values should be(1L :: 9L :: Nil)
+    field.values should be(-1L :: 1L :: 10L :: 9L :: Nil)
+    field.validValues should be(1L :: 9L :: Nil)
   }
 
   test("Date time validation") {
@@ -106,7 +108,8 @@ class ValuesTest extends TwibsTest {
     }
 
     field.strings = "01.12.2000 12:11:00" :: "01.12.2000 12:12:00" :: "xx" :: "24.12.2000 12:12:00" :: "24.12.2000 12:13:00" :: Nil
-    field.values should have size 2
+    field.values should have size 4
+    field.validValues should have size 2
     field.strings should be("01.12.2000 12:11:00" :: "01.12.2000 12:12:00" :: "xx" :: "24.12.2000 12:12:00" :: "24.12.2000 12:13:00" :: Nil)
   }
 
@@ -116,12 +119,12 @@ class ValuesTest extends TwibsTest {
     }
 
     field.strings = "1" :: "2" :: "3" :: Nil
-    field.values should be(1L :: 3L :: Nil)
+    field.values should be(1L :: 2L :: 3L :: Nil)
+    field.validValues should be(1L :: 3L :: Nil)
 
     field.useEmptyOption("2") should beTrue
     field.useEmptyOption("1") should beFalse
   }
-
 
   test("Options with titles") {
     val field = new TestField with LongValues with Options with Required with TranslatedValueTitles {

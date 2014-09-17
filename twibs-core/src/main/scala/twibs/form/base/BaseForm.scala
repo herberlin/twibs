@@ -249,7 +249,7 @@ trait BaseForm extends Container with CurrentRequestSettings {
     "?" + all.distinct.map(e => e._1 + "=" + e._2).mkString("&")
   }
 
-  def componentParameters: List[(String, String)] = components.collect({ case component: BaseField if component.isModified => component.strings.map(string => component.name -> string)}).flatten.toList
+  def componentParameters: List[(String, String)] = components.collect { case component: BaseField => component.linkParameters}.flatten.toList
 
   def accessAllowed: Boolean
 
@@ -372,6 +372,17 @@ trait BaseField extends InteractiveComponent with Validatable {
   def needsFocus = state.isEnabled && !isValid
 
   def focusJs = jQuery(id).call("focus")
+
+  def linkParameters: Seq[(String, String)] =
+    if (isModified) {
+      import ComponentState._
+      state match {
+        case Ignored => Nil
+        case Hidden | Disabled => strings.map(string => disabledName -> string)
+        case Enabled => strings.map(string => name -> string)
+      }
+    }
+    else Nil
 }
 
 trait SubmitOnChange extends BaseField {

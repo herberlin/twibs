@@ -5,6 +5,7 @@
 package twibs.form.bootstrap3
 
 import scala.xml.NodeSeq
+import twibs.form.base.ComponentState.ComponentState
 import twibs.form.base._
 import twibs.util.Translator
 
@@ -65,11 +66,13 @@ trait Detachable extends Container {
 }
 
 trait UploadWithComment extends Dynamic with Detachable {
-  val upload = new Field("file") with UploadValues with DisabledField {
+  val upload = new Field("file") with UploadValues with ReadOnlyField {
     override def inputAsElem(input: Input) = <span></span>
   }
 
   val comment = new Field("file-comment") with StringValues with MultiLineField with Required
 
   override def translator = super.translator.kind("UPLOAD-WITH-COMMENT")
+
+  override def state: ComponentState = super.state.ignoreIf(upload.isModified && upload.values.isEmpty)
 }

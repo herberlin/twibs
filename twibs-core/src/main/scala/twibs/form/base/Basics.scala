@@ -16,11 +16,11 @@ object ComponentState {
   class ComponentState(val id: Long) {
     def merge(desiredState: ComponentState): ComponentState = if (desiredState.id > id) desiredState else this
 
+    def disableIf(condition: Boolean): ComponentState = if (condition && Disabled.id > id) Disabled else this
+
     def hideIf(condition: Boolean): ComponentState = if (condition && Hidden.id > id) Hidden else this
 
-    def disableIf(condition: Boolean): ComponentState = if (condition && Disabled.id > id) Hidden else this
-
-    def ignoreIf(condition: Boolean): ComponentState = if (condition && Ignored.id > id) Hidden else this
+    def ignoreIf(condition: Boolean): ComponentState = if (condition && Ignored.id > id) Ignored else this
 
     def isEnabled = this == Enabled
 
@@ -32,9 +32,9 @@ object ComponentState {
 
     def disabled = merge(Disabled)
 
-    def ignored = merge(Ignored)
-
     def hidden = merge(Hidden)
+
+    def ignored = merge(Ignored)
   }
 
   case object Enabled extends ComponentState(0)

@@ -183,7 +183,7 @@ trait Values extends TranslationSupport {
   /* Convenience methods */
   final def isChanged = values != defaultValues
 
-  final def values = inputs.collect { case Input(_, _, Some(value), None, _, _) => value}
+  final def values = inputs.collect { case Input(_, _, Some(value), _, _, _) => value}
 
   final def input = inputs.head
 
@@ -194,6 +194,14 @@ trait Values extends TranslationSupport {
   final def stringOrEmpty = strings.headOption getOrElse ""
 
   final def string_=(string: String) = strings = string :: Nil
+
+  final def validValues = inputs.collect { case Input(_, _, Some(value), None, _, _) => value}
+
+  final def validValue = validValues.head
+
+  final def validValueOption = validValues.headOption
+
+  final def validValueOrDefault = validValueOption getOrElse defaultValue
 
   final def value = values.head
 

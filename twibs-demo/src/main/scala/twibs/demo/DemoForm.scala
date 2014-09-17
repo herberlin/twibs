@@ -3,7 +3,8 @@ package twibs.demo
 import twibs.form.base.ComponentState.ComponentState
 import twibs.form.base._
 import twibs.form.bootstrap3._
-import twibs.util.{Message, DefaultDisplayType}
+import twibs.util.{Message, PrimaryDisplayType}
+import twibs.web.Upload
 
 class DemoForm extends Form("demo") {
   override def accessAllowed: Boolean = true
@@ -12,58 +13,121 @@ class DemoForm extends Form("demo") {
 
   new DisplayHtml(false, <div class="alter alert-error"><p>This is never displayed.</p></div>)
 
-  trait TwoValues extends StringValues {
-    override def defaultValues: Seq[ValueType] = "a" :: "b" :: Nil
+  trait P extends Panel {
+
+    import ComponentState._
+
+    abstract class MField(ilk: String, parent: Container, defaultStrings: List[String], _state: ComponentState) extends Field(ilk)(parent) {
+      override def minimumLength: Int = 2
+
+      override def maximumNumberOfInputs: Int = defaultStrings.size
+
+      override def defaultValues = defaultStrings.map(stringToValueOption).flatten
+
+      override def state: ComponentState = super.state.merge(_state)
+    }
+
+    def createField(name: String, defaultStrings: List[String], state: ComponentState)(implicit parent: Container): Field
+
+    def defaultStrings = "a" :: "b" :: Nil
+
+    def createFieldOneValues(name: String, state: ComponentState)(implicit parent: Container): Field = createField(name, defaultStrings.take(1), state)(parent)
+
+    def createFieldTwoValues(name: String, state: ComponentState)(implicit parent: Container): Field = createField(name, defaultStrings, state)(parent)
+
+    trait FieldTypeContainer extends StaticContainer {
+      createFieldOneValues("f1", Enabled)
+      createFieldOneValues("f2", Disabled)
+      createFieldOneValues("f3", Hidden)
+      createFieldOneValues("f4", Ignored)
+    }
+
+    new StaticContainer("simple") with FieldTypeContainer
+
+    new StaticContainer("with-info") with Panel with FieldTypeContainer
+
+    new StaticContainer("two-values") with Panel {
+      createFieldTwoValues("f1", Enabled)
+      createFieldTwoValues("f2", Disabled)
+      createFieldTwoValues("f3", Hidden)
+      createFieldTwoValues("f4", Ignored)
+    }
   }
 
-  trait BaseField extends Field with StringValues {
-    override def minimumLength: Int = 2
-
-    override def defaultValues: Seq[ValueType] = "a" :: Nil
+  new StaticContainer("single-line") with P {
+    override def createField(name: String, defaultStrings: List[String], state: ComponentState)(implicit parent: Container): Field =
+      new MField(name, parent, defaultStrings, state) with StringValues with SingleLineField
   }
 
-  trait BaseFieldDisabled extends BaseField {
-    override def state: ComponentState = super.state.disabled
+  new StaticContainer("multi-line") with P {
+    override def createField(name: String, defaultStrings: List[String], state: ComponentState)(implicit parent: Container): Field =
+      new MField(name, parent, defaultStrings, state) with StringValues with MultiLineField
   }
 
-  trait BaseFieldHidden extends BaseField {
-    override def state: ComponentState = super.state.hidden
+  new StaticContainer("date-time") with P {
+    override def createField(name: String, defaultStrings: List[String], state: ComponentState)(implicit parent: Container): Field =
+      new MField(name, parent, defaultStrings, state) with DateTimeField
+
+    override def defaultStrings: List[String] = "10.09.201413:30:06" :: "10.09.2014 13:30:06" :: Nil
   }
 
-  trait BaseFieldIgnored extends BaseField {
-    override def state: ComponentState = super.state.ignored
+  new StaticContainer("single-select") with P {
+    override def createField(name: String, defaultStrings: List[String], state: ComponentState)(implicit parent: Container): Field =
+      new MField(name, parent, defaultStrings, state) with StringValues with SingleSelectField with Required with Chosen {
+        override def computeOptions = toOptions("Mr" :: "Mrs" :: Nil)
+      }
+
+    override def defaultStrings: List[String] = "Mr" :: "X" :: Nil
   }
 
-  trait SingleLineContainer extends StaticContainer {
-    new Field("f1") with BaseField with SingleLineField
+  val uploads = new DynamicContainer[UploadWithComment]("uploads") {
+    def create(dynamicId: String) = new Dynamic("upload", dynamicId) with UploadWithComment
 
-    new Field("f2") with BaseFieldDisabled with SingleLineField
+    def uploaded(uploads: List[Upload]) = uploads.map(upload => {
+      Uploads.register(upload)
+      val ret = recreate(upload.id)
+      ret.upload.values = upload :: Nil
+      ret
+    })
 
-    new Field("f3") with BaseFieldHidden with SingleLineField
-
-    new Field("f4") with BaseFieldIgnored with SingleLineField
+    override def minimumNumberOfDynamics: Int = 1
   }
 
-  new StaticContainer("simple") with SingleLineContainer
+  val uploadButton = new Button("upload-button") with UploadButton {
+    override def uploaded(uls: List[Upload]) = uploads.uploaded(uls)
 
-  new StaticContainer("with-info") with Panel with SingleLineContainer
-
-  new StaticContainer("two-values") with Panel {
-    new Field("f1") with BaseField with SingleLineField with TwoValues
-
-    new Field("f2") with BaseFieldDisabled with SingleLineField with TwoValues
-
-    new Field("f3") with BaseFieldHidden with SingleLineField with TwoValues
-
-    new Field("f4") with BaseFieldIgnored with SingleLineField with TwoValues
+    override def submitOnChange: Boolean = true
   }
 
-  new Button("ok") with StringValues with DefaultDisplayType {
+  new Button("one") with StringValues with PrimaryDisplayType {
     override def executeValidated(): Unit = result = AfterFormDisplay(Message.success("Validated").showNotification)
   }
 
-  //  case class Translation(key: String, locale: ULocale, text: String)
-  //
+  new Button("two") with StringValues with PrimaryDisplayType {
+    override def defaultValues: Seq[ValueType] = "a" :: "b" :: Nil
+
+    override def executeValidated(): Unit = result = AfterFormDisplay(Message.success("Validated").showNotification)
+  }
+
+  new Button("disabled") with StringValues with PrimaryDisplayType {
+    override def executeValidated(): Unit = result = AfterFormDisplay(Message.success("Validated").showNotification)
+
+    override def state: ComponentState = super.state.disabled
+  }
+
+  new Button("hidden") with StringValues with PrimaryDisplayType {
+    override def executeValidated(): Unit = result = AfterFormDisplay(Message.success("Validated").showNotification)
+
+    override def state: ComponentState = super.state.hidden
+  }
+
+  new Button("ignored") with StringValues with PrimaryDisplayType {
+    override def executeValidated(): Unit = result = AfterFormDisplay(Message.success("Validated").showNotification)
+
+    override def state: ComponentState = super.state.ignored
+  }
+
+
   //  //  val emails = new ItemContainer("emails") with DbTable[PositionedResult] with H2Table {
   //  //    val columns =
   //  //      StringColumn("subject", "Betreff", _.nextString()) ::
@@ -79,15 +143,7 @@ class DemoForm extends Form("demo") {
   //  //    def fromSql: String = "email_table_view"
   //  //  }
   //  //
-  //
   //  val userid = new HiddenField("userid") with StringValues
-  //
-  //
-  //  val simpleButton = new Button("simple") with StringValues with SuccessDisplayType with EnabledForm {
-  //    override def execute(): Unit = result = InsteadOfFormDisplay(Message.success("Pressed").showNotification)
-  //  }
-  //
-  //  new DisplayHtml(<div class="row"><div class="col-sm-offset-3 col-sm-9"><p>Next is an input with minimal ckeditor configuration.</p></div></div>)
   //
   //  val ckEditor = new Field("ckeditor") with StringValues with MultiLineField with JavascriptComponent {
   //    override def javascript: JsCmd =
@@ -241,13 +297,7 @@ class DemoForm extends Form("demo") {
   //      override def html: NodeSeq = buttonAsHtml
   //    }
   //  }
-  //
-  //  val login2 = new Button("login2") with StringValues with PrimaryDisplayType {
-  //    override def executeValidated() = {
-  //      messages append Message.success("Login2 successful")
-  //    }
-  //  }
-  //
+  //  //
   //  //  val table = new ItemContainer("table") with ElementDbTable[Translation] with H2Table {
   //  //    val columns = StringColumn("key", "Schlüssel", _.key) ::
   //  //      StringColumn("locale", "Locale", _.locale.toString) ::

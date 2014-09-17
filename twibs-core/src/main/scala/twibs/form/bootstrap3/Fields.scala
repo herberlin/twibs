@@ -15,14 +15,6 @@ import twibs.web.Upload
 import org.threeten.bp.format.DateTimeFormatter
 import org.threeten.bp.{LocalDate, LocalDateTime}
 
-trait DisabledField extends Field {
-  //  override def inputAsEnrichedHtml(input: Input, index: Int) =
-  //    form.renderer.hiddenInput(name, input.string) ++ <p class="form-control-static">{input.title}</p>
-  //
-  //  override def inputAsElem(input: Input) = <span></span>
-  override def state: ComponentState = super.state.disabled
-}
-
 trait Emptiable extends Field {
   override def inputAsEnrichedHtml(input: Input): NodeSeq =
     <span class="emptiable">{super.inputAsEnrichedHtml(input)}<span class="input-clear fa fa-times"></span></span>
@@ -35,6 +27,12 @@ trait TextField extends Field {
 trait SingleLineField extends TextField {
   override def inputAsEnrichedHtml(input: Input): NodeSeq =
     enrichInputElem(<input type="text" placeholder={placeholder} value={input.string} />, input)
+}
+
+trait ReadOnlyField extends SingleLineField {
+  override def inputAsEnrichedHtml(input: Input): NodeSeq = <p class="form-control-static">{input.title}</p>
+
+  override def state: ComponentState = super.state.disabled
 }
 
 trait NumberField extends TextField with NumberValues {

@@ -6,6 +6,7 @@ package twibs.form.bootstrap3
 
 import scala.xml.{Text, Elem, NodeSeq, Unparsed}
 
+import twibs.form.base.ComponentState.ComponentState
 import twibs.form.base._
 import twibs.util.{IdString, ApplicationSettings, Message, Translator}
 
@@ -18,6 +19,8 @@ abstract class Form(override val ilk: String) extends BaseForm {
     override def parent: Container = self
 
     override def ilk = "open-modal-link"
+
+    override def state: ComponentState = super.state.ignoreIf(!super.state.isEnabled)
   }
 
   protected def enctype = "multipart/form-data"

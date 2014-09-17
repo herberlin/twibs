@@ -63,7 +63,7 @@ trait BootstrapButton extends InteractiveComponent with Values with DisplayType 
 
   def buttonCssClasses = "btn" :: "btn-" + displayTypeString :: Nil
 
-  def buttonAsHtml: NodeSeq = if (!state.isHidden) buttonAsEnrichedElem else NodeSeq.Empty
+  def buttonAsHtml: NodeSeq = if (state.isEnabled || state.isDisabled) buttonAsEnrichedElem else NodeSeq.Empty
 
   def buttonAsEnrichedElem: Elem = enrichButtonElem(buttonAsElem)
 
