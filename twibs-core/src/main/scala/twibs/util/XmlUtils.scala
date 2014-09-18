@@ -40,6 +40,8 @@ trait XmlUtils {
     def setIfMissing(name: String, value: String): Elem = if (elem.attribute(name).isEmpty) elem % Attribute(name, Text(value), Null) else elem
 
     def setIfMissing(condition: Boolean, name: => String, value: => String): Elem = if (condition) setIfMissing(name, value) else elem
+
+    def surround(ns: NodeSeq) = ns match {case NodeSeq.Empty => ns case _ => elem.copy(child = ns) }
   }
 
   implicit def cssClassesToAttributeValue(cssClasses: List[String]): Seq[Node] = Text(cssClasses.map(_.trim).filterNot(_.isEmpty).distinct.mkString(" "))

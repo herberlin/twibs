@@ -153,11 +153,11 @@ abstract class Field private(override val ilk: String, val parent: Container, un
     {message.text}
   </div>)
 
-  protected def infoHtml: NodeSeq = infoMessage match {
+  protected def infoButtonHtml: NodeSeq = infoMessage match {
     case "" => NodeSeq.Empty
     case m =>
       val title = infoTitle
-      <span class="btn btn-default text-info" data-toggle="popover" data-placement="left" data-container={form.id.toCssId} data-content={m} data-html="true"><span class="fa fa-info-circle"></span></span>
+      <span class="btn btn-default field-info" data-toggle="popover" data-placement="left" data-container={form.id.toCssId} data-content={m} data-html="true"><span class="fa fa-info-circle"></span></span>
         .setIfMissing(!title.isEmpty, "title", title)
         .setIfMissing(!title.isEmpty, "data-title", title)
   }
@@ -170,26 +170,28 @@ abstract class Field private(override val ilk: String, val parent: Container, un
 
   def inputWithMessageHtml(input: Input): NodeSeq = inputAsSurroundedHtml(input) ++ messageHtmlFor(input)
 
+  def inputAsSurroundedHtml(input: Input): NodeSeq =
+    addonsHtml match {
+      case NodeSeq.Empty => inputAsEnrichedHtml(input)
+      case a => surroundWithInputGroup(input, inputAsEnrichedHtml(input) ++ a)
+    }
+
+  def addonsHtml = suffixesDecoratedHtml ++ buttonsDecoratedHtml
+
+  def suffixesDecoratedHtml: NodeSeq = suffixes.filter(_.nonEmpty).map(ns => <span class="input-group-addon">{ ns }</span>)
+
   def suffixes: List[NodeSeq] = suffix :: Nil
 
   def suffix: NodeSeq = NodeSeq.Empty
 
-  def inputAsSurroundedHtml(input: Input): NodeSeq = {
-    (suffixes.filterNot(_.isEmpty).map(s => <span class="input-group-addon">{ s }</span>), infoHtmlDecorated) match {
-      case (Nil, NodeSeq.Empty) => inputAsEnrichedHtml(input)
-      case (suffixes, infoHtml) => surroundWithInputGroup(input, inputAsEnrichedHtml(input) ++ suffixes ++ infoHtml)
-    }
-  }
+  def buttonsDecoratedHtml = <span class="input-group-btn" />.surround(buttons.filter(_.nonEmpty).flatten)
+
+  def buttons: List[NodeSeq] = infoButtonHtml :: Nil
 
   def surroundWithInputGroup(input: Input, nodeSeq: NodeSeq) = <div class="input-group">{nodeSeq}</div>
 
   def messageHtmlFor(input: Input): NodeSeq =
     input.messageOption.filter(x => validated).fold(NodeSeq.Empty)(x => <div class="help-block">{x.text}</div>)
-
-  def infoHtmlDecorated: NodeSeq = infoHtml match {
-    case NodeSeq.Empty => NodeSeq.Empty
-    case x => <span class="input-group-btn field-info">{x}</span>
-  }
 
   def inputAsEnrichedHtml(input: Input): NodeSeq = enrichInputElem(inputAsElem(input), input)
 
@@ -223,7 +225,7 @@ trait Inline extends Field {
       {inputsAsHtml}
     </div>
 
-  override def infoHtml = NodeSeq.Empty
+  override def infoButtonHtml = NodeSeq.Empty
 
   override def formGroupTitleCssClasses = "sr-only" :: Nil
 }

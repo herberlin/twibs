@@ -4,6 +4,7 @@
 
 package twibs.form.base
 
+import java.io.File
 import java.text.ParseException
 import java.util.concurrent.TimeUnit
 
@@ -560,6 +561,12 @@ trait FileEntry {
   }
 
   override def hashCode(): Int = 47 + path.hashCode
+}
+
+class FileFileEntry(val file: File) extends FileEntry {
+  override def path: String = file.getPath
+
+  override def size: Long = file.length()
 }
 
 trait FileEntryValues extends Values {

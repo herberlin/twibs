@@ -56,7 +56,7 @@ trait AbstractDateTimeField extends SingleLineField with JavascriptComponent {
   private def inputGroupId(input: Input) = idForInput(input) ~ "input-group"
 
   override def suffixes: List[NodeSeq] =
-    if (state.isEnabled) clearButton :: <span class="fa fa-calendar"></span> :: super.suffixes // ATTENTION: datetimepicker needs glyphicon!!
+    if (state.isEnabled) clearButton :: <span class="fa fa-calendar"></span> :: super.suffixes
     else super.suffixes
 
   override def surroundWithInputGroup(input: Input, nodeSeq: NodeSeq): Elem =
@@ -166,14 +166,11 @@ trait MultiSelectField extends SelectField {
 }
 
 trait FloatingInfo extends Field {
-  protected override def infoHtml: NodeSeq = super.infoHtml match {
-    case NodeSeq.Empty => NodeSeq.Empty
-    case x => <span class="pull-right field-info">{x}</span>
-  }
+  protected override def infoButtonHtml: NodeSeq = <span class="pull-right field-info" />.surround(super.infoButtonHtml)
 }
 
 trait CheckOrRadioField extends FieldWithOptions with FloatingInfo {
-  override def inputsAsHtml: NodeSeq = infoHtml ++ options.zipWithIndex.map({
+  override def inputsAsHtml: NodeSeq = infoButtonHtml ++ options.zipWithIndex.map({
     case (option, index) =>
       if (inlineField) {
       <label class={checkOrRadioType + "-inline"}>{enrichedOptionAsElem(option, index)}{option.title}</label>
@@ -212,7 +209,7 @@ trait RadioField extends CheckOrRadioField {
 }
 
 trait BooleanCheckBoxField extends Field with BooleanValues with FloatingInfo with UseLastParameterOnly {
-  override def inputsAsHtml: NodeSeq = infoHtml ++ super.inputsAsHtml
+  override def inputsAsHtml: NodeSeq = infoButtonHtml ++ super.inputsAsHtml
 
   override def fieldTitleHtml = Unparsed("&nbsp;") // IE8 needs this to show empty divs after page break in print view.
 
@@ -236,12 +233,14 @@ trait FileEntryField extends Field with FileEntryValues with Result {
 
   override def inputAsElem(input: Input): Elem = <span>{input.title}</span>
 
+  override def buttons: List[NodeSeq] = deleteButton.withValue(input.string)(_.buttonAsHtml) :: super.buttons
+
   override def inputAsEnrichedHtml(input: Input): NodeSeq = {
     val link = input match {
       case Input(_, _, Some(fileEntry), None, _, _) => fileEntry.path
       case _ => "#"
     }
-    <p class="form-control-static clearfix"><div class="pull-right">{deleteButton.withValue(input.string)(_.buttonAsHtml)}</div><a href={link} target="_blank">{input.title}</a></p>
+    <p class="form-control-static clearfix"><a href={link} target="_blank">{input.title}</a></p>
   }
 
   override def minimumNumberOfInputs: Int = 0
@@ -304,7 +303,7 @@ trait UploadWithOverwrite extends Container {
     }
 
     override def inputAsEnrichedHtml(input: Input): NodeSeq =
-      form.renderer.hiddenInput(name, input.string) ++ <p class="form-control-static clearfix">{actionButtonsHtml(input.string)}<a href="#">{input.title}</a></p>
+      form.renderer.hiddenInput(name, input.string) ++ <p class="form-control-static clearfix"><a href="#">{input.title}</a></p>
 
     override def inputAsElem(input: Input) = <span></span>
 
@@ -320,14 +319,7 @@ trait UploadWithOverwrite extends Container {
       override def popoverPlacement: String = "auto right"
     }
 
-    private def actionButtonsHtml(string: String): NodeSeq = {
-      if (!state.isEnabled) NodeSeq.Empty
-      else
-        <div class="pull-right btn-group">
-          {deleteButton.withValue(string)(_.buttonAsHtml)}
-          {overwriteButton.withValue(string)(_.buttonAsHtml)}
-        </div>
-    }
+    override def buttons: List[NodeSeq] = deleteButton.withValue(string)(_.buttonAsHtml) :: overwriteButton.withValue(string)(_.buttonAsHtml) :: super.buttons
 
     private def processOverwriteParameters(strings: Seq[String]) = {
       result = AfterFormDisplay(JsEmpty +: strings.flatMap(stringToValueOption).map { upload =>
@@ -355,8 +347,10 @@ trait UploadWithOverwrite extends Container {
             Uploads.register(upload)
             uploadsField.values = uploadsField.values :+ upload
           }
-          else
+          else {
             registerUpload(upload)
+            files.reset()
+          }
       }
     }
 

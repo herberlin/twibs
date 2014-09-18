@@ -22,12 +22,12 @@
     margin-bottom: 0px;
   }
 
-  .field-info .btn {
+  .field-info {
     .text-emphasis-variant(@state-info-text);
     cursor: help;
   }
 
-  .input-group-btn.field-info {
+  .input-group-btn {
     vertical-align: top;
   }
 
@@ -35,6 +35,11 @@
     height: auto;
     white-space: pre-wrap;
     min-height: 34px;
+  }
+
+  .form-control-static + .input-group-btn .btn {
+    border-bottom-left-radius: @border-radius-base;
+    border-top-left-radius: @border-radius-base;
   }
 }
 

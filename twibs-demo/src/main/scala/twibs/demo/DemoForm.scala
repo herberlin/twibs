@@ -1,10 +1,17 @@
 package twibs.demo
 
+import java.io.{File, FileFilter}
+
 import twibs.form.base.ComponentState.ComponentState
 import twibs.form.base._
 import twibs.form.bootstrap3._
 import twibs.util.{Message, PrimaryDisplayType}
+import twibs.util.Predef._
 import twibs.web.Upload
+
+import com.google.common.io.Files
+import org.apache.commons.io.FileUtils
+import org.apache.commons.io.filefilter.FileFileFilter
 
 class DemoForm extends Form("demo") {
   override def accessAllowed: Boolean = true
@@ -15,7 +22,7 @@ class DemoForm extends Form("demo") {
 
   trait P extends Panel {
 
-    import ComponentState._
+    import twibs.form.base.ComponentState._
 
     abstract class MField(ilk: String, parent: Container, defaultStrings: List[String], _state: ComponentState) extends Field(ilk)(parent) {
       override def minimumLength: Int = 2
@@ -127,6 +134,24 @@ class DemoForm extends Form("demo") {
     override def state: ComponentState = super.state.ignored
   }
 
+  new StaticContainer("upload") with Panel with UploadWithOverwrite {
+    val folder = new File(FileUtils.getTempDirectory, "demo-uploads")
+    folder.mkdir()
+
+    override def defaultFileEntries: Seq[FileEntry] = fileFileEntries
+
+    def fileFileEntries = folder.listFiles(FileFileFilter.FILE.asInstanceOf[FileFilter]).seq.map(file => new FileFileEntry(file))
+
+    override def deleteFileEntry(fileEntry: FileEntry): Unit = fileFileEntries.find(_ == fileEntry).map(_.file.delete())
+
+    override def registerUpload(upload: Upload): Unit = upload.stream.useAndClose { is =>
+      Files.asByteSink(new File(folder, upload.name)).writeFrom(is)
+    }
+
+    override def exists(upload: Upload): Boolean = fileFileEntries.exists(_.path.endsWith("/" + upload.name))
+
+    override def submitOnChange: Boolean = true
+  }
 
   //  //  val emails = new ItemContainer("emails") with DbTable[PositionedResult] with H2Table {
   //  //    val columns =
