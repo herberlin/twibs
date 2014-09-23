@@ -22,13 +22,13 @@
   &,
   &:active,
   &.active {
-    &:focus {
+    &:focus, &.focused {
       .tab-focus();
     }
   }
 
   &:hover,
-  &:focus {
+  &:focus, &.focused {
     color: @btn-default-color;
     text-decoration: none;
   }
@@ -97,12 +97,12 @@
   }
   &,
   &:hover,
-  &:focus,
+  &:focus, &.focused,
   &:active {
     border-color: transparent;
   }
   &:hover,
-  &:focus {
+  &:focus, &.focused {
     color: @link-hover-color;
     text-decoration: underline;
     background-color: transparent;
@@ -110,7 +110,7 @@
   &[disabled],
   fieldset[disabled] & {
     &:hover,
-    &:focus {
+    &:focus, &.focused {
       color: @btn-link-disabled-color;
       text-decoration: none;
     }

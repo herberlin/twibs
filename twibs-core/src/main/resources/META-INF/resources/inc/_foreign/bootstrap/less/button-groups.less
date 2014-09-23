@@ -13,12 +13,12 @@
     float: left;
     // Bring the "active" button to the front
     &:hover,
-    &:focus,
+    &:focus, &.focused,
     &:active,
     &.active {
       z-index: 2;
     }
-    &:focus {
+    &:focus, &.focused {
       // Remove focus outline when dropdown JS adds it after closing the menu
       outline: 0;
     }
