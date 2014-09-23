@@ -19,6 +19,7 @@ import twibs.util._
 import twibs.web._
 
 import com.google.common.cache.{Cache, CacheBuilder}
+import com.google.common.net.UrlEscapers
 
 trait Component extends TranslationSupport {
   def state: ComponentState = parent.state
@@ -249,10 +250,13 @@ trait BaseForm extends Container with CurrentRequestSettings {
   def actionLinkWithContextPath: String = WebContext.path + actionLink
 
   private def queryString(parameters: (String, String)*) = {
-    val keyValues = (pnId -> id.string) :: (pnModal -> modal) :: componentParameters ::: parameters.toList
+    val escaper = UrlEscapers.urlFormParameterEscaper()
+
+    val keyValues = (pnId -> id.string) :: (pnModal -> modal.toString) :: componentParameters ::: parameters.toList
     val all = if (ApplicationSettings.name != ApplicationSettings.DEFAULT_NAME) (ApplicationSettings.PN_NAME -> ApplicationSettings.name) :: keyValues else keyValues
-    "?" + all.distinct.map(e => e._1 + "=" + e._2).mkString("&")
+    "?" + all.distinct.map(e => escaper.escape(e._1) + "=" + escaper.escape(e._2)).mkString("&")
   }
+
 
   def componentParameters: List[(String, String)] = components.collect { case component: BaseField => component.linkParameters}.flatten.toList
 

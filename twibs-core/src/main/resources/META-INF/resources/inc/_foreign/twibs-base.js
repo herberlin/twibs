@@ -305,8 +305,9 @@ $(function () {
         new PNotify({
             text: content,
             type: 'error',
-            nonblock: true,
-            nonblock_opacity: 0.2
+            nonblock: {
+                nonblock: true
+            }
         });
     }
 
