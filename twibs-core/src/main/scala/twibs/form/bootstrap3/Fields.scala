@@ -170,16 +170,15 @@ trait FloatingInfo extends Field {
 }
 
 trait CheckOrRadioField extends FieldWithOptions with FloatingInfo {
-  override def inputsAsHtml: NodeSeq = infoButtonHtml ++ options.zipWithIndex.map({
-    case (option, index) =>
+  override def inputsAsHtml: NodeSeq = infoButtonHtml ++ options.map(option =>
       if (inlineField) {
-      <label class={checkOrRadioType + "-inline"}>{enrichedOptionAsElem(option, index)}{option.title}</label>
+      <label class={checkOrRadioType + "-inline"}>{enrichedOptionAsElem(option)}{option.title}</label>
     } else {
-      <div class={checkOrRadioType}><label>{enrichedOptionAsElem(option, index)}{option.title}</label></div>
+      <div class={checkOrRadioType}><label>{enrichedOptionAsElem(option)}{option.title}</label></div>
     }
-  })
+  )
 
-  def enrichedOptionAsElem(option: OptionI, index: Int) = enrichInputElem(optionAsElem(option), input)
+  def enrichedOptionAsElem(option: OptionI) = enrichInputElem(optionAsElem(option), option.input)
 
   def optionAsElem(option: OptionI) = <input type={checkOrRadioType} value={option.string} />.set(strings.contains(option.string), "checked")
 

@@ -511,8 +511,10 @@ object Uploads {
 trait Options extends Values {
 
   // Use OptionI to avoid conflicts with scala.util.Option
-  case class OptionI(string: String, title: String, value: ValueType, enabled: Boolean = true) {
-    def input = Input(string, title, Some(value))
+  case class OptionI(string: String, title: String, value: ValueType, enabled: Boolean = true, index: Int = 0) {
+    def input = Input(string, title, Some(value), index = index)
+
+    def withIndex(newIndex: Int) = copy(index = newIndex)
   }
 
   implicit def toOptions[V <: ValueType](values: List[ValueType]): List[OptionI] = values.map(toOption)
@@ -527,7 +529,7 @@ trait Options extends Values {
 
   final def optionStrings: List[String] = options.map(_.string)
 
-  private val _options = LazyCache(computeOptions)
+  private val _options = LazyCache(computeOptions.zipWithIndex.map { case (o, index) => o.withIndex(index)})
 
   def computeOptions: List[OptionI]
 

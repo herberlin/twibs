@@ -226,7 +226,12 @@ trait BaseForm extends Container with CurrentRequestSettings {
 
   def defaultButtonHtml = defaultExecutableOption.fold(NodeSeq.Empty)(form.renderer.renderAsDefaultExecutable)
 
-  def defaultExecutableOption = components.collectFirst { case e: DefaultExecutable if e.state.isEnabled => e}
+  def defaultExecutableOption = {
+    fallbackDefaultExecutable
+    components.collectFirst { case e: DefaultExecutable if e.state.isEnabled => e}
+  }
+
+  private lazy val fallbackDefaultExecutable = new Executor("fallback-default") with DefaultExecutable with StringValues
 
   def modalId = id ~ "modal"
 
