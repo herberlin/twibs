@@ -50,18 +50,26 @@ trait Values extends TranslationSupport {
       (bufferedStrings match {
         case Some(strings) =>
           bufferedStrings = None
-          strings.map(validateString)
+          if (isStringProcessingEnabled)
+            strings.map(validateString)
+          else
+            defaultInputs
         case None => bufferedValues match {
           case Some(values) =>
             bufferedValues = None
             values.map(validateValue)
-          case None =>
-            val ret = defaultValues.map(validateValue)
-            ret.toList ::: (for (i <- ret.size until minimumNumberOfInputs) yield stringToInput("")).toList
+          case None => defaultInputs
         }
       }).zipWithIndex.map { case (i, index) => i.withIndex(index)}
     }
   }
+
+  def defaultInputs = {
+    val ret = defaultValues.map(validateValue)
+    ret.toList ::: (for (i <- ret.size until minimumNumberOfInputs) yield stringToInput("")).toList
+  }
+
+  def isStringProcessingEnabled: Boolean = true
 
   def strings_=(strings: Seq[String]) = {
     bufferedStrings = Some(strings)

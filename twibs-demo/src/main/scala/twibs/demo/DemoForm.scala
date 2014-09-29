@@ -2,7 +2,6 @@ package twibs.demo
 
 import java.io.{File, FileFilter}
 
-import twibs.form.base.ComponentState.ComponentState
 import twibs.form.base._
 import twibs.form.bootstrap3._
 import twibs.util.{Message, PrimaryDisplayType}

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>net.twibs</groupId>
     <artifactId>twibs-parent</artifactId>
@@ -97,7 +98,7 @@
                         </execution>
                         <execution>
                             <id>scala-doc-deploy</id>
-                            <phase>package</phase>
+                            <phase>verify</phase>
                             <goals>
                                 <goal>doc-jar</goal>
                             </goals>
@@ -164,6 +165,13 @@
                                 <webappDirectory>${project.build.directory}/${project.artifactId}</webappDirectory>
                             </configuration>
                         </execution>
+                        <execution>
+                            <id>install</id>
+                            <phase>post-integration-test</phase>
+                            <goals>
+                                <goal>war</goal>
+                            </goals>
+                        </execution>
                     </executions>
                 </plugin>
                 <plugin>
@@ -179,7 +187,7 @@
                 <plugin>
                     <groupId>org.scalatest</groupId>
                     <artifactId>scalatest-maven-plugin</artifactId>
-                    <version>1.0-RC2</version>
+                    <version>1.0</version>
                     <configuration>
                         <skipTests>${maven.test.skip}</skipTests>
                     </configuration>
@@ -189,6 +197,19 @@
                             <goals>
                                 <goal>test</goal>
                             </goals>
+                            <configuration>
+                                <suffixes>Test|Suite|Spec</suffixes>
+                            </configuration>
+                        </execution>
+                        <execution>
+                            <id>integration-test</id>
+                            <phase>integration-test</phase>
+                            <goals>
+                                <goal>test</goal>
+                            </goals>
+                            <configuration>
+                                <suffixes>IT</suffixes>
+                            </configuration>
                         </execution>
                     </executions>
                 </plugin>

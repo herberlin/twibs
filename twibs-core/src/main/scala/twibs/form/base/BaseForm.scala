@@ -11,7 +11,6 @@ import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
 import scala.xml.NodeSeq
 
-import twibs.form.base.ComponentState.ComponentState
 import twibs.form.base.Result.AfterFormDisplay
 import twibs.util.JavaScript._
 import twibs.util.XmlUtils._
@@ -45,8 +44,6 @@ trait Component extends TranslationSupport {
   def id: IdString = parent.id ~ name
 
   final val name: String = computeName
-
-  def disabledName = name + "-disabled"
 
   protected def computeName: String = {
     val names = form.components.map(_.name).toList
@@ -100,15 +97,10 @@ trait Container extends Component with Validatable {
 
   override def execute(request: Request): Unit = children.foreach(_.execute(request))
 
-  override def asHtml: NodeSeq = {
-    import ComponentState._
-    state match {
-      case Ignored => NodeSeq.Empty
-      case Hidden =>
-        <div class="concealed">{containerAsHtml}</div>
-      case _ => containerAsDecoratedHtml
-    }
-  }
+  override def asHtml: NodeSeq =
+    if (state.isIgnored) NodeSeq.Empty
+    else if (state.isHidden) <div class="concealed">{containerAsHtml}</div>
+    else containerAsDecoratedHtml
 
   def containerAsDecoratedHtml: NodeSeq = containerAsHtml
 
@@ -228,8 +220,13 @@ trait BaseForm extends Container with CurrentRequestSettings {
   def defaultButtonHtml = defaultExecutableOption.fold(NodeSeq.Empty)(form.renderer.renderAsDefaultExecutable)
 
   def defaultExecutableOption = {
-    fallbackDefaultExecutable
-    components.collectFirst { case e: DefaultExecutable if e.state.isEnabled => e}
+    components.collectFirst { case e: DefaultExecutable => e} orElse {
+      fallbackDefaultExecutable
+      components.collectFirst { case e: InteractiveComponent with Executable if e.state.isEnabled && e != fallbackDefaultExecutable => e} match {
+        case None => Some(fallbackDefaultExecutable)
+        case Some(x) => None
+      }
+    }
   }
 
   private lazy val fallbackDefaultExecutable = new Executor("fallback-default") with DefaultExecutable with StringValues
@@ -352,19 +349,17 @@ trait Executable extends InteractiveComponent {
 
 abstract class Executor(override val ilk: String)(implicit val parent: Container) extends Executable with Result with Floating
 
-trait DefaultExecutable extends Executable
+trait DefaultExecutable extends Executable {
+  self: InteractiveComponent =>
+}
 
 trait InteractiveComponent extends Component with Values {
-  override def parse(request: Request): Unit = {
-    import ComponentState._
-    state match {
-      case Enabled => request.parameters.getStringsOption(name).foreach(parse)
-      case Disabled | Hidden => request.parameters.getStringsOption(disabledName).foreach(parse)
-      case Ignored =>
-    }
-  }
+  override def parse(request: Request): Unit =
+    request.parameters.getStringsOption(name).foreach(parse)
 
   def parse(parameters: Seq[String]): Unit = strings = parameters
+
+  override def isStringProcessingEnabled = !state.isIgnored
 
   override def reset(): Unit = resetInputs()
 
@@ -384,14 +379,11 @@ trait BaseField extends InteractiveComponent with Validatable {
 
   def linkParameters: Seq[(String, String)] =
     if (isModified) {
-      import ComponentState._
-      state match {
-        case Ignored => Nil
-        case Hidden | Disabled => strings.map(string => disabledName -> string)
-        case Enabled => strings.map(string => name -> string)
-      }
+      if (state.isIgnored) Nil else strings.map(string => name -> string)
     }
     else Nil
+
+  override def translator: Translator = super.translator.kind("FIELD")
 }
 
 trait SubmitOnChange extends BaseField {

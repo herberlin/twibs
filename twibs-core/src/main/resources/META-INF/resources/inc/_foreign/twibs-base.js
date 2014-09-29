@@ -256,7 +256,7 @@ $(function () {
         var focusedId = $(document.activeElement).attr("id");
 
         function update(percent) {
-            $bar.width(percent + '%');
+            $bar.width(percent + '%').attr("aria-valuenow", percent)
             $percent.html(percent);
         }
 
