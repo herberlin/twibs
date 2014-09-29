@@ -11,39 +11,91 @@ import twibs.util.JavaScript.JsCmd
 import twibs.util.Message
 import twibs.web.Response
 
-object ComponentState {
+trait ComponentState {
+  self =>
 
-  class ComponentState(val id: Long) {
-    def merge(desiredState: ComponentState): ComponentState = if (desiredState.id > id) desiredState else this
+  final def isEnabled: Boolean = !isDisabled
 
-    def disableIf(condition: Boolean): ComponentState = if (condition && Disabled.id > id) Disabled else this
+  def isDisabled: Boolean
 
-    def hideIf(condition: Boolean): ComponentState = if (condition && Hidden.id > id) Hidden else this
+  def isHidden: Boolean
 
-    def ignoreIf(condition: Boolean): ComponentState = if (condition && Ignored.id > id) Ignored else this
+  def isIgnored: Boolean
 
-    def isEnabled = this == Enabled
+  def merge(desiredState: ComponentState): ComponentState = new ComponentState() {
+    override def isDisabled: Boolean = self.isDisabled || desiredState.isDisabled
 
-    def isDisabled = this == Disabled
+    override def isHidden: Boolean = self.isHidden || desiredState.isHidden
 
-    def isHidden = this == Hidden
-
-    def isIgnored = this == Ignored
-
-    def disabled = merge(Disabled)
-
-    def hidden = merge(Hidden)
-
-    def ignored = merge(Ignored)
+    override def isIgnored: Boolean = self.isIgnored || desiredState.isIgnored
   }
 
-  case object Enabled extends ComponentState(0)
+  def ~(desiredState: ComponentState) = merge(desiredState)
 
-  case object Disabled extends ComponentState(1)
+  def disabled = merge(ComponentState.Disabled)
 
-  case object Hidden extends ComponentState(2)
+  def hidden = merge(ComponentState.Hidden)
 
-  case object Ignored extends ComponentState(3)
+  def ignored = merge(ComponentState.Ignored)
+
+  def disableIf(condition: => Boolean): ComponentState = new ComponentState() {
+    override def isDisabled: Boolean = self.isDisabled || condition
+
+    override def isHidden: Boolean = self.isHidden
+
+    override def isIgnored: Boolean = self.isIgnored
+  }
+
+  def hideIf(condition: => Boolean): ComponentState = new ComponentState() {
+    override def isDisabled: Boolean = self.isDisabled || condition
+
+    override def isHidden: Boolean = self.isHidden || condition
+
+    override def isIgnored: Boolean = self.isIgnored
+  }
+
+  def ignoreIf(condition: => Boolean): ComponentState = new ComponentState() {
+    override def isDisabled: Boolean = self.isDisabled || condition
+
+    override def isHidden: Boolean = self.isHidden || condition
+
+    override def isIgnored: Boolean = self.isIgnored || condition
+  }
+}
+
+object ComponentState {
+
+  object Enabled extends ComponentState {
+    override def isDisabled: Boolean = false
+
+    override def isHidden: Boolean = false
+
+    override def isIgnored: Boolean = false
+  }
+
+  object Disabled extends ComponentState {
+    override def isDisabled: Boolean = true
+
+    override def isHidden: Boolean = false
+
+    override def isIgnored: Boolean = false
+  }
+
+  object Hidden extends ComponentState {
+    override def isDisabled: Boolean = true
+
+    override def isHidden: Boolean = true
+
+    override def isIgnored: Boolean = false
+  }
+
+  object Ignored extends ComponentState {
+    override def isDisabled: Boolean = true
+
+    override def isHidden: Boolean = true
+
+    override def isIgnored: Boolean = true
+  }
 
 }
 
@@ -81,16 +133,10 @@ trait Validatable {
   def isValid: Boolean
 }
 
-abstract class Display protected(visible:  => Boolean, displayHtml:  => NodeSeq, val parent: Container) extends Component {
+abstract class Display protected(visible: => Boolean, displayHtml: => NodeSeq, val parent: Container) extends Component {
   override def state = super.state.ignoreIf(!visible)
 
-  override def asHtml = {
-    import ComponentState._
-    state match {
-      case Hidden | Ignored => NodeSeq.Empty
-      case _ => displayHtml
-    }
-  }
+  override def asHtml = if (state.isHidden) NodeSeq.Empty else displayHtml
 }
 
 class DisplayHtml(visible: => Boolean, html: => NodeSeq)(implicit parent: Container) extends Display(visible, html, parent) {
@@ -117,23 +163,15 @@ class Messages()(implicit val parent: Container) extends Component {
     _messages.clear()
   }
 
-  override def asHtml = {
-    import ComponentState._
-    state match {
-      case Hidden | Ignored => NodeSeq.Empty
-      case _ => <div>{messages.map(form.renderer.renderMessage)}</div>
-    }
-  }
+  override def asHtml =
+    if (state.isHidden) NodeSeq.Empty
+    else <div>{messages.map(form.renderer.renderMessage)}</div>
 }
 
 abstract class HiddenField(override val ilk: String)(implicit val parent: Container) extends BaseField {
-  override def asHtml = {
-    import ComponentState._
-    state match {
-      case Ignored => NodeSeq.Empty
-      case _ => inputs.map(input => form.renderer.hiddenInput(name, input.string)).flatten
-    }
-  }
+  override def asHtml =
+    if (state.isIgnored) NodeSeq.Empty
+    else inputs.map(input => form.renderer.hiddenInput(name, input.string)).flatten
 }
 
 trait Renderer {

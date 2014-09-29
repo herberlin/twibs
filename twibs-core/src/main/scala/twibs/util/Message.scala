@@ -15,7 +15,7 @@ trait Message extends DisplayType {
 
   def showNotification: JsCmd = showNotification(Map())
 
-  def showNotification(options: Map[String, Any] = Map()): JsCmd = JsCmd("").call("new PNotify", Map("text" -> text, "type" -> displayTypeString.replace("danger", "error"), "nonblock" -> {"nonblock" -> true}) ++ options)
+  def showNotification(options: Map[String, Any] = Map()): JsCmd = JsCmd("").call("new PNotify", Map("text" -> text, "type" -> displayTypeString.replace("danger", "error"), "nonblock" -> Map("nonblock" -> true)) ++ options)
 
   override def toString: String = s"$displayTypeString: $text"
 

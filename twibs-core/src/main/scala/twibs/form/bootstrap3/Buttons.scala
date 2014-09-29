@@ -63,7 +63,7 @@ trait BootstrapButton extends InteractiveComponent with Values with DisplayType 
 
   def buttonCssClasses = "btn" :: "btn-" + displayTypeString :: Nil
 
-  def buttonAsHtml: NodeSeq = if (state.isEnabled || state.isDisabled) buttonAsEnrichedElem else NodeSeq.Empty
+  def buttonAsHtml: NodeSeq = if (state.isHidden) NodeSeq.Empty else buttonAsEnrichedElem
 
   def buttonAsEnrichedElem: Elem = enrichButtonElem(buttonAsElem)
 
@@ -89,14 +89,10 @@ trait BootstrapButton extends InteractiveComponent with Values with DisplayType 
     else
       <span>{renderButtonTitle}</span>
 
-  override def asHtml: NodeSeq = {
-    import twibs.form.base.ComponentState._
-    state match {
-      case Ignored => NodeSeq.Empty
-      case Hidden => inputs.map(input => form.renderer.hiddenInput(name,input.string)).flatten
-      case _ => buttonAsDecoratedHtml
-    }
-  }
+  override def asHtml: NodeSeq =
+    if (state.isIgnored) NodeSeq.Empty
+    else if (state.isHidden) inputs.map(input => form.renderer.hiddenInput(name, input.string)).flatten
+    else buttonAsDecoratedHtml
 
   def buttonAsDecoratedHtml: NodeSeq =
     <div class={formGroupCssClasses}>
@@ -155,8 +151,10 @@ trait ButtonWithPopover extends BootstrapButton {
       result = AfterFormDisplay(openPopoverJs)
     }
 
-    def openPopoverJs = jQuery(id).call("popover", popoverOptions).call("addClass", "popover-by-script").call("popover", "show")
+    def openPopoverJs = popoverElementSelector.call("popover", popoverOptions).call("addClass", "popover-by-script").call("popover", "show")
   }
+
+  def popoverElementSelector = jQuery(id)
 
   override final def buttonUseIconOnly = if (usePopover) false else buttonUseIconOnly2
 

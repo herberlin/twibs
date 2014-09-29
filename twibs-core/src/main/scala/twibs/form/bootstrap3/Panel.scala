@@ -5,7 +5,6 @@
 package twibs.form.bootstrap3
 
 import scala.xml.NodeSeq
-import twibs.form.base.ComponentState.ComponentState
 import twibs.form.base._
 import twibs.util.Translator
 

@@ -41,6 +41,8 @@ trait XmlUtils {
 
     def setIfMissing(condition: Boolean, name: => String, value: => String): Elem = if (condition) setIfMissing(name, value) else elem
 
+    def removeAttribute(name: String): Elem = elem.copy(attributes = elem.attributes.filter(_.key != name))
+
     def surround(ns: NodeSeq) = ns match {case NodeSeq.Empty => ns case _ => elem.copy(child = ns) }
   }
 

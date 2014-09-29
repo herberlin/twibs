@@ -4,11 +4,10 @@
 
 package twibs.form.bootstrap3
 
-import scala.xml.{Text, Elem, NodeSeq, Unparsed}
+import scala.xml.{Elem, NodeSeq, Text, Unparsed}
 
-import twibs.form.base.ComponentState.ComponentState
 import twibs.form.base._
-import twibs.util.{IdString, ApplicationSettings, Message, Translator}
+import twibs.util.{ApplicationSettings, IdString, Message}
 
 abstract class Form(override val ilk: String) extends BaseForm {
   self =>
@@ -50,10 +49,10 @@ abstract class Form(override val ilk: String) extends BaseForm {
      </div>
     </div>
 
-  def formHtml(modal: Boolean) = state match {
-    case ComponentState.Hidden => noAccessHtml
-    case ComponentState.Ignored => NodeSeq.Empty
-    case _ =>
+  def formHtml(modal: Boolean) =
+    if (state.isHidden) noAccessHtml
+    else if (state.isIgnored) NodeSeq.Empty
+    else
       <form id={id} name={name} class={formCssClasses} action={actionLinkWithContextPath} method="post" enctype={enctype}>
       {renderer.hiddenInput(pnId, id) ++ renderer.hiddenInput(pnModal, "" + modal) ++ renderer.hiddenInput(ApplicationSettings.PN_NAME, requestSettings.applicationSettings.name)}
       <div class="modal transfer-modal">
@@ -77,7 +76,6 @@ abstract class Form(override val ilk: String) extends BaseForm {
         {asHtml}
       </div>
     </form>
-  }
 
   def formHeader = if (formHeaderContent.isEmpty) formHeaderContent else <header class="form-header">{formHeaderContent}</header>
 
@@ -115,17 +113,13 @@ trait LargeGridSize extends Field {
 abstract class Field private(override val ilk: String, val parent: Container, unit: Unit = Unit) extends BaseField {
   def this(ilk: String)(implicit parent: Container) = this(ilk, parent)
 
-  override def asHtml: NodeSeq = {
-    import twibs.form.base.ComponentState._
-    state match {
-      case Ignored => NodeSeq.Empty
-      case Hidden => inputs.map(input => form.renderer.hiddenInput(disabledName, input.string)).flatten
-      case Disabled => inputsAsHiddenHtml ++ fieldAsDecoratedHtml
-      case Enabled => fieldAsDecoratedHtml
-    }
-  }
+  override def asHtml: NodeSeq =
+    if (state.isIgnored) NodeSeq.Empty
+    else if (state.isHidden) inputsAsHiddenHtml
+    else if (state.isDisabled) inputsAsHiddenHtml ++ fieldAsDecoratedHtml
+    else fieldAsDecoratedHtml
 
-  def inputsAsHiddenHtml = inputs.map(input => form.renderer.hiddenInput(disabledName, input.string)).flatten
+  def inputsAsHiddenHtml = inputs.map(input => form.renderer.hiddenInput(name, input.string)).flatten
 
   def fieldAsDecoratedHtml: NodeSeq =
     <div class={formGroupCssClasses} id={formGroupId}>
@@ -149,9 +143,7 @@ abstract class Field private(override val ilk: String, val parent: Container, un
 
   def fieldAsHtml: NodeSeq = inputsAsHtml ++ messageHtml
 
-  def messageHtml: NodeSeq = inputsMessageOption.fold(NodeSeq.Empty)(message => <div class="help-block">
-    {message.text}
-  </div>)
+  def messageHtml: NodeSeq = inputsMessageOption.fold(NodeSeq.Empty)(message => <div class="help-block">{message.text}</div>)
 
   protected def infoButtonHtml: NodeSeq = infoMessage match {
     case "" => NodeSeq.Empty
@@ -214,8 +206,6 @@ abstract class Field private(override val ilk: String, val parent: Container, un
       .addClass(submitOnChange && state.isEnabled, "submit-on-change")
       .addClass(state.isDisabled, "disabled")
       .addClass(state.isEnabled, "can-be-disabled")
-
-  override def translator: Translator = super.translator.kind("FIELD")
 }
 
 trait Inline extends Field {

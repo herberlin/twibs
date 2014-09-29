@@ -198,41 +198,49 @@ class ValuesTest extends TwibsTest {
   }
 
   test("Single input value") {
-    val input = new TestField with LongValues
-    input.values = 3L :: 2L :: 1L :: Nil
-    input.computeIsValid should beFalse
-    input.values should be(3L :: 2L :: 1L :: Nil)
+    val field = new TestField with LongValues
+    field.values = 3L :: 2L :: 1L :: Nil
+    field.computeIsValid should beFalse
+    field.values should be(3L :: 2L :: 1L :: Nil)
 
-    input.values = 3L :: Nil
-    input.computeIsValid should beTrue
-    input.values should be(3L :: Nil)
+    field.values = 3L :: Nil
+    field.computeIsValid should beTrue
+    field.values should be(3L :: Nil)
 
-    input.strings = "x" :: Nil
-    input.computeIsValid should beFalse
-    input.values should be('empty)
+    field.strings = "x" :: Nil
+    field.computeIsValid should beFalse
+    field.values should be('empty)
   }
 
   test("Modified input") {
-    val input = new TestField with LongValues
-    input.isModified should beFalse
-    input.values should be('empty)
-    input.isModified should beFalse
+    val field = new TestField with LongValues
+    field.isModified should beFalse
+    field.values should be('empty)
+    field.isModified should beFalse
 
-    input.strings = "" :: Nil
-    input.isModified should beTrue
+    field.strings = "" :: Nil
+    field.isModified should beTrue
 
-    input.values should be('empty)
-    input.isModified should beTrue
-    input.resetInputs()
-    input.values should be('empty)
-    input.isModified should beFalse
+    field.values should be('empty)
+    field.isModified should beTrue
+    field.resetInputs()
+    field.values should be('empty)
+    field.isModified should beFalse
   }
 
   test("Value option") {
-    val input = new TestField with LongValues
-    input.valueOption = Some(1L)
-    input.values should be(List(1L))
-    input.valueOption = None
-    input.values should be('empty)
+    val field = new TestField with LongValues
+    field.valueOption = Some(1L)
+    field.values should be(List(1L))
+    field.valueOption = None
+    field.values should be('empty)
+  }
+
+  test("Disabled string processing") {
+    val field = new TestField with LongValues {
+      override def isStringProcessingEnabled: Boolean = false
+    }
+    field.strings = "mb@example.com" :: "noemail" :: Nil
+    field.strings should be(List(""))
   }
 }

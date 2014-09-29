@@ -30,4 +30,9 @@ class XmlUtilsTest extends TwibsTest {
 
     <span class="btn a"></span>.removeClass("btn") should equal(<span class="a"></span>)
   }
+
+  test("Remove attribute") {
+      <span a="a" b="b"/>.removeAttribute("b") should be(<span a="a" />)
+      <span a="a" b="b"/>.removeAttribute("c") should be(<span a="a" b="b"/>)
+  }
 }
