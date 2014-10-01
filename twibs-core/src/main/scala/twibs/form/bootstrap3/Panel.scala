@@ -73,5 +73,5 @@ trait UploadWithComment extends Dynamic with Detachable {
 
   override def translator = super.translator.kind("UPLOAD-WITH-COMMENT")
 
-  override def state: ComponentState = super.state.ignoreIf(upload.isModified && upload.values.isEmpty)
+//  override def state: ComponentState = super.state.ignoreIf(upload.isModified && upload.values.isEmpty)
 }

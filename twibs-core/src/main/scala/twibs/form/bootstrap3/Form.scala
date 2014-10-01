@@ -27,12 +27,14 @@ abstract class Form(override val ilk: String) extends BaseForm {
   def formCssClasses = "form-horizontal" :: "twibs-form" :: Nil
 
   /* Rendering */
-  def inlineHtml =
-    <div class="form-container">
-      {formHeader}
-      {formHtml(modal = false)}
-      {javascript.toString match {case "" => NodeSeq.Empty case js => <script>{Unparsed("$(function () {" + js + "});")}</script>}}
-    </div>
+  def inlineHtml: NodeSeq =
+    if (state.isHidden) NodeSeq.Empty
+    else
+      <div class="form-container">
+        {formHeader}
+        {formHtml(modal = false)}
+        {javascript.toString match {case "" => NodeSeq.Empty case js => <script>{Unparsed("$(function () {" + js + "});")}</script>}}
+      </div>
 
   def modalHtml =
     <div id={modalId} class="modal fade" role="dialog" name={name + "-modal"} tabindex="-1">
@@ -50,8 +52,8 @@ abstract class Form(override val ilk: String) extends BaseForm {
     </div>
 
   def formHtml(modal: Boolean) =
-    if (state.isHidden) noAccessHtml
-    else if (state.isIgnored) NodeSeq.Empty
+    if (state.isIgnored) NodeSeq.Empty
+    else if (state.isHidden) noAccessHtml
     else
       <form id={id} name={name} class={formCssClasses} action={actionLinkWithContextPath} method="post" enctype={enctype}>
       {renderer.hiddenInput(pnId, id) ++ renderer.hiddenInput(pnModal, "" + modal) ++ renderer.hiddenInput(ApplicationSettings.PN_NAME, requestSettings.applicationSettings.name)}
