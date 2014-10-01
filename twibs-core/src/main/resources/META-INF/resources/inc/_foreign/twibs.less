@@ -116,6 +116,7 @@ option:disabled {
   .input-clear {
     position: absolute;
     right: 10px;
+    top: 0px;
     padding: 9px 0px;
     z-index: 2;
     .opacity(0.3);
@@ -132,25 +133,32 @@ option:disabled {
   z-index: 10;
 }
 
-.data-table {
-  th.sort, th.sort-asc, th.sort-desc {
-    cursor: pointer;
-    white-space: nowrap;
-    padding-right: 18px;
-    &:before {
-      font-family: FontAwesome;
-      margin-right: -12px;
-      float: right;
+.data-table-container {
+  overflow-x: scroll;
+  width: 100%;
+  nav .form-inline .form-control {
+    width: auto;
+  }
+  .data-table {
+    th.sort, th.sort-asc, th.sort-desc {
+      cursor: pointer;
+      white-space: nowrap;
+      padding-right: 18px;
+      &:before {
+        font-family: FontAwesome;
+        margin-right: -12px;
+        float: right;
+      }
     }
-  }
-  th.sort:before {
-    content: "\f0dc";
-  }
-  th.sort-asc:before {
-    content: "\f0dd";
-  }
-  th.sort-desc:before {
-    content: "\f0de";
+    th.sort:before {
+      content: "\f0dc";
+    }
+    th.sort-asc:before {
+      content: "\f0dd";
+    }
+    th.sort-desc:before {
+      content: "\f0de";
+    }
   }
 }
 

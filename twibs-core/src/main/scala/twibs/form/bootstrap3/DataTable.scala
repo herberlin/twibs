@@ -115,10 +115,12 @@ trait DataTable[T] extends StaticContainer {
 
   def tableHtml =
     <div id={tableId}>
-      <table class={tableCssClasses}>
-        <thead>{tableHead}</thead>
-        <tbody>{tableBody}</tbody>
-      </table>
+      <div class="data-table-container">
+        <table class={tableCssClasses}>
+          <thead>{tableHead}</thead>
+          <tbody>{tableBody}</tbody>
+        </table>
+      </div>
       <style>{Unparsed(columnsStyle)}</style>
       <nav class="form-inline clearfix">
         {offsetField.asHtml}
@@ -222,9 +224,11 @@ trait DataTable[T] extends StaticContainer {
 
   object DataColumn {
     def apply(name: String): DataColumn = DataColumn(name, name)
-    def apply(column: twibs.db.Column[_]) : DataColumn =
+
+    def apply(column: twibs.db.Column[_]): DataColumn =
       new DataColumn(column.name) {
         override def titleString = translator.usage("tables").usage(column.table.tableName).usage(column.name).translate("column-title", super.titleString)
       }
   }
+
 }

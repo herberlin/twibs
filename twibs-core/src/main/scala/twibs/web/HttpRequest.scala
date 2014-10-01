@@ -11,6 +11,7 @@ import scala.collection.JavaConverters._
 
 import twibs.util._
 
+import com.google.common.base.Charsets
 import com.ibm.icu.util.ULocale
 import org.apache.commons.fileupload.disk.DiskFileItemFactory
 import org.apache.commons.fileupload.servlet.ServletFileUpload
@@ -94,7 +95,7 @@ private[web] abstract class HttpRequest(httpServletRequest: HttpServletRequest, 
 
 class HttpRequestWithCommonsFileUpload(httpServletRequest: HttpServletRequest, httpServletResponse: HttpServletResponse) extends HttpRequest(httpServletRequest, httpServletResponse) {
   def multiPartParameters: Map[String, Seq[String]] =
-    if (isMultiPart) CollectionUtils.zipToMap(formFieldsFromMultipartRequest.map(fileItem => (fileItem.getFieldName, fileItem.getString("UTF-8"))))
+    if (isMultiPart) CollectionUtils.zipToMap(formFieldsFromMultipartRequest.map(fileItem => (fileItem.getFieldName, fileItem.getString(Charsets.UTF_8.name))))
     else Map()
 
   def uploads: Map[String, Seq[Upload]] =
@@ -131,14 +132,14 @@ class HttpRequestWithCommonsFileUpload(httpServletRequest: HttpServletRequest, h
 }
 
 private[web] class HttpRequestWithSlingUpload(httpServletRequest: SlingHttpServletRequest, httpServletResponse: HttpServletResponse) extends HttpRequest(httpServletRequest, httpServletResponse) {
-  def multiPartParameters: Map[String, Seq[String]] = CollectionUtils.zipToMap(formFieldsFromMultipartRequest.map(e => (e._1, e._2.getString("UTF-8"))))
+  def multiPartParameters: Map[String, Seq[String]] = CollectionUtils.zipToMap(formFieldsFromMultipartRequest.map(e => (e._1, e._2.getString(Charsets.UTF_8.name))))
 
   def uploads: Map[String, Seq[Upload]] = CollectionUtils.zipToMap(fileItemsFromMultipartRequest.map(e => (e._1, toUpload(e._1, e._2))))
 
   private def toUpload(nameArg: String, requestParameterArg: RequestParameter) = new Upload() {
     val requestParameter = requestParameterArg
 
-    def name = new String(requestParameter.getFileName.getBytes("ISO8859-1"), "UTF-8")
+    def name = new String(requestParameter.getFileName.getBytes(Charsets.ISO_8859_1.name), Charsets.UTF_8.name)
 
     def size = requestParameter.getSize
 
