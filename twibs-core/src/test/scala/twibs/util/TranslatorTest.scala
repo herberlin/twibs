@@ -121,4 +121,11 @@ class TranslatorTest extends TwibsTest {
   test("Translation with named replacement") {
     ApplicationSettings.translators(ULocale.GERMAN).translate("aged", "{name} is {age} years old", Map("name" -> "Frank", "age" -> 73)) should be("Frank is 73 years old")
   }
+
+  test("Translation with implicit formatting") {
+    val x = 1
+    val y = 2
+    t"fm1: ONE: {$x, plural, =1{one}other{#}}" should be("ONE: one")
+    t"fm2: TWO: {$y, plural, =1{one}other{#}}" should be("TWO: 2")
+  }
 }

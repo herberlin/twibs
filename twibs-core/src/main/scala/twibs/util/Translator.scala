@@ -81,7 +81,7 @@ abstract class Translator(id: String, usages: List[String], kinds: List[String])
 
   private def format(messageFormatString: String, args: Any*): String =
     try {
-      val mf = new MessageFormat(messageFormatString, locale)
+      val mf = new MessageFormat(messageFormatString.replaceAll( """\{\{([0-9]+)\}\s*,""", "{$1,"), locale)
       args match {
         case Seq(m: Map[_, _]) => mf.format(m.asJava)
         case _ => mf.format(args.toArray)
@@ -98,12 +98,20 @@ abstract class Translator(id: String, usages: List[String], kinds: List[String])
 }
 
 trait TranslationSupport {
-  private final lazy val implictTranslator: Translator = translator
-
   def translator: Translator
 
   implicit def withTranslationFormatter(sc: StringContext) = new {
-    def t(args: Any*): String = implictTranslator.translate(sc, args: _*)
+    import twibs.util.XmlUtils._
+
+    def t(args: Any*): String = translator.translate(sc, args: _*)
+
+    def warn(args: Any*): Message = Message.warning(translator.translate(sc, args: _*))
+
+    def info(args: Any*): Message = Message.warning(translator.translate(sc, args: _*))
+
+    def danger(args: Any*): Message = Message.warning(translator.translate(sc, args: _*))
+
+    def success(args: Any*): Message = Message.warning(translator.translate(sc, args: _*))
   }
 }
 

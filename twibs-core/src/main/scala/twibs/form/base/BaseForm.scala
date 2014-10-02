@@ -215,21 +215,15 @@ trait BaseForm extends Container with CurrentRequestSettings {
     override def execute(): Unit = result = InsteadOfFormDisplay(reloadFormJs)
   }
 
-  override protected def containerAsHtml = defaultButtonHtml ++ super.containerAsHtml
+  override protected def containerAsHtml = defaultButtonHtml ++ super.containerAsHtml ++ fallbackDefaultExecutableHtml
 
   def defaultButtonHtml = defaultExecutableOption.fold(NodeSeq.Empty)(form.renderer.renderAsDefaultExecutable)
 
-  def defaultExecutableOption = {
-    components.collectFirst { case e: DefaultExecutable => e} orElse {
-      fallbackDefaultExecutable
-      components.collectFirst { case e: InteractiveComponent with Executable if e.state.isEnabled && e != fallbackDefaultExecutable => e} match {
-        case None => Some(fallbackDefaultExecutable)
-        case Some(x) => None
-      }
-    }
-  }
+  def defaultExecutableOption = components.collectFirst { case e: DefaultExecutable => e}
 
-  private lazy val fallbackDefaultExecutable = new Executor("fallback-default") with DefaultExecutable with StringValues
+  def fallbackDefaultExecutableHtml = form.renderer.renderAsDefaultExecutable(fallbackDefaultExecutable)
+
+  private val fallbackDefaultExecutable = new Executor("fallback-default") with StringValues
 
   def modalId = id ~ "modal"
 
