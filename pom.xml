@@ -35,7 +35,7 @@
     </prerequisites>
     <modules>
         <module>twibs-core</module>
-        <module>twibs-demo</module>
+        <!--<module>twibs-demo</module>-->
     </modules>
     <licenses>
         <license>
