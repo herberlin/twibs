@@ -9,7 +9,7 @@ import javax.servlet.http._
 
 import scala.util.DynamicVariable
 
-import twibs.util.{RunMode, SystemSettings}
+import twibs.util.{SystemSettings, RunMode}
 
 import com.google.common.base.Charsets
 
@@ -45,7 +45,7 @@ class Filter extends javax.servlet.Filter {
   def doFilter(httpRequest: HttpServletRequest, httpResponse: HttpServletResponse, filterChain: FilterChain): Unit = {
     httpRequest.setCharacterEncoding(Charsets.UTF_8.name)
     httpResponse.setCharacterEncoding(Charsets.UTF_8.name)
-    httpResponse.setHeader("X-Twibs", if (RunMode.isProduction) SystemSettings.Twibs.version else SystemSettings.Twibs.version + " - " + RunMode.name)
+    httpResponse.setHeader("X-Twibs", if (RunMode.isProduction) SystemSettings.version else SystemSettings.version + " - " + RunMode.name)
     val request = createRequest(httpRequest, httpResponse)
     request.use {
       combiningResponderVar.respond(request) match {

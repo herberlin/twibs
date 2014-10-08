@@ -10,12 +10,12 @@ import java.net.URI
 
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.webapp.WebAppContext
-import twibs.util.WebContext
+import twibs.util.{RunMode, WebContext}
 
 object Demo {
   def main(args: Array[String]): Unit = {
     val port = 9905
-    System.setProperty("run.mode", "development")
+    System.setProperty("run.mode", RunMode.DEVELOPMENT.name)
     val server = new Server(port)
     server.setStopAtShutdown(true)
     WebContext.activate(new WebContext(""))
