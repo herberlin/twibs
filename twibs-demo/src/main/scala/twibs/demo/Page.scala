@@ -46,6 +46,9 @@ class Page extends Responder {
       <body>
         <div class="container">
           {new DemoForm().inlineHtml}
+          {new DemoForm() {
+          override def accessAllowed: Boolean = false
+        }.inlineHtml}
         </div>
       </body>
     </html>

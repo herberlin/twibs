@@ -4,84 +4,107 @@
 
 package twibs.util
 
-import collection.JavaConverters._
+import java.net.{InetAddress, UnknownHostException}
+
 import com.ibm.icu.util.ULocale
-import concurrent.duration._
-import java.net.{UnknownHostException, InetAddress}
+import com.typesafe.config.{Config, ConfigFactory, ConfigParseOptions}
 import org.apache.tika.Tika
+import scala.collection.JavaConverters._
 
-class SettingsFactory {
-  val defaultSystemSettings: SystemSettings = new SystemSettings {
-    SystemSettings.logger.info(s"Run mode is '${runMode.name}'")
+private object ConfigHelper {
+
+  implicit class EnhancedConfig(config: Config) {
+    def childConfig(path: String) = if (config.hasPath(path)) config.getConfig(path).withFallback(config) else config
   }
 
-  val defaultUserSettings: UserSettings = new UserSettings {
-    val name = "anonymous"
-
-    val locale = defaultSystemSettings.locale
-  }
-
-  def defaultApplicationSettings: ApplicationSettings = defaultApplicationSettingsCached.value
-
-  def applicationSettingsMap = applicationSettingsMapCache.value
-
-  private val applicationSettingsMapCache = LazyCache(if (defaultSystemSettings.runMode.isDevelopment) 15 second else 1 day) {
-    ConfigurationForTypesafeConfig.baseConfig().getObject("APPLICATIONS").unwrapped().keySet().asScala.filter(_ != ApplicationSettings.DEFAULT_NAME).map(name => name -> new ApplicationSettings(name)).toMap
-  }
-
-  private val defaultApplicationSettingsCached = LazyCache(if (defaultSystemSettings.runMode.isDevelopment) 15 second else 1 day) {new ApplicationSettings(ApplicationSettings.DEFAULT_NAME)}
-
-  def applicationSettingsForPath(path: String) =
-    SettingsFactory.applicationSettingsMap.values.collectFirst {case x if x.matches(path) => x} getOrElse defaultApplicationSettings
 }
 
-object SettingsFactory {
-  implicit def unwrap(companion: SettingsFactory.type): SettingsFactory = current
+import twibs.util.ConfigHelper._
 
-  def current = currentVar
+case class SystemSettings(startedAt: Long,
+                          hostName: String,
+                          userName: String,
+                          locale: ULocale,
+                          fullVersion: String,
+                          runMode: RunMode,
+                          os: OperatingSystem) {
+  private[util] val configUnresolved = {
+    ConfigFactory.invalidateCaches()
 
-  private val currentVar = new SettingsFactory()
-}
+    def loadAndDecorate(loader: ClassLoader, name: String) =
+      ConfigFactory.defaultOverrides(loader).withFallback(load(loader, name)).withFallback(ConfigFactory.defaultReference(loader))
 
-class SystemSettings {
-  val startedAt = System.currentTimeMillis
+    def load(loader: ClassLoader, name: String) =
+      ConfigFactory.parseResourcesAnySyntax(name, ConfigParseOptions.defaults.setClassLoader(loader).setAllowMissing(true))
 
-  val hostName =
-    try InetAddress.getLocalHost.getHostName
-    catch {
-      case e: UnknownHostException => "localhost"
-    }
-
-  val userName = System.getProperty("user.name")
-
-  import RunMode._
-
-  val runMode = Option(System.getProperty("run.mode")) match {
-    case Some(DEVELOPMENT.name) => DEVELOPMENT
-    case Some(STAGING.name) => STAGING
-    case Some(TEST.name) => TEST
-    case None if isCalledFromTestClass => TEST
-    case _ => PRODUCTION
+    val ccl = Thread.currentThread.getContextClassLoader
+    val ocl = SystemSettings.getClass.getClassLoader
+    val applicationConfigWithOsgiFallback = loadAndDecorate(ccl, "application") withFallback loadAndDecorate(ocl, "application")
+    val hostConfig = applicationConfigWithOsgiFallback.childConfig(s"HOSTS.$hostName")
+    val baseConfig = hostConfig.childConfig(s"RUN-MODES.${runMode.name}")
+    val userConfigWithOsgiFallback = load(ccl, "user").withFallback(load(ocl, "user"))
+    userConfigWithOsgiFallback.withFallback(baseConfig)
   }
 
-  val locale = ULocale.getDefault
+  val applicationSettings = configUnresolved.getObject("APPLICATIONS").unwrapped().keySet().asScala.map(name => name -> new ApplicationSettings(name, this)).toMap
 
-  private def isCalledFromTestClass = new Exception().getStackTrace.exists(_.getClassName.startsWith("org.scalatest"))
+  val defaultApplicationSettings = applicationSettings(ApplicationSettings.DEFAULT_NAME)
 
-  object Twibs {
-    val fullVersion: String = Option(getClass.getPackage.getSpecificationVersion) getOrElse "0.0"
+  def applicationSettingsForPath(path: String) = applicationSettings.values.collectFirst { case x if x.matches(path) => x} getOrElse defaultApplicationSettings
 
-    val majorVersion = fullVersion.split("\\.")(0)
+  val majorVersion = fullVersion.split("\\.")(0)
 
-    val version = if (runMode.isProduction) majorVersion else fullVersion
+  val version = if (runMode.isProduction) majorVersion else fullVersion
+
+  def use(f: => Unit): Unit = {
+    val was = SystemSettings.current
+    this.activate()
+    try {f} finally {SystemSettings._current = was}
   }
 
+  def activate(): Unit = SystemSettings._current = this
 }
 
 object SystemSettings extends Loggable {
   implicit def unwrap(companion: SystemSettings.type) = current
 
-  def current = SettingsFactory.current.defaultSystemSettings
+  def current = _current
+
+  val default = computeDefault()
+
+  def computeDefault() = new SystemSettings(
+    startedAt = System.currentTimeMillis,
+    hostName =
+      try InetAddress.getLocalHost.getHostName
+      catch {
+        case e: UnknownHostException => "localhost"
+      },
+    userName = System.getProperty("user.name"),
+    locale = ULocale.getDefault,
+    fullVersion = Option(getClass.getPackage.getSpecificationVersion) getOrElse "0.0",
+    runMode = Option(System.getProperty("run.mode")) match {
+      case Some(RunMode.DEVELOPMENT.name) => RunMode.DEVELOPMENT
+      case Some(RunMode.STAGING.name) => RunMode.STAGING
+      case Some(RunMode.TEST.name) => RunMode.TEST
+      case None if isCalledFromTestClass => RunMode.TEST
+      case _ => RunMode.PRODUCTION
+    },
+    os = OperatingSystem(System.getProperty("os.name").toLowerCase)
+  )
+
+  private var _current: SystemSettings = default
+
+  private def isCalledFromTestClass = new Exception().getStackTrace.exists(_.getClassName.startsWith("org.scalatest"))
+}
+
+case class RunMode(name: String) {
+  lazy val isDevelopment = this == RunMode.DEVELOPMENT
+
+  lazy val isTest = this == RunMode.TEST
+
+  lazy val isStaging = this == RunMode.STAGING
+
+  lazy val isProduction = this == RunMode.PRODUCTION
 }
 
 object RunMode {
@@ -98,19 +121,7 @@ object RunMode {
   def current = SystemSettings.current.runMode
 }
 
-class RunMode(val name: String) {
-  val isDevelopment = name == "development"
-
-  val isTest = name == "test"
-
-  val isStaging = name == "staging"
-
-  val isProduction = name == "production"
-}
-
-object OperatingSystem {
-  private val os = System.getProperty("os.name").toLowerCase
-
+case class OperatingSystem(os: String) {
   val isWindows = os.indexOf("win") >= 0
 
   val isMac = os.indexOf("mac") >= 0
@@ -120,18 +131,28 @@ object OperatingSystem {
   val isSolaris = os.indexOf("sunos") >= 0
 }
 
+object OperatingSystem {
+  implicit def unwrap(companion: OperatingSystem.type): OperatingSystem = current
+
+  def current = SystemSettings.current.os
+}
+
 trait UserSettings {
   def name: String
 
   def locale: ULocale
 }
 
-class ApplicationSettings(val name: String) {
-  lazy val configuration: Configuration = ConfigurationForTypesafeConfig.forSettings(name)
+class ApplicationSettings(val name: String, val systemSettings: SystemSettings) {
+  private val configUnresolved = systemSettings.configUnresolved.childConfig("APPLICATIONS." + name)
 
-  lazy val locales = configuration.getStringList("locales").fold(List(SystemSettings.locale))(_.map(localeId => new ULocale(localeId)))
+  val configuration: Configuration = new ConfigurationForTypesafeConfig(configUnresolved.resolve())
 
-  lazy val translators: Map[ULocale, Translator] = locales.map(locale => locale -> new TranslatorResolver(locale, configuration.configurationForLocale(locale)).root.usage(name)).toMap
+  val locales = configuration.getStringList("locales").fold(List(systemSettings.locale))(_.map(localeId => new ULocale(localeId)))
+
+  val translators: Map[ULocale, Translator] = locales.map(locale => locale -> new TranslatorResolver(locale, new ConfigurationForTypesafeConfig(configUnresolved.childConfig("LOCALES." + locale.toString).resolve())).root.usage(name)).toMap
+
+  val defaultRequestSettings = new RequestSettings(this)
 
   lazy val tika = new Tika()
 
@@ -145,7 +166,7 @@ object ApplicationSettings extends DynamicVariableWithDefault[ApplicationSetting
 
   val DEFAULT_NAME = "default"
 
-  def default: ApplicationSettings = SettingsFactory.defaultApplicationSettings
+  override def default: ApplicationSettings = SystemSettings.defaultApplicationSettings
 }
 
 trait CurrentRequestSettings {
@@ -158,7 +179,7 @@ trait CurrentRequestSettings {
   def formatters = requestSettings.formatters
 }
 
-class RequestSettings(val applicationSettings: ApplicationSettings = ApplicationSettings.current) {
+class RequestSettings(val applicationSettings: ApplicationSettings) {
   lazy val locale: ULocale = applicationSettings.locales.head
 
   lazy val translator: Translator = applicationSettings.translators(locale)
@@ -174,5 +195,5 @@ class RequestSettings(val applicationSettings: ApplicationSettings = Application
 }
 
 object RequestSettings extends DynamicVariableWithDefault[RequestSettings] {
-  override def default: RequestSettings = new RequestSettings()
+  override def default: RequestSettings = ApplicationSettings.defaultRequestSettings
 }

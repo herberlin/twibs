@@ -28,7 +28,7 @@ abstract class Form(override val ilk: String) extends BaseForm {
 
   /* Rendering */
   def inlineHtml: NodeSeq =
-    if (state.isHidden) NodeSeq.Empty
+    if (state.isIgnored) NodeSeq.Empty
     else
       <div class="form-container">
         {formHeader}

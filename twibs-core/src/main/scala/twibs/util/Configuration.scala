@@ -7,9 +7,8 @@ package twibs.util
 import scala.collection.JavaConversions._
 import scala.collection.concurrent.TrieMap
 
-import com.ibm.icu.util.ULocale
+import com.typesafe.config.Config
 import com.typesafe.config.ConfigException.Missing
-import com.typesafe.config.{Config, ConfigFactory}
 
 trait Configuration {
   def getStringList(key: String): Option[List[String]]
@@ -35,8 +34,6 @@ trait Configuration {
   def getIntList(key: String): Option[List[Int]]
 
   def getIntList(key: String, default: List[Int]): List[Int] = getIntList(key) getOrElse default
-
-  def configurationForLocale(locale: ULocale): Configuration
 }
 
 object Configuration {
@@ -45,7 +42,7 @@ object Configuration {
   def current = ApplicationSettings.current.configuration
 }
 
-class ConfigurationForTypesafeConfig(config: Config) extends Configuration {
+private[util] class ConfigurationForTypesafeConfig(config: Config) extends Configuration {
   private val cache = TrieMap[String, Any]()
 
   private def store[T](key: String, f: => T): Option[T] = cache.getOrElseUpdate(key, tryo(key, f)).asInstanceOf[Option[T]]
@@ -63,30 +60,4 @@ class ConfigurationForTypesafeConfig(config: Config) extends Configuration {
   def getIntList(key: String) = store(key, config.getIntList(key).toList.map(Int.unbox))
 
   def getInt(key: String) = store(key, config.getInt(key))
-
-  override def configurationForLocale(locale: ULocale): Configuration = new ConfigurationForTypesafeConfig(ConfigurationForTypesafeConfig.childConfig(config, "LOCALES." + locale.toString))
-}
-
-object ConfigurationForTypesafeConfig {
-  def baseConfig(settings: SystemSettings = SystemSettings) = {
-    def config = {
-      ConfigFactory.invalidateCaches()
-      configWithFallbackForOsgi
-    }
-
-    def hostConfig = childConfig(config, "HOSTS." + settings.hostName)
-
-    childConfig(hostConfig, "RUN-MODES." + settings.runMode.name)
-  }
-
-  def forSettings(applicationName: String, settings: SystemSettings = SystemSettings) =
-    new ConfigurationForTypesafeConfig(wrapWithUserConfig(childConfig(baseConfig(settings), "APPLICATIONS." + applicationName)))
-
-  private def wrapWithUserConfig(wrapped: Config) = userConfigWithFallbackForOsgi.withFallback(wrapped)
-
-  private def childConfig(parent: Config, path: String) = if (parent.hasPath(path)) parent.getConfig(path).withFallback(parent) else parent
-
-  private def configWithFallbackForOsgi = ConfigFactory.load() withFallback ConfigFactory.load(getClass.getClassLoader)
-
-  private def userConfigWithFallbackForOsgi = ConfigFactory.parseResourcesAnySyntax("user").withFallback(ConfigFactory.parseResourcesAnySyntax(getClass.getClassLoader, "user"))
 }

@@ -98,7 +98,7 @@
                         </execution>
                         <execution>
                             <id>scala-doc-deploy</id>
-                            <phase>verify</phase>
+                            <phase>post-integration-test</phase>
                             <goals>
                                 <goal>doc-jar</goal>
                             </goals>
