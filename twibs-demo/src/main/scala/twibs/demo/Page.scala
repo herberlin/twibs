@@ -1,9 +1,9 @@
-package twibs.demo
+package net.twibs.demo
 
-import twibs.util.ClassUtils
-import twibs.web._
-import twibs.util.Predef._
-import twibs.util.Formatters._
+import net.twibs.util.ClassUtils
+import net.twibs.web._
+import net.twibs.util.Predef._
+import net.twibs.util.Formatters._
 
 import org.threeten.bp.Instant
 

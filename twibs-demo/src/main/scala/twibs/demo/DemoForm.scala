@@ -1,12 +1,12 @@
-package twibs.demo
+package net.twibs.demo
 
 import java.io.{File, FileFilter}
 
-import twibs.form.base._
-import twibs.form.bootstrap3._
-import twibs.util.{Message, PrimaryDisplayType}
-import twibs.util.Predef._
-import twibs.web.Upload
+import net.twibs.form.base._
+import net.twibs.form.bootstrap3._
+import net.twibs.util.{Message, PrimaryDisplayType}
+import net.twibs.util.Predef._
+import net.twibs.web.Upload
 
 import com.google.common.io.Files
 import org.apache.commons.io.FileUtils
@@ -21,7 +21,7 @@ class DemoForm extends Form("demo") {
 
   trait P extends Panel {
 
-    import twibs.form.base.ComponentState._
+    import net.twibs.form.base.ComponentState._
 
     abstract class MField(ilk: String, parent: Container, defaultStrings: List[String], _state: ComponentState) extends Field(ilk)(parent) {
       override def minimumLength: Int = 2
