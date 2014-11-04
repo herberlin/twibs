@@ -16,7 +16,6 @@ import com.google.common.cache.{Cache, CacheBuilder}
 import com.ibm.icu.text.NumberFormat
 import com.ibm.icu.util.ULocale
 import org.apache.commons.io.FilenameUtils
-import org.owasp.html.PolicyFactory
 import org.threeten.bp.format.{DateTimeFormatter, DateTimeParseException}
 import org.threeten.bp.{LocalDate, LocalDateTime}
 
@@ -270,14 +269,6 @@ trait WebAddressValues extends StringValues {
   override def valueProcessors = super.valueProcessors :+ webAddressProcessor _
 
   abstract override def translator: Translator = super.translator.kind("WEB-ADDRESS")
-}
-
-trait HtmlValues extends StringValues {
-  def policyFactory: PolicyFactory
-
-  def cleanupProcessor(input: Input) = input.copy(string = policyFactory.sanitize(string))
-
-  override def stringProcessors: List[StringProcessor] = cleanupProcessor _ :: super.stringProcessors
 }
 
 trait BooleanValues extends Values {

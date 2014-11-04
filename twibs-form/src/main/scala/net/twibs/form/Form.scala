@@ -73,6 +73,8 @@ trait Component extends TranslationSupport {
 
   def javascript: JsCmd = JsEmpty
 
+  def replaceContentJs: JsCmd = JsEmpty
+
   def indexId(index: Int) = id ~ (if (index > 0) index.toString else "")
 
   // Overridable
@@ -105,6 +107,8 @@ trait Component extends TranslationSupport {
   implicit def toResultSeq(unit: Unit): Seq[Result] = Ignored :: Nil
 
   implicit def toResultSeq(result: Result): Seq[Result] = result :: Nil
+
+  implicit def toResultSeq(resultOption: Option[Result]): Seq[Result] = resultOption.map(_ :: Nil) getOrElse Nil
 
   def callExecute(): Seq[Result] = if (isEnabled && parsed) execute() else Ignored
 
@@ -228,11 +232,11 @@ trait Container extends Component {
     def focusJs: JsCmd = jQuery(entries.find(!_.valid).map(e => indexId(e.index)) getOrElse id).call("focus")
   }
 
-  abstract class SingleLineField(ilk: String) extends InputComponent(ilk) with Field{
+  abstract class SingleLineField(ilk: String) extends InputComponent(ilk) with Field {
     override def translator: Translator = super.translator.kind("SINGLE-LINE")
   }
 
-  abstract class MultiLineField(ilk: String) extends InputComponent(ilk) with Field{
+  abstract class MultiLineField(ilk: String) extends InputComponent(ilk) with Field {
     override def translator: Translator = super.translator.kind("MULTI-LINE")
   }
 
@@ -248,6 +252,7 @@ trait Container extends Component {
 
   abstract class BooleanCheckboxField(ilk: String) extends CheckboxField(ilk) with BooleanInput {
     override def translator: Translator = super.translator.kind("BOOLEAN-CHECKBOX")
+
     override def options: Seq[ValueType] = true :: Nil
   }
 
@@ -368,7 +373,7 @@ class Form(val ilk: String, parametersOption: Option[Parameters] = None) extends
 
   final val modalId = id ~ "modal"
 
-  override val translator = RequestSettings.current.translator.usage("FORM").usage(ilk)
+  override def translator = RequestSettings.current.translator.usage("FORM").usage(ilk)
 
   def inlineHtml: NodeSeq = html
 
@@ -408,7 +413,13 @@ class Form(val ilk: String, parametersOption: Option[Parameters] = None) extends
 
   def refreshJs = replaceContentJs ~ javascript ~ focusJs
 
-  def replaceContentJs = jQuery(formId).call("html", html)
+  def openModalJs = jQuery("body").call("append", form.modalHtml) ~ jQuery(form.modalId).call("twibsModal") ~ javascript
+
+  def hideModalJs = jQuery(modalId).call("modal", "hide")
+
+  override def replaceContentJs = beforeReplaceContentJs ~ jQuery(formId).call("html", html)
+
+  def beforeReplaceContentJs = components.collect { case c if c.isEnabled && c != this => c.replaceContentJs}
 
   override def javascript: JsCmd = if (isDisabled) JsEmpty else components.collect { case c if c.isEnabled && c != this => c.javascript}
 

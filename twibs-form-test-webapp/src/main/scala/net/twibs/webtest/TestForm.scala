@@ -5,7 +5,7 @@
 package net.twibs.webtest
 
 import net.twibs.form._
-import net.twibs.util.{DefaultDisplayType, PrimaryDisplayType, Parameters}
+import net.twibs.util.{WarningDisplayType, DefaultDisplayType, PrimaryDisplayType, Parameters}
 
 class TestForm(parametersOption: Option[Parameters] = None) extends Form("test", parametersOption) with Bootstrap3Form {
   val openModal = new OpenModalLink() with PrimaryDisplayType with StringInput
@@ -54,6 +54,15 @@ class TestForm(parametersOption: Option[Parameters] = None) extends Form("test",
     >> {<h4>Use floating buttons to display inside html</h4>}
     >> {<p>First Button with value 1: {floatingButton.withValue("1")(_.html)}</p>}
     >> {<p>Second {floatingButton.withValue("2")(_.html)} has value 2</p>}
+
+    >> {<h3>Popover</h3>}
+    >> {<h4>Clicking the next button shows a popover containing another button</h4>}
+
+    new Popover("popover") with WarningDisplayType {
+      new Button("popover-button") with PrimaryDisplayType with StringInput {
+        override def execute(): Seq[Result] = AfterFormDisplay(info"pressed: Popover button pressed".showNotification)
+      }
+    }
 
     >> {<h3>Fields</h3>}
     >> {<h4>Four simple input fields (only two of them are shown) one is rendered hidden</h4>}

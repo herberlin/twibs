@@ -381,28 +381,18 @@ class FormTest extends TwibsTest {
   }
 
   test("Inheritance") {
-    class C {
-      class F
+    trait X {
+      def ilk: String
 
-      def check(any: Any) = any.isInstanceOf[F]
-    }
-
-    class CC extends C {
-      class F extends super.F
+      val name = ilk
     }
 
-    class CCC extends CC {
-      class F extends super.F
+    case class P(ilk:String) extends X {
+
     }
 
-    new C {
-      check(new F) should beTrue
-    }
-    new CC {
-      check(new F) should beTrue
-    }
-    new CCC {
-      check(new F) should beTrue
-    }
+    val p = P("a")
+    p.ilk should be("a")
+    p.name should be("a")
   }
 }

@@ -8,7 +8,7 @@ import scala.xml.{NodeSeq, Text, Unparsed}
 
 import net.twibs.util.JavaScript._
 import net.twibs.util.XmlUtils._
-import net.twibs.util.{ApplicationSettings, Message, RequestSettings}
+import net.twibs.util.{DisplayType, ApplicationSettings, Message, RequestSettings}
 
 sealed trait BsContainer extends Container {
   override def html = {
@@ -45,18 +45,18 @@ sealed trait BsContainer extends Container {
     else
         <div class={"alert" :: ("alert-" + message.displayTypeString) :: Nil}>{message.text}</div>
 
-  abstract class Button(ilk: String) extends super.Button(ilk) {
+  trait ButtonRenderer extends DisplayType {
+    def buttonCssClasses = "btn" :: ("btn-" + displayTypeString) :: Nil
+
     def renderButtonTitle = if (buttonUseIconOnly) buttonIconOrButtonTitleIfEmptyHtml else buttonTitleWithIconHtml
 
     def buttonUseIconOnly = false
 
-    def buttonIconBefore = true
+    def buttonIconOrButtonTitleIfEmptyHtml: NodeSeq = buttonIconHtml match {case NodeSeq.Empty => buttonTitleHtml case s => s }
 
     def buttonTitleWithIconHtml: NodeSeq = buttonIconHtml match {case NodeSeq.Empty => buttonTitleHtml case ns => if (buttonIconBefore) ns ++ Text(" ") ++ buttonTitleHtml else buttonTitleHtml ++ Text(" ") ++ ns }
 
-    def buttonIconOrButtonTitleIfEmptyHtml: NodeSeq = buttonIconHtml match {case NodeSeq.Empty => buttonTitleHtml case s => s }
-
-    def buttonTitleHtml: NodeSeq = Unparsed(buttonTitle)
+    def buttonIconBefore = true
 
     def buttonIconHtml: NodeSeq = buttonIconName match {
       case "" => NodeSeq.Empty
@@ -65,8 +65,14 @@ sealed trait BsContainer extends Container {
       case s => <span class={s"glyphicon glyphicon-$s"}></span>
     }
 
-    def btnCssClasses = "btn" :: ("btn-" + displayTypeString) :: Nil
+    def buttonTitleHtml: NodeSeq = Unparsed(buttonTitle)
 
+    def buttonTitle: String
+
+    def buttonIconName: String
+  }
+
+  abstract class Button(ilk: String) extends super.Button(ilk) with ButtonRenderer {
     override def html =
       this match {
         case b: Options => b.optionEntries.map(o => render(o.string, o.index)).flatten
@@ -75,8 +81,8 @@ sealed trait BsContainer extends Container {
 
     def render(string: String, index: Int): NodeSeq = {
       if (isHidden) NodeSeq.Empty
-      else if (isDisabled) <span class={"disabled" :: btnCssClasses}>{renderButtonTitle}</span>
-      else <button type="submit" name={name} id={indexId(index)} class={"can-be-disabled" :: btnCssClasses} value={string}>{renderButtonTitle}</button>
+      else if (isDisabled) <span class={"disabled" :: buttonCssClasses}>{renderButtonTitle}</span>
+      else <button type="submit" name={name} id={indexId(index)} class={"can-be-disabled" :: buttonCssClasses} value={string}>{renderButtonTitle}</button>
     }
   }
 
@@ -89,14 +95,36 @@ sealed trait BsContainer extends Container {
     }
   }
 
-  abstract class OpenModalLink extends Button("open-modal") with Floating {
+  abstract class Popover(ilk: String) extends StaticContainer(ilk) with ButtonRenderer {
+    def popoverContainer = form.shellId.toCssId
+
+    def popoverPlacement = "bottom"
+
+    def popoverTitle = t"popover-title:"
+
+    def popoverContentText = t"popover-text:"
+
+    def buttonTitle = t"button-title: #$ilk"
+
+    def buttonIconName = t"button-icon:"
+
+    override def html: NodeSeq =
+      if (isIgnored) NodeSeq.Empty
+      else if (isHidden) super.html
+      else if (isDisabled) <span class={"disabled" :: buttonCssClasses}>{renderButtonTitle}</span>
+      else <button type="button" class={"can-be-disabled" :: buttonCssClasses}  data-container={popoverContainer} data-toggle="popover" data-html="true" data-placement={popoverPlacement} data-title={popoverTitle} data-content={super.html}>{renderButtonTitle}</button>
+  }
+
+  trait LinkButton extends Button {
     override def render(string: String, index: Int): NodeSeq = {
       if (isHidden) NodeSeq.Empty
-      else if (isDisabled) <span class={"disabled" :: btnCssClasses}>{renderButtonTitle}</span>
-      else <a href="#" class={"can-be-disabled" :: btnCssClasses} data-call={form.actionLinkWithContextPathAndParameters(name -> string)}>{renderButtonTitle}</a>
+      else if (isDisabled) <span class={"disabled" :: buttonCssClasses}>{renderButtonTitle}</span>
+      else <a href="#" class={"can-be-disabled" :: buttonCssClasses} data-call={form.actionLinkWithContextPathAndParameters(name -> string)}>{renderButtonTitle}</a>
     }
+  }
 
-    override def execute(): Seq[Result] = InsteadOfFormDisplay(jQuery("body").call("append", form.modalHtml) ~ jQuery(form.modalId).call("twibsModal") ~ javascript)
+  abstract class OpenModalLink extends Button("open-modal") with LinkButton with Floating {
+    override def execute(): Seq[Result] = InsteadOfFormDisplay(form.openModalJs)
   }
 
   abstract class Hidden(ilk: String) extends super.InputComponent(ilk) {
@@ -137,12 +165,20 @@ sealed trait BsContainer extends Container {
   }
 
   abstract class HtmlField(ilk: String) extends MultiLineField(ilk) {
+    // Remove CKEDITOR instance from previous textarea otherwise a javascript error appears
+    override def replaceContentJs: JsCmd = jQuery(id).call("ckeditorGet").call("destroy")
+
     override def javascript: JsCmd =
-      jQuery(id).call("ckeditor", Map(
+      jQuery(id).call("ckeditor", ckeditorInit, ckeditorConfig)
+
+    def ckeditorInit = jQuery(id.toCssId + " +div.cke").call("addClass", "form-control")
+
+    def ckeditorConfig: Map[String, Any] =
+      Map(
         "skin" -> "bootstrapck",
         "resize_enabled" -> false,
         "removePlugins" -> "elementspath",
-        "toolbar" -> Array(Array("Bold", "Italic", "-", "Smiley"))))
+        "toolbar" -> Array(Array("Bold", "Italic", "-", "Smiley")))
   }
 
   trait BsCheckboxField extends super.CheckboxField {
@@ -328,7 +364,7 @@ trait Bootstrap3Form extends Form with BsContainer {
 
   def formBody = defaultButtonHtml ++ super.html
 
-  def javascriptHtml = javascript.toString match {case "" => NodeSeq.Empty case js => <script>{Unparsed("$(function () {" + js + "});")}</script>}
+  def javascriptHtml = javascript.toString match {case "" => NodeSeq.Empty case js => <script>{Unparsed("$(function () {" + js + "});")}</script> }
 
   def defaultButtonHtml: NodeSeq = defaultButtonOption match {
     case Some(b) => b.defaultButtonHtml

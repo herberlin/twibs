@@ -20,14 +20,17 @@ trait DataTable[T] extends StaticContainer {
 
   override def containerAsDecoratedHtml: NodeSeq =
     <div>
-      <nav class="form-inline table-controls-top">
-        {pageSizeField.asHtml}
-        <span class="display-text">{pageSizeField.fieldTitleHtml}</span>{queryStringField.asHtml}
-      </nav>
+      {navHtml}
       {tableHtml}
     </div>
 
-  private val pageSizeField = new Field("page-size") with SingleSelectField with IntValues with Required with Inline with SubmitOnChange {
+  def navHtml =
+    <nav class="form-inline table-controls-top">
+      {pageSizeField.asHtml}
+      <span class="display-text">{pageSizeField.fieldTitleHtml}</span>{queryStringField.asHtml}
+    </nav>
+
+  val pageSizeField = new Field("page-size") with SingleSelectField with IntValues with Required with Inline with SubmitOnChange {
     override def computeOptions: List[OptionI] = toOptions(pageSizes)
 
     override def defaultValues = optionValues(1) :: Nil
@@ -40,7 +43,7 @@ trait DataTable[T] extends StaticContainer {
 
   def pageSizes = 10 :: 25 :: 50 :: 100 :: Int.MaxValue :: Nil
 
-  private val queryStringField = new Field("search") with StringValues with SearchField with Inline with Result {
+  val queryStringField = new Field("search") with StringValues with SearchField with Inline with Result {
     override def inputCssClasses = "submit-while-typing" +: super.inputCssClasses
 
     override def formGroupCssClasses: Seq[String] = "pull-right" +: super.formGroupCssClasses
@@ -113,7 +116,7 @@ trait DataTable[T] extends StaticContainer {
 
   final def tableId = id ~ "table"
 
-  def tableHtml =
+  def tableHtml: Elem =
     <div id={tableId}>
       <div class="data-table-container">
         <table class={tableCssClasses}>
