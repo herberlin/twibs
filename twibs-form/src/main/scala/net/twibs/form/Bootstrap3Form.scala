@@ -6,6 +6,7 @@ package net.twibs.form
 
 import scala.xml.{NodeSeq, Text, Unparsed}
 
+import net.twibs.util.JavaScript._
 import net.twibs.util.XmlUtils._
 import net.twibs.util.{ApplicationSettings, Message, RequestSettings}
 
@@ -79,13 +80,32 @@ sealed trait BsContainer extends Container {
     }
   }
 
+  trait DefaultButton extends Button with super.DefaultButton {
+    override def defaultButtonHtml: NodeSeq = <input type="submit" class="concealed" tabindex="-1" name={name} value={defaultButtonValue} />
+
+    private def defaultButtonValue = this match {
+      case b: Options if b.optionEntries.nonEmpty => b.optionEntries.head.string
+      case _ => string
+    }
+  }
+
+  abstract class OpenModalLink extends Button("open-modal") with Floating {
+    override def render(string: String, index: Int): NodeSeq = {
+      if (isHidden) NodeSeq.Empty
+      else if (isDisabled) <span class={"disabled" :: btnCssClasses}>{renderButtonTitle}</span>
+      else <a href="#" class={"can-be-disabled" :: btnCssClasses} data-call={form.actionLinkWithContextPathAndParameters(name -> string)}>{renderButtonTitle}</a>
+    }
+
+    override def execute(): Seq[Result] = InsteadOfFormDisplay(jQuery("body").call("append", form.modalHtml) ~ jQuery(form.modalId).call("twibsModal") ~ javascript)
+  }
+
   abstract class Hidden(ilk: String) extends super.InputComponent(ilk) {
     override def html: NodeSeq =
       if (isIgnored) NodeSeq.Empty
       else entries.map(entry => hidden(name, entry.string)).flatten
   }
 
-  abstract class Field(ilk: String) extends super.Field(ilk) {
+  trait Field extends super.Field {
     override def html = entries.map(renderEntry).flatten
 
     def fieldCssClasses: Seq[String] = Nil
@@ -95,14 +115,61 @@ sealed trait BsContainer extends Container {
       else if (isHidden) hidden(name, entry.string)
       else inner(entry)
 
-    private def inner(entry: Entry) =
+    protected def inner(entry: Entry): NodeSeq
+  }
+
+  abstract class SingleLineField(ilk: String) extends super.SingleLineField(ilk) with Field {
+    protected def inner(entry: Entry) =
         <input type="text" name={name} id={indexId(entry.index)} placeholder={placeholder} value={entry.string} class={fieldCssClasses}/>
         .setIfMissing(isDisabled, "disabled", "disabled")
         .addClass(isDisabled, "disabled")
         .addClass(!isDisabled, "can-be-disabled")
   }
 
-  def indexId(index: Int) = id ~ (if (index > 0) index.toString else "")
+  abstract class MultiLineField(ilk: String) extends super.MultiLineField(ilk) with Field {
+    protected def inner(entry: Entry) =
+      <textarea rows={rows.toString} name={name} id={indexId(entry.index)} placeholder={placeholder} class={fieldCssClasses}>{entry.string}</textarea>
+        .setIfMissing(isDisabled, "disabled", "disabled")
+        .addClass(isDisabled, "disabled")
+        .addClass(!isDisabled, "can-be-disabled")
+
+    def rows = 6
+  }
+
+  abstract class HtmlField(ilk: String) extends MultiLineField(ilk) {
+    override def javascript: JsCmd =
+      jQuery(id).call("ckeditor", Map(
+        "skin" -> "bootstrapck",
+        "resize_enabled" -> false,
+        "removePlugins" -> "elementspath",
+        "toolbar" -> Array(Array("Bold", "Italic", "-", "Smiley"))))
+  }
+
+  trait BsCheckboxField extends super.CheckboxField {
+    def triggerValue = "TRIGGER"
+
+    override def parse(parameterStrings: Seq[String]): Unit = super.parse(parameterStrings.filter(_ != triggerValue))
+
+    def triggerHtml = hidden(name, triggerValue)
+
+    override def html =
+      if (isIgnored) NodeSeq.Empty
+      else if (isHidden) entries.map(entry => hidden(name, entry.string)).flatten ++ triggerHtml
+      else renderOptions
+
+    def renderOptions = optionEntries.map(renderOption).flatten ++ triggerHtml
+
+    def renderOption(option: Entry): NodeSeq =
+        <input type="checkbox" name={name} id={indexId(option.index)} value={option.string}/>
+        .setIfMissing(isDisabled, "disabled", "disabled")
+        .addClass(isDisabled, "disabled")
+        .addClass(!isDisabled, "can-be-disabled")
+        .set(values.contains(option.valueOption.get), "checked")
+  }
+
+  abstract class CheckboxField(ilk: String) extends super.CheckboxField(ilk) with BsCheckboxField
+
+  class BooleanCheckboxField(ilk: String) extends super.BooleanCheckboxField(ilk) with BsCheckboxField
 
   class StaticContainer(ilk: String) extends super.StaticContainer(ilk) with BsContainer
 
@@ -121,7 +188,22 @@ sealed trait BsContainer extends Container {
   class HorizontalLayout extends StaticContainer("hl") {
     override def html: NodeSeq = <div class="form-horizontal">{super.html}</div>
 
-    abstract class Field(ilk: String) extends super.Field(ilk) {
+    trait Messages extends InputComponent {
+      def labelCssMessageClass = if (validated) max(messages ++ entries.map(_.messageOption).flatten) else ""
+
+      def max(messages: Seq[Message]) = messages match {
+        case x if x.isEmpty => ""
+        case x => cssMessageClass(x.maxBy(_.importance))
+      }
+
+      def cssMessageClass(messageOption: Option[Message]): String = messageOption.fold("")(cssMessageClass)
+
+      def cssMessageClass(message: Message): String = if (validated) "has-" + message.displayTypeString else ""
+
+      def renderMessages = if (validated) messages.map(m => <div class={cssMessageClass(m)}><div class="help-block">{m.text}</div></div>) else NodeSeq.Empty
+    }
+
+    trait Field extends super.Field with Messages {
       override def fieldCssClasses: Seq[String] = "form-control" +: super.fieldCssClasses
 
       override def html: NodeSeq =
@@ -130,9 +212,7 @@ sealed trait BsContainer extends Container {
           <div class="form-group">
             <div class={labelCssMessageClass :: "col-sm-3" :: Nil}><label class="control-label">{fieldTitle}</label></div>
             <div class="col-sm-9">{renderMessages ++ super.html}</div>
-          </div>
-
-      def renderMessages = if (validated) messages.map(m => <div class={cssMessageClass(m)}><div class="help-block">{m.text}</div></div>) else NodeSeq.Empty
+          </div>.addClass(required, "required")
 
       def renderEntryMessage(entry: Entry) =
         if (validated)
@@ -144,18 +224,32 @@ sealed trait BsContainer extends Container {
           {super.renderEntry(entry)}
           {renderEntryMessage(entry)}
         </div>
-
-      def cssMessageClass(messageOption: Option[Message]): String = messageOption.fold("")(cssMessageClass)
-
-      def cssMessageClass(message: Message): String = if (validated) "has-" + message.displayTypeString else ""
-
-      def labelCssMessageClass = if (validated) max(messages ++ entries.map(_.messageOption).flatten) else ""
-
-      def max(messages: Seq[Message]) = messages match {
-        case x if x.isEmpty => ""
-        case x => cssMessageClass(x.maxBy(_.importance))
-      }
     }
+
+    abstract class SingleLineField(ilk: String) extends super.SingleLineField(ilk) with Field
+
+    abstract class MultiLineField(ilk: String) extends super.MultiLineField(ilk) with Field
+
+    abstract class HtmlField(ilk: String) extends super.HtmlField(ilk) with Field
+
+    trait HlCheckboxField extends BsCheckboxField with Messages {
+      override def renderOptions: NodeSeq =
+        <div class="form-group">
+          <div class={labelCssMessageClass :: "col-sm-3" :: Nil}><label class="control-label">{fieldTitle}</label></div>
+          <div class="col-sm-9">{renderMessages ++ super.renderOptions}</div>
+        </div>.addClass(required, "required")
+
+      override def renderOption(option: Entry): NodeSeq =
+        <div class="checkbox">
+          <label>
+            {super.renderOption(option)} {option.title}
+          </label>
+        </div>
+    }
+
+    abstract class CheckboxField(ilk: String) extends super.CheckboxField(ilk) with HlCheckboxField
+
+    class BooleanCheckboxField(ilk: String) extends super.BooleanCheckboxField(ilk) with HlCheckboxField
 
     abstract class Button(ilk: String) extends super.Button(ilk) {
       override def html: NodeSeq =
@@ -166,13 +260,12 @@ sealed trait BsContainer extends Container {
           </div>
     }
 
+    def ->>(nodeSeq: => NodeSeq) = new DisplayHtml(<div class="form-group"><div class="col-sm-offset-3 col-sm-9">{nodeSeq}</div></div>)
   }
 
 }
 
 trait Bootstrap3Form extends Form with BsContainer {
-  def submitFallback = <input type="submit" class="concealed" tabindex="-1" name="fallback-default" value="" />
-
   def formHeader = if (formHeaderContent.isEmpty) formHeaderContent else <header class="form-header">{formHeaderContent}</header>
 
   def formHeaderContent: NodeSeq = formTitle ++ formDescription
@@ -185,25 +278,26 @@ trait Bootstrap3Form extends Form with BsContainer {
 
   def formDescriptionString = t"form-description:"
 
-  def modalHtml: NodeSeq =
+  override def modalHtml: NodeSeq =
     if (isIgnored) NodeSeq.Empty
     else
     <div id={modalId} class="modal fade" role="dialog" name={name + "-modal"} tabindex="-1">
       <div class="modal-dialog">
-        {html}
+        {surround(modalContent, "true")}
       </div>
     </div>
 
-  def inlineHtml: NodeSeq =
+  override def inlineHtml: NodeSeq =
     if (isIgnored) NodeSeq.Empty
-    else html
+    else surround(inlineContent, "false") ++ javascriptHtml
 
-  override def html: NodeSeq =
+  override def html: NodeSeq = surround({if (modal) modalContent else inlineContent})
+
+  def surround(content: NodeSeq, modalValue: String = modal.toString) =
     <form id={formId} name={name} class="twibs-form" action={actionLinkWithContextPath} method="post" enctype="multipart/form-data">
-      {hidden(pnId, id) ++ hidden(pnModal, modal.toString) ++ hidden(ApplicationSettings.PN_NAME, RequestSettings.applicationSettings.name)}
-      {if (modal) modalContent else inlineContent}
+      {hidden(pnId, id) ++ hidden(pnModal, modalValue) ++ hidden(ApplicationSettings.PN_NAME, RequestSettings.applicationSettings.name)}
+      {content}
     </form>
-
 
   def modalContent: NodeSeq =
     <div class="modal-content">
@@ -211,10 +305,7 @@ trait Bootstrap3Form extends Form with BsContainer {
        <button type="button" class="close" data-dismiss="modal">×</button>
         {formHeaderContent}
       </div>
-      <div class="modal-body">
-        {super.html}
-        {submitFallback}
-      </div>
+      <div class="modal-body">{formBody}</div>
     </div>
 
   def inlineContent: NodeSeq =
@@ -233,9 +324,14 @@ trait Bootstrap3Form extends Form with BsContainer {
           </div>
         </div>
       </div>
-    </div> ++
-      formHeader ++
-      super.html ++
-      submitFallback
+    </div> ++ formHeader ++ formBody
 
+  def formBody = defaultButtonHtml ++ super.html
+
+  def javascriptHtml = javascript.toString match {case "" => NodeSeq.Empty case js => <script>{Unparsed("$(function () {" + js + "});")}</script>}
+
+  def defaultButtonHtml: NodeSeq = defaultButtonOption match {
+    case Some(b) => b.defaultButtonHtml
+    case None => <input type="submit" class="concealed" tabindex="-1" name="fallback-default" value="" />
+  }
 }

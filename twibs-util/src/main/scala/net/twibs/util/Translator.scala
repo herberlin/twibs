@@ -100,18 +100,20 @@ abstract class Translator(id: String, usages: List[String], kinds: List[String])
 trait TranslationSupport {
   def translator: Translator
 
+  private lazy val cachedTranslator = translator
+
   implicit def withTranslationFormatter(sc: StringContext) = new {
     import net.twibs.util.XmlUtils._
 
-    def t(args: Any*): String = translator.translate(sc, args: _*)
+    def t(args: Any*): String = cachedTranslator.translate(sc, args: _*)
 
-    def warn(args: Any*): Message = Message.warning(translator.translate(sc, args: _*))
+    def warn(args: Any*): Message = Message.warning(cachedTranslator.translate(sc, args: _*))
 
-    def info(args: Any*): Message = Message.info(translator.translate(sc, args: _*))
+    def info(args: Any*): Message = Message.info(cachedTranslator.translate(sc, args: _*))
 
-    def danger(args: Any*): Message = Message.danger(translator.translate(sc, args: _*))
+    def danger(args: Any*): Message = Message.danger(cachedTranslator.translate(sc, args: _*))
 
-    def success(args: Any*): Message = Message.success(translator.translate(sc, args: _*))
+    def success(args: Any*): Message = Message.success(cachedTranslator.translate(sc, args: _*))
   }
 }
 

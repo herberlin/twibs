@@ -8,6 +8,8 @@ import net.twibs.form._
 import net.twibs.util.{DefaultDisplayType, PrimaryDisplayType, Parameters}
 
 class TestForm(parametersOption: Option[Parameters] = None) extends Form("test", parametersOption) with Bootstrap3Form {
+  val openModal = new OpenModalLink() with PrimaryDisplayType with StringInput
+
   new HorizontalLayout {
     >> {<h3>Buttons</h3>}
     >> {<h4>Four simple buttons (only two of them are shown)</h4>}
@@ -27,8 +29,6 @@ class TestForm(parametersOption: Option[Parameters] = None) extends Form("test",
 
     new Button("three-values") with StringInput with Options with DefaultDisplayType {
       override def options: Seq[String] = "a" :: "b" :: "c" :: Nil
-
-      override def defaults: Seq[String] = Nil
 
       override def execute(): Seq[Result] =
         if (validate()) AfterFormDisplay(info"pressed: Pressed $value".showNotification)
@@ -58,22 +58,38 @@ class TestForm(parametersOption: Option[Parameters] = None) extends Form("test",
     >> {<h3>Fields</h3>}
     >> {<h4>Four simple input fields (only two of them are shown) one is rendered hidden</h4>}
 
-    val enabled = new Field("enabled") with StringInput
+    val enabled = new SingleLineField("enabled") with StringInput
     enabled.strings = "" :: "" :: Nil
     enabled.validate()
 
     >> {<h5>Even though the disabled field has values and is validated no validation information is displayed</h5>}
-    val disabled = new Field("disabled") with StringInput {
+    val disabled = new SingleLineField("disabled") with StringInput {
       override protected def computeDisabled: Boolean = true
     }
     disabled.strings = "" :: "" :: Nil
     disabled.validate()
 
-    new Field("hidden") with StringInput {
+    new SingleLineField("hidden") with StringInput {
       override protected def computeHidden: Boolean = true
     }
-    new Field("ignored") with StringInput {
+    new SingleLineField("ignored") with StringInput {
       override protected def computeIgnored: Boolean = true
     }
+
+    >> {<h4>Multiline</h4>}
+    new MultiLineField("multiline") with StringInput
+
+    new HtmlField("html") with StringInput
+
+    >> {<h4>Checkboxes</h4>}
+    new BooleanCheckboxField("boolean")
+
+    new CheckboxField("checkbox") with StringInput {
+      override def options = "a" :: "b" :: Nil
+    }
+
+    >> {<h3>Modal</h3>}
+    >> {<h4>Open a copy of this form in a modal dialog</h4>}
+    >> {new TestForm().openModal.html}
   }
 }

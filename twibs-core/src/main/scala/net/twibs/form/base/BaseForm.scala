@@ -209,13 +209,16 @@ trait BaseForm extends Container with CurrentRequestSettings {
     override def execute(): Unit = result = InsteadOfFormDisplay(reloadFormJs)
   }
 
-  override protected def containerAsHtml = defaultButtonHtml ++ super.containerAsHtml ++ fallbackDefaultExecutableHtml
-
-  def defaultButtonHtml = defaultExecutableOption.fold(NodeSeq.Empty)(form.renderer.renderAsDefaultExecutable)
+  override protected def containerAsHtml = defaultButtonHtml ++ fallbackDefaultExecutableHtml ++ super.containerAsHtml
 
   def defaultExecutableOption = components.collectFirst { case e: DefaultExecutable => e}
 
-  def fallbackDefaultExecutableHtml = form.renderer.renderAsDefaultExecutable(fallbackDefaultExecutable)
+  def defaultButtonHtml = defaultExecutableOption.fold(NodeSeq.Empty)(form.renderer.renderAsDefaultExecutable)
+
+  def fallbackDefaultExecutableHtml = defaultExecutableOption match {
+    case Some(_) => NodeSeq.Empty
+    case None => form.renderer.renderAsDefaultExecutable(fallbackDefaultExecutable)
+  }
 
   private val fallbackDefaultExecutable = new Executor("fallback-default") with StringValues
 
@@ -346,8 +349,6 @@ trait InteractiveComponent extends Component with Values {
     request.parameters.getStringsOption(name).foreach(parse)
 
   def parse(parameters: Seq[String]): Unit = strings = parameters
-
-  override def isStringProcessingEnabled = !state.isIgnored
 
   override def reset(): Unit = resetInputs()
 

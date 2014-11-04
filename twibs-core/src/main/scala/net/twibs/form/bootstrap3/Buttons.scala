@@ -146,10 +146,12 @@ trait ButtonWithPopover extends BootstrapButton {
       else
         <span>{renderButtonTitle}</span>
 
-    override def execute(): Unit = {
+    override def parse(parameters: Seq[String]): Unit = {
+      super.parse(parameters)
       self.strings = strings
-      result = AfterFormDisplay(openPopoverJs)
     }
+
+    override def execute(): Unit = result = AfterFormDisplay(openPopoverJs)
 
     def openPopoverJs = popoverElementSelector.call("popover", popoverOptions).call("addClass", "popover-by-script").call("popover", "show")
   }

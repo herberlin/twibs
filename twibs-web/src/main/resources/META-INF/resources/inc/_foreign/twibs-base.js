@@ -251,19 +251,6 @@ $(function () {
                 return location.hash = $(e.target).attr('href').substr(1);
             });
 
-        var failError = function (jqxhr, settings, exception) {
-            var regex = /<div class="twibs-message-detail">(.*)<\/div>/g;
-            var arr = regex.exec(jqxhr.responseText);
-            var text = arr != null ? arr[0] : exception.message;
-            if (!text) {
-                text = jqxhr.statusText;
-                if (text == "error" && jqxhr.statusCode == 404) {
-                    text = "Not found";
-                }
-            }
-            showError(text);
-        };
-
         function hashchange() {
             $('a[href="' + location.hash + '"]').tab('show');
         }
@@ -284,9 +271,10 @@ $(function () {
 
             return $.extend(config, {
                 dataType: 'script',
-                error: function (xhr, status, error, $form) {
+                error: function (jqxhr, status, error, $form) {
                     clearTimeout(modalTimeout);
-                    ajaxFormError(xhr, status, error, $form);
+                    showAjaxError(jqxhr, error);
+                    $form.reenableForm();
                 },
                 beforeSend: function () {
                     update(0);
@@ -294,7 +282,7 @@ $(function () {
                         $modal.modal({backdrop: 'static', keyboard: false});
                     }, 1000);
                 },
-                dataFilter: function(d) {
+                dataFilter: function (d) {
                     update(100);
                     clearTimeout(modalTimeout);
                     $modal.modal("hide");
@@ -318,11 +306,25 @@ $(function () {
             });
         }
 
-        function ajaxFormError(xhr, status, error, $form) {
+        function failError(jqxhr, textStatus, exception) {
+            showAjaxError(jqxhr, exception.message);
+        }
+
+        function showAjaxError(jqxhr, error) {
             var regex = /<div class="twibs-message-detail">(.*)<\/div>/g;
-            var arr = regex.exec(xhr.responseText);
+            var arr = regex.exec(jqxhr.responseText);
             var text = arr != null ? arr[0] : error;
-            $form.reenableForm();
+            if (!text) {
+                text = jqxhr.statusText;
+                if (text == "error") {
+                    if (jqxhr.status == 404)
+                        text = "Not found";
+                    else if (jqxhr.status == 0 && jqxhr.readyState === 0)
+                        text = "Server unreachable";
+                    else
+                        text = "Unkown error";
+                }
+            }
             showError(text);
         }
 

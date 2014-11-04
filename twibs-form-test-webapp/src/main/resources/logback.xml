@@ -5,13 +5,13 @@
 
 <configuration>
     <appender name="MAIN" class="ch.qos.logback.core.FileAppender">
-        <File>${catalina.base}/logs/twibs-demo.log</File>
+        <File>${catalina.base}/logs/twibs-form-test-webapp.log</File>
         <encoder>
             <pattern>%date{ISO8601} |-%-5level [%thread] %logger - %message%n</pattern>
         </encoder>
     </appender>
     <appender name="ACCESS" class="ch.qos.logback.core.FileAppender">
-        <File>${catalina.base}/logs/twibs-demo-access.log</File>
+        <File>${catalina.base}/logs/twibs-form-test-webapp-access.log</File>
         <encoder>
             <pattern>%m%n</pattern>
         </encoder>

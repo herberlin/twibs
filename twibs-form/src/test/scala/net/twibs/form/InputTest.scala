@@ -22,7 +22,7 @@ class InputTest extends TwibsTest {
   test("Default entries") {
     val input = createInput
     input.entries should have size 1
-    input.valid should beTrue
+    input.valid should beFalse
   }
 
   test("Set values is always valid") {
@@ -56,8 +56,6 @@ class InputTest extends TwibsTest {
   test("Filling defaults with empty strings") {
     new TestLongInput {
       override def minimumNumberOfEntries = 2
-
-      override def defaults = Nil
     }.entries should have size 2
   }
 
@@ -71,7 +69,7 @@ class InputTest extends TwibsTest {
     input.values = input.defaults
     input.isChanged should beFalse
 
-    input.strings = "0" :: Nil
+    input.strings = Nil
     input.isChanged should beFalse
   }
 

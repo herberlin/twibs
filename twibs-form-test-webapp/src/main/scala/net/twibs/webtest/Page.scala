@@ -48,7 +48,7 @@ class Page extends Responder {
       </head>
       <body>
         <div class="container">
-          {new TestForm(None).html}
+          {new TestForm(None).inlineHtml}
         </div>
       </body>
     </html>

@@ -73,6 +73,8 @@ trait Component extends TranslationSupport {
 
   def javascript: JsCmd = JsEmpty
 
+  def indexId(index: Int) = id ~ (if (index > 0) index.toString else "")
+
   // Overridable
   protected def computeDisabled: Boolean = parent.isDisabled || selfIsDisabled
 
@@ -186,7 +188,7 @@ trait Container extends Component {
 
     final val id = parent.id ~ name
 
-    final val translator = parent.translator.usage(ilk)
+    def translator = parent.translator.usage(ilk)
 
     private[form] def computeName = {
       val names = form.components.map(_.name).toSet
@@ -212,22 +214,53 @@ trait Container extends Component {
     override def messages: Seq[Message] = messageOption.fold(super.messages)(_ +: super.messages)
 
     override protected def computeValid = valid
-
-    def needsFocus = false
-
-    def focusJs: JsCmd = JsEmpty
   }
 
-  abstract class Field(ilk: String) extends InputComponent(ilk) {
+  trait Field extends InputComponent with Focusable {
+    override def translator: Translator = super.translator.kind("FIELD")
+
     def fieldTitle = t"field-title: #$ilk"
 
     def placeholder = t"placeholder: #$ilk"
+
+    def needsFocus = !isValid
+
+    def focusJs: JsCmd = jQuery(entries.find(!_.valid).map(e => indexId(e.index)) getOrElse id).call("focus")
+  }
+
+  abstract class SingleLineField(ilk: String) extends InputComponent(ilk) with Field{
+    override def translator: Translator = super.translator.kind("SINGLE-LINE")
+  }
+
+  abstract class MultiLineField(ilk: String) extends InputComponent(ilk) with Field{
+    override def translator: Translator = super.translator.kind("MULTI-LINE")
+  }
+
+  abstract class CheckboxField(ilk: String) extends InputComponent(ilk) with Field with Options {
+    override def translator: Translator = super.translator.kind("CHECKBOX")
+
+    override def required: Boolean = false
+
+    override def minimumNumberOfEntries: Int = 0
+
+    override def maximumNumberOfEntries: Int = optionEntries.size
+  }
+
+  abstract class BooleanCheckboxField(ilk: String) extends CheckboxField(ilk) with BooleanInput {
+    override def translator: Translator = super.translator.kind("BOOLEAN-CHECKBOX")
+    override def options: Seq[ValueType] = true :: Nil
   }
 
   abstract class Button(ilk: String) extends InputComponent(ilk) with DisplayType {
+    override def translator: Translator = super.translator.kind("BUTTON")
+
     def buttonTitle = t"button-title: #$ilk"
 
     def buttonIconName = t"button-icon:"
+  }
+
+  trait DefaultButton extends Button {
+    def defaultButtonHtml: NodeSeq
   }
 
   class StaticContainer(ilk: String) extends ChildComponent(ilk) with Container {
@@ -294,6 +327,12 @@ trait Floating extends Component
 
 trait Detachable extends Container
 
+trait Focusable extends Component {
+  def needsFocus: Boolean
+
+  def focusJs: JsCmd
+}
+
 object FormConstants {
   val PN_FORM_ID_SUFFIX = "-form-id"
 
@@ -330,6 +369,10 @@ class Form(val ilk: String, parametersOption: Option[Parameters] = None) extends
   final val modalId = id ~ "modal"
 
   override val translator = RequestSettings.current.translator.usage("FORM").usage(ilk)
+
+  def inlineHtml: NodeSeq = html
+
+  def modalHtml: NodeSeq = html
 
   def process(parameters: Parameters): Response = try {
     reset()
@@ -369,13 +412,7 @@ class Form(val ilk: String, parametersOption: Option[Parameters] = None) extends
 
   override def javascript: JsCmd = if (isDisabled) JsEmpty else components.collect { case c if c.isEnabled && c != this => c.javascript}
 
-  def focusJs = components.collectFirst({ case field: Field if field.needsFocus => field.focusJs}) getOrElse JsEmpty
-
-  def displayFormJs = Request.method match {
-    case GetMethod => JsEmpty // openModalJs
-    case PostMethod => JsEmpty // refreshJs
-    case _ => JsEmpty
-  }
+  def focusJs = components.collectFirst({ case f: Focusable if f.needsFocus => f.focusJs}) getOrElse JsEmpty
 
   def actionLink = "/forms" + ClassUtils.toPath(getClassForActionLink(getClass))
 
@@ -395,6 +432,8 @@ class Form(val ilk: String, parametersOption: Option[Parameters] = None) extends
   }
 
   def componentParameters: Seq[(String, String)] = components.toSeq.map(_.linkParameters).flatten
+
+  lazy val defaultButtonOption: Option[DefaultButton] = components.collectFirst { case b: DefaultButton if b.isEnabled => b}
 
   // Form is Root
   override protected def computeDisabled: Boolean = selfIsDisabled

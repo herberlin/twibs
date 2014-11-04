@@ -9,19 +9,19 @@ class FormTest extends TwibsTest {
   test("Invalid name throws exception") {
     new Form("login") {
       intercept[IllegalArgumentException] {
-        new Field("") with StringInput
+        new SingleLineField("") with StringInput
       }
       intercept[IllegalArgumentException] {
-        new Field("ab cd") with StringInput
+        new SingleLineField("ab cd") with StringInput
       }
       intercept[IllegalArgumentException] {
-        new Field("test-form-id") with StringInput
+        new SingleLineField("test-form-id") with StringInput
       }
       intercept[IllegalArgumentException] {
-        new Field("test-form-modal") with StringInput
+        new SingleLineField("test-form-modal") with StringInput
       }
       intercept[IllegalArgumentException] {
-        new Field("application-name") with StringInput
+        new SingleLineField("application-name") with StringInput
       }
     }
 
@@ -49,13 +49,13 @@ class FormTest extends TwibsTest {
 
   test("Test unique names") {
     val form = new Form("test") {
-      val field = new Field("field") with StringInput
+      val field = new SingleLineField("field") with StringInput
 
       val container = new StaticContainer("level1") {
-        val field = new Field("field") with StringInput
+        val field = new SingleLineField("field") with StringInput
 
         val container = new StaticContainer("level2") {
-          val field = new Field("field") with StringInput
+          val field = new SingleLineField("field") with StringInput
         }
       }
     }
@@ -69,20 +69,20 @@ class FormTest extends TwibsTest {
 
   test("Validation on different states") {
     val f = new Form("f") {
-      val enabled = new Field("enabled") with StringInput {
+      val enabled = new SingleLineField("enabled") with StringInput {
         override protected def computeValid: Boolean = false
       }
-      val disabled = new Field("disabled") with StringInput {
+      val disabled = new SingleLineField("disabled") with StringInput {
         override protected def computeDisabled: Boolean = true
 
         override protected def computeValid: Boolean = false
       }
-      val hidden = new Field("hidden") with StringInput {
+      val hidden = new SingleLineField("hidden") with StringInput {
         override protected def computeHidden: Boolean = true
 
         override protected def computeValid: Boolean = false
       }
-      val ignored = new Field("ignored") with StringInput {
+      val ignored = new SingleLineField("ignored") with StringInput {
         override protected def computeIgnored: Boolean = true
 
         override protected def computeValid: Boolean = false
@@ -115,9 +115,9 @@ class FormTest extends TwibsTest {
       val dynamics = new DynamicContainer("uploads") {
 
         trait UserContainer extends Dynamic {
-          val username = new Field("username") with StringInput
+          val username = new SingleLineField("username") with StringInput
 
-          val password = new Field("password") with StringInput
+          val password = new SingleLineField("password") with StringInput
         }
 
         type T = UserContainer
@@ -149,7 +149,7 @@ class FormTest extends TwibsTest {
     var submitted = false
 
     val form = new Form("test") {
-      new Field("exec") with StringInput {
+      new SingleLineField("exec") with StringInput {
         override def execute() = submitted = true
       }
     }
@@ -213,14 +213,14 @@ class FormTest extends TwibsTest {
 
       val container = new StaticContainer("level1") {
         val container = new StaticContainer("level2") {
-          val field = new Field("field") with StringInput
+          val field = new SingleLineField("field") with StringInput
 
           val dynamics = new DynamicContainer("uploads") {
 
             trait UserContainer extends Dynamic {
-              val username = new Field("username") with StringInput
+              val username = new SingleLineField("username") with StringInput
 
-              val password = new Field("password") with StringInput
+              val password = new SingleLineField("password") with StringInput
 
               def check2(): Unit = children should have size 2
             }
@@ -268,16 +268,36 @@ class FormTest extends TwibsTest {
     form.container.container.check()
   }
 
+  test("Focus") {
+    val f = new Form("test", Map("test-form-id" -> Seq("a"), "test-form-modal" -> Seq("false"))) with Bootstrap3Form {
+      val hl = new HorizontalLayout {
+        val f = new SingleLineField("field") with StringInput
+      }
+    }
+
+    f.hl.f.strings = "a" :: "" :: Nil
+    f.validate()
+    f.hl.f.needsFocus should beTrue
+    f.focusJs.toString should be("$('#a_hl_field_1').focus()")
+
+    // Entries are valid but field must only contain one value!
+    f.hl.f.strings = "a" :: "b" :: Nil
+    f.validate()
+    f.hl.f.needsFocus should beTrue
+    f.focusJs.toString should be("$('#a_hl_field').focus()")
+  }
+
   test("Form renderer") {
     val out = new Form("test", Map("test-form-id" -> Seq("a"), "test-form-modal" -> Seq("false"))) with Bootstrap3Form {
 
       new DisplayText("<h3>Display text</h3>")
 
       val dynamics = new DynamicContainer("users") {
-        trait UserContainer extends Dynamic {
-          val username = new Field("username") with StringInput
 
-          val password = new Field("password") with StringInput
+        trait UserContainer extends Dynamic {
+          val username = new SingleLineField("username") with StringInput
+
+          val password = new SingleLineField("password") with StringInput
         }
 
         type T = UserContainer
@@ -290,7 +310,7 @@ class FormTest extends TwibsTest {
       }
 
       new StaticContainer("easy") with Detachable {
-        new Button("wait") with StringInput with PrimaryDisplayType
+        new Button("wait") with StringInput with PrimaryDisplayType with DefaultButton
         new Hidden("hidden") with StringInput
       }
 
@@ -327,6 +347,7 @@ class FormTest extends TwibsTest {
         |    <header class="form-header">
         |        <h3>test</h3>
         |    </header>
+        |    <input type="submit" class="concealed" tabindex="-1" name="wait" value=""/>
         |    <div id="a_shell" class="form-container-shell">
         |        <div id="a" class="form-container">
         |            <div class="alert alert-warning alert-dismissable">
@@ -340,8 +361,8 @@ class FormTest extends TwibsTest {
         |                    <div id="a_users_user_shell" class="detachable form-container-shell">
         |                        <button type="button" class="close" data-toggle="popover" data-html="true" data-placement="auto left" data-title="Delete component?" data-content='<button type="button" class="btn btn-danger" data-dismiss="detachable">Delete</button>'>&times;</button>
         |                        <div id="a_users_user" class="form-container">
-        |                            <input class="can-be-disabled" type="text" name="adminusername" id="a_users_user" placeholder="username" value=""/>
-        |                            <input class="can-be-disabled" type="text" name="adminpassword" id="a_users_user" placeholder="password" value=""/>
+        |                            <input class="can-be-disabled" type="text" name="adminusername" id="a_users_user_adminusername" placeholder="username" value=""/>
+        |                            <input class="can-be-disabled" type="text" name="adminpassword" id="a_users_user_adminpassword" placeholder="password" value=""/>
         |                        </div>
         |                    </div>
         |                    <input type="hidden" autocomplete="off" name="users" value="admin"/>
@@ -350,13 +371,38 @@ class FormTest extends TwibsTest {
         |            <div id="a_easy_shell" class="detachable form-container-shell">
         |                <button type="button" class="close" data-toggle="popover" data-html="true" data-placement="auto left" data-title="Delete component?" data-content='<button type="button" class="btn btn-danger" data-dismiss="detachable">Delete</button>'>&times;</button>
         |                <div id="a_easy" class="form-container">
-        |                    <button type="submit" name="wait" id="a_easy" class="can-be-disabled btn btn-primary" value="">wait</button>
+        |                    <button type="submit" name="wait" id="a_easy_wait" class="can-be-disabled btn btn-primary" value="">wait</button>
         |                    <input type="hidden" autocomplete="off" name="hidden" value=""/>
         |                </div>
         |            </div>
         |        </div>
         |    </div>
-        |    <input type="submit" class="concealed" tabindex="-1" name="fallback-default" value=""/>
         |</form>""".stripMargin)
+  }
+
+  test("Inheritance") {
+    class C {
+      class F
+
+      def check(any: Any) = any.isInstanceOf[F]
+    }
+
+    class CC extends C {
+      class F extends super.F
+    }
+
+    class CCC extends CC {
+      class F extends super.F
+    }
+
+    new C {
+      check(new F) should beTrue
+    }
+    new CC {
+      check(new F) should beTrue
+    }
+    new CCC {
+      check(new F) should beTrue
+    }
   }
 }

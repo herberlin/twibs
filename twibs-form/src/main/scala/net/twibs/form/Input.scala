@@ -28,12 +28,12 @@ trait Input extends TranslationSupport {
   private[this] final val cachedDefaultEntries = LazyCache(computeDefaultEntries)
 
   final def values_=(values: Seq[ValueType]): Unit = {
-    _entries = Some(values.map(valueToEntry))
+    setEntries(values.map(valueToEntry))
     _messageOption = None
   }
 
   final def strings_=(strings: Seq[String]): Unit = {
-    _entries = Some(strings.map(stringToEntry))
+    setEntries(strings.map(stringToEntry))
     _messageOption =
       if (_entries.get.size < minimumNumberOfEntries)
         Some(warn"minimum-number-of-entries-message: Please enter at least {$minimumNumberOfEntries, plural, =1{one value}other{# values}}")
@@ -41,6 +41,8 @@ trait Input extends TranslationSupport {
         Some(warn"maximum-number-of-entries-message: Please enter no more than {$maximumNumberOfEntries, plural, =1{one value}other{# values}}")
       else None
   }
+
+  private def setEntries(es: Seq[Entry]): Unit = _entries = Some(es.zipWithIndex.map { case (i, index) => i.copy(index = index)})
 
   protected def stringToEntry(string: String) =
     stringProcessors(Entry(string, None, string, None)) match {
@@ -77,7 +79,7 @@ trait Input extends TranslationSupport {
   protected def titleFor(string: String) = string
 
   // Implement
-  def defaults: Seq[ValueType]
+  def defaults: Seq[ValueType] = Nil
 
   def convertToString(value: ValueType): String
 
@@ -103,7 +105,7 @@ trait Input extends TranslationSupport {
 
   final def isModified = _entries.isDefined
 
-  final def valid = messageOption.isEmpty && entries.forall(_.messageOption.isEmpty)
+  final def valid = messageOption.isEmpty && entries.forall(_.valid)
 
   final def messageOption = _messageOption
 
@@ -170,8 +172,6 @@ trait TranslatedTitles extends Input {
 trait StringInput extends Input {
   type ValueType = String
 
-  override def defaults: Seq[String] = "" :: Nil
-
   override def convertToString(value: ValueType): String = value
 
   override def convertToValue(string: String): Option[ValueType] = Some(string)
@@ -205,7 +205,9 @@ trait SingleLineInput extends StringInput {
 trait EmailAddressInput extends SingleLineInput {
   override def stringProcessors = super.stringProcessors andThen emailAddressProcessor
 
-  private def emailAddressProcessor = (entry: Entry) => entry.validate(EmailUtils.isValidEmailAddress(entry.string), warn"format-message: ''${entry.string}'' is not a valid email address")
+  private def emailAddressProcessor = (entry: Entry) =>
+    if (entry.continue) entry.validate(EmailUtils.isValidEmailAddress(entry.string), warn"format-message: ''${entry.string}'' is not a valid email address")
+    else entry
 }
 
 trait WebAddressInput extends SingleLineInput {
@@ -222,10 +224,16 @@ trait HtmlInput extends StringInput {
   private def cleanupHtml = (entry: Entry) => entry.copy(string = policyFactory.sanitize(string))
 }
 
+trait BooleanInput extends Input {
+  override type ValueType = Boolean
+
+  override def convertToString(b: Boolean) = b.toString
+
+  override def convertToValue(string: String) = Some("true" == string)
+}
+
 trait LongInput extends Input {
   override type ValueType = Long
-
-  override def defaults = 0L :: Nil
 
   override def convertToString(l: Long) = l.toString
 
@@ -234,8 +242,6 @@ trait LongInput extends Input {
 
 trait IntInput extends Input {
   override type ValueType = Int
-
-  override def defaults = 0 :: Nil
 
   override def convertToString(i: Int) = i.toString
 
