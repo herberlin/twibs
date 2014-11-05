@@ -262,6 +262,8 @@ trait Container extends Component {
     def buttonTitle = t"button-title: #$ilk"
 
     def buttonIconName = t"button-icon:"
+
+    override def computeValid = true
   }
 
   trait DefaultButton extends Button {
@@ -330,13 +332,22 @@ trait Container extends Component {
 
 trait Floating extends Component
 
-trait Detachable extends Container
-
 trait Focusable extends Component {
   def needsFocus: Boolean
 
   def focusJs: JsCmd
 }
+
+trait CancelStateInheritance extends Component {
+  override protected def computeDisabled: Boolean = selfIsDisabled
+
+  override protected def computeHidden: Boolean = selfIsHidden
+
+  override protected def computeIgnored: Boolean = selfIsIgnored
+}
+
+
+trait Detachable extends Container
 
 object FormConstants {
   val PN_FORM_ID_SUFFIX = "-form-id"
@@ -344,7 +355,7 @@ object FormConstants {
   val PN_FORM_MODAL_SUFFIX = "-form-modal"
 }
 
-class Form(val ilk: String, parametersOption: Option[Parameters] = None) extends Container {
+class Form(val ilk: String, parametersOption: Option[Parameters] = None) extends Container with CancelStateInheritance {
   def this(ilk: String, parameters: Parameters) = this(ilk, Some(parameters))
 
   override final val prefixForChildNames: String = ""
@@ -447,14 +458,8 @@ class Form(val ilk: String, parametersOption: Option[Parameters] = None) extends
   lazy val defaultButtonOption: Option[DefaultButton] = components.collectFirst { case b: DefaultButton if b.isEnabled => b}
 
   // Form is Root
-  override protected def computeDisabled: Boolean = selfIsDisabled
-
-  override protected def computeHidden: Boolean = selfIsHidden
-
-  override protected def computeIgnored: Boolean = selfIsIgnored
 
   validateSettings()
 }
-
 
 class FormException(message: String) extends RuntimeException(message)

@@ -221,7 +221,7 @@ trait HtmlInput extends StringInput {
 
   override def stringProcessors = super.stringProcessors andThen cleanupHtml
 
-  private def cleanupHtml = (entry: Entry) => entry.copy(string = policyFactory.sanitize(string))
+  private def cleanupHtml = (entry: Entry) => entry.copy(string = policyFactory.sanitize(entry.string))
 }
 
 trait BooleanInput extends Input {

@@ -152,12 +152,15 @@ trait SingleSelectField extends SelectField {
 }
 
 trait MultiSelectField extends SelectField {
-  override def inputsAsHtml: NodeSeq = inputs.headOption.fold(NodeSeq.Empty)(input => inputAsEnrichedHtml(input))
+  val trigger = "TRIGGER"
 
-  override def inputAsElem(input: Input) =
-    <select data-placeholder={t"placeholder: Please select some values"} multiple="multiple">{ optionsAsElems(input) }</select>
+  override def parse(parameters: Seq[String]): Unit = super.parse(parameters.filter(_ != trigger))
 
-  private def optionsAsElems(input: Input) = options.map(option => optionAsElem(option.string, option.title))
+  override def inputsAsHtml: NodeSeq = form.renderer.hiddenInput(name, trigger) ++ enrichInputElem(inputElem, id)
+
+  private def inputElem = <select data-placeholder={t"placeholder: Please select some values"} multiple="multiple">{ optionsAsElems }</select>
+
+  private def optionsAsElems = options.map(option => optionAsElem(option.string, option.title))
 
   private def optionAsElem(string: String, title: String) = <option value={ string }>{ title }</option>.set(strings.contains(string), "selected")
 
