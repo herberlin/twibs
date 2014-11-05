@@ -7,7 +7,7 @@ package net.twibs.webtest
 import net.twibs.form._
 import net.twibs.util.{WarningDisplayType, DefaultDisplayType, PrimaryDisplayType, Parameters}
 
-class TestForm(parametersOption: Option[Parameters] = None) extends Form("test", parametersOption) with Bootstrap3Form {
+class TestForm(parametersOption: Option[Parameters] = None) extends Form("test", parametersOption) with Bs3Form {
   val openModal = new OpenModalLink() with PrimaryDisplayType with StringInput
 
   new HorizontalLayout {

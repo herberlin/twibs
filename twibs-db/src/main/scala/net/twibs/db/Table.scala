@@ -200,9 +200,23 @@ abstract class Column[T](implicit val table: Table) {
 
   def >(right: T): Where = new ColumnWhere(">", right)
 
+  def >(right: Column[T]): Where = new ColumnToColumn(">", right)
+
   def <(right: T): Where = new ColumnWhere("<", right)
 
+  def <(right: Column[T]): Where = new ColumnToColumn("<", right)
+
+  def <=(right: T): Where = new ColumnWhere("<=", right)
+
+  def <=(right: Column[T]): Where = new ColumnToColumn("<=", right)
+
+  def >=(right: T): Where = new ColumnWhere(">=", right)
+
+  def >=(right: Column[T]): Where = new ColumnToColumn(">=", right)
+
   def =!=(right: T): Where = new ColumnWhere("<>", right)
+
+  def =!=(right: Column[T]): Where = new ColumnToColumn("<>", right)
 
   def ===(right: T): Where = new ColumnWhere("=", right)
 

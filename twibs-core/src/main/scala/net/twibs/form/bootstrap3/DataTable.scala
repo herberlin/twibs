@@ -206,7 +206,7 @@ trait DataTable[T] extends StaticContainer {
   case class NamedColumn(name: String) extends Column
 
   trait NormalWhiteSpace extends Column {
-    override def style(index: Int): String = super.style(index) + s"#${tableId.string} > table > tbody > tr > td:nth-child(${index + 1}) { white-space: normal; }"
+    override def style(index: Int): String = super.style(index) + s"#${tableId.string} > div.data-table-container > table > tbody > tr > td:nth-child(${index + 1}) { white-space: normal; }"
   }
 
   def tableData: TableData[T]

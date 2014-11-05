@@ -74,7 +74,7 @@ class ValuesTest extends TwibsTest {
     val field = new TestField with EmailAddressValues
 
     field.validateString("info@example.com") should be(field.Input("info@example.com", "info@example.com", Some("info@example.com")))
-    field.validateString("info @example.com") should be(field.Input("info @example.com", "info @example.com", Some("info @example.com"), "Please enter a valid email address."))
+    field.validateString("info @example.com") should be(field.Input("info @example.com", "info @example.com", Some("info @example.com"), "'info @example.com' is not a valid email address"))
     field.strings = "mb@example.com" :: "noemail" :: Nil
     field.strings should be("mb@example.com" :: "noemail" :: Nil)
     field.values should be("mb@example.com" :: "noemail" :: Nil)

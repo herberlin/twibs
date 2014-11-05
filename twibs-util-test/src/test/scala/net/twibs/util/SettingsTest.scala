@@ -26,31 +26,36 @@ class SettingsTest extends TwibsTest {
   }
 
   test("Configuration for production mode is default") {
-    SystemSettings.default.copy(runMode = RunMode.PRODUCTION).activate()
-    ApplicationSettings.translators(ULocale.GERMAN).translate("message", "") should be("Runmode production Host unknown User tester Lang German App Default")
+    SystemSettings.default.copy(runMode = RunMode.PRODUCTION).use {
+      ApplicationSettings.translators(ULocale.GERMAN).translate("message", "") should be("Runmode production Host unknown User tester Lang German App Default")
+    }
   }
 
   test("Configuration for host overrides and joins configuration") {
-    SystemSettings.default.copy(hostName = "twibs-test-host").activate()
-    ApplicationSettings.translators(ULocale.GERMAN).translate("message", "") should be("Runmode test Host testhost User tester Lang German (test on testhost) App Default")
+    SystemSettings.default.copy(hostName = "twibs-test-host").use {
+      ApplicationSettings.translators(ULocale.GERMAN).translate("message", "") should be("Runmode test Host testhost User tester Lang German (test on testhost) App Default")
+    }
   }
 
   test("Different locales for applications") {
-    SystemSettings.default.activate()
-    ApplicationSettings.locales should be(List(ULocale.GERMAN, ULocale.ENGLISH, ULocale.FRENCH))
-    SystemSettings.applicationSettings("t1").locales should be(List(ULocale.GERMAN))
-    SystemSettings.applicationSettings("t2").locales should be(List(SystemSettings.default.locale))
+    SystemSettings.default.use {
+      ApplicationSettings.locales should be(List(ULocale.GERMAN, ULocale.ENGLISH, ULocale.FRENCH))
+      SystemSettings.applicationSettings("t1").locales should be(List(ULocale.GERMAN))
+      SystemSettings.applicationSettings("t2").locales should be(List(SystemSettings.default.locale))
+    }
   }
 
     test("Find configured applications") {
-      SystemSettings.default.activate()
-      SystemSettings.applicationSettings.values.map(_.name).toList.sorted should be(List("default", "t1", "t2"))
+      SystemSettings.default.use {
+        SystemSettings.applicationSettings.values.map(_.name).toList.sorted should be(List("default", "t1", "t2"))
+      }
     }
 
     test("Find application settings by path") {
-      SystemSettings.default.activate()
-      SystemSettings.applicationSettingsForPath("/content/t1").name should be("t1")
-      SystemSettings.applicationSettingsForPath("/content/t").name should be(ApplicationSettings.DEFAULT_NAME)
+      SystemSettings.default.use {
+        SystemSettings.applicationSettingsForPath("/content/t1").name should be("t1")
+        SystemSettings.applicationSettingsForPath("/content/t").name should be(ApplicationSettings.DEFAULT_NAME)
+      }
     }
 
   test("Loading configuration") {

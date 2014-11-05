@@ -298,7 +298,10 @@ $(function () {
                         if (e.length > 0) {
                             var n = e.prop("tagName");
                             if (n != "INPUT" && n != "BUTTON" && n != "TEXTAREA") {
-                                $("#" + focusedId).focus();
+                                var fe = $("#" + focusedId);
+                                if (!fe.hasClass("no-refocus")) {
+                                    fe.focus();
+                                }
                             }
                         }
                     }
@@ -355,7 +358,7 @@ $(function () {
         function positionFixedContainers() {
             var scrollTop = $(document).scrollTop();
 
-            $(".fixed-container").each(function () {
+            $(".fixed-container.fixed-managed").each(function () {
                 var container = $(this);
                 var item = $(this).find(".fixed-content");
                 var width = container.css("width");

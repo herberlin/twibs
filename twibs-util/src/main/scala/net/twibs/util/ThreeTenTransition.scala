@@ -6,10 +6,11 @@ package net.twibs.util
 
 import java.sql.Timestamp
 import java.util.{Date, Calendar}
+
 import org.threeten.bp._
 
 trait ThreeTenTransition {
-  val zoneId = ZoneId.systemDefault()
+  def zoneId = SystemSettings.zoneId
 
   implicit def convertInstant(instant: Instant) = new {
     def toLocalDateTime = LocalDateTime.ofInstant(instant, zoneId)
@@ -18,37 +19,35 @@ trait ThreeTenTransition {
   }
 
   implicit def convertCalendarToThreeTen(calendar: Calendar) = new {
-    def toLocalDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(calendar.getTimeInMillis), zoneId)
+    def toLocalDateTime = LocalDateTime.ofInstant(DateTimeUtils.toInstant(calendar), zoneId)
+
+    def toLocalDate = toLocalDateTime.toLocalDate
+  }
+
+  implicit def convertTimestampToThreeTen(timestamp: Timestamp) = new {
+    def toLocalDateTime = LocalDateTime.ofInstant(DateTimeUtils.toInstant(timestamp), zoneId)
 
     def toLocalDate = toLocalDateTime.toLocalDate
   }
 
   implicit def convertDateToThreeTen(date: Date) = new {
-    def toLocalDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(date.getTime), zoneId)
+    def toLocalDateTime = LocalDateTime.ofInstant(DateTimeUtils.toInstant(date), zoneId)
 
     def toLocalDate = toLocalDateTime.toLocalDate
   }
 
   implicit def convertLocalDateTimeFromThreeTen(dateTime: LocalDateTime) = new {
-    def toCalendar = {
-      val ret = Calendar.getInstance()
-      ret.setTimeInMillis(toSystemEpochMillis)
-      ret
-    }
+    def toCalendar: Calendar = DateTimeUtils.toGregorianCalendar(ZonedDateTime.of(dateTime, zoneId))
 
-    def toTimestamp = new Timestamp(toCalendar.getTime.getTime)
+    def toTimestamp = DateTimeUtils.toSqlTimestamp(dateTime)
 
     def toSystemEpochMillis = dateTime.atZone(zoneId).toInstant.toEpochMilli
   }
 
   implicit def convertLocalDateFromThreeTen(date: LocalDate) = new {
-    def toCalendar = {
-      val ret = Calendar.getInstance()
-      ret.setTimeInMillis(toSystemEpochMillis)
-      ret
-    }
+    def toCalendar: Calendar = DateTimeUtils.toGregorianCalendar(date.atStartOfDay(zoneId))
 
-    def toDate = new java.sql.Date(toCalendar.getTime.getTime)
+    def toDate = DateTimeUtils.toSqlDate(date)
 
     def toSystemEpochMillis = date.atStartOfDay.atZone(zoneId).toInstant.toEpochMilli
   }

@@ -256,7 +256,7 @@ trait TranslatedValueTitles extends Values {
 }
 
 trait EmailAddressValues extends StringValues {
-  def emailAddressProcessor(input: Input) = input.validate(EmailUtils.isValidEmailAddress(input.value), t"format-message: Please enter a valid email address.")
+  def emailAddressProcessor(input: Input) = input.validate(EmailUtils.isValidEmailAddress(input.value), t"format-message: ''${input.string}'' is not a valid email address")
 
   override def valueProcessors = super.valueProcessors :+ emailAddressProcessor _
 
@@ -264,7 +264,7 @@ trait EmailAddressValues extends StringValues {
 }
 
 trait WebAddressValues extends StringValues {
-  def webAddressProcessor(input: Input) = input.validate(UrlUtils.isValidWebAddress(input.value), t"format-message: Please enter a valid web address.")
+  def webAddressProcessor(input: Input) = input.validate(UrlUtils.isValidWebAddress(input.value), t"format-message: ''${input.string}'' is not a valid web address.")
 
   override def valueProcessors = super.valueProcessors :+ webAddressProcessor _
 

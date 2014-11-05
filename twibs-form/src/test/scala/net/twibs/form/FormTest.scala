@@ -269,7 +269,7 @@ class FormTest extends TwibsTest {
   }
 
   test("Focus") {
-    val f = new Form("test", Map("test-form-id" -> Seq("a"), "test-form-modal" -> Seq("false"))) with Bootstrap3Form {
+    val f = new Form("test", Map("test-form-id" -> Seq("a"), "test-form-modal" -> Seq("false"))) with Bs3Form {
       val hl = new HorizontalLayout {
         val f = new SingleLineField("field") with StringInput
       }
@@ -288,7 +288,7 @@ class FormTest extends TwibsTest {
   }
 
   test("Form renderer") {
-    val out = new Form("test", Map("test-form-id" -> Seq("a"), "test-form-modal" -> Seq("false"))) with Bootstrap3Form {
+    val out = new Form("test", Map("test-form-id" -> Seq("a"), "test-form-modal" -> Seq("false"))) with Bs3Form {
 
       new DisplayText("<h3>Display text</h3>")
 
@@ -380,19 +380,26 @@ class FormTest extends TwibsTest {
         |</form>""".stripMargin)
   }
 
-  test("Inheritance") {
-    trait X {
-      def ilk: String
+  test("Form validation") {
+    val f = new Form("a") {
+      new SingleLineField("s") with StringInput
 
-      val name = ilk
+      new Button("b") with StringInput with PrimaryDisplayType {
+
+      }
     }
+    f.parse(Map("s" -> Seq("s"), "b" -> Seq("")))
 
-    case class P(ilk:String) extends X {
-
-    }
-
-    val p = P("a")
-    p.ilk should be("a")
-    p.name should be("a")
+    f.validate() should beTrue
   }
+
+  test("No strings are also allowed") {
+    val f = new Form("a") {
+      val f = new SingleLineField("s") with StringInput
+    }
+
+    f.f.valueOption = None
+    f.f.strings should be(Seq())
+  }
+
 }

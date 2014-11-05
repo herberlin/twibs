@@ -4,12 +4,12 @@
 
 package net.twibs.util
 
-import scala.collection.concurrent.TrieMap
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.JavaConverters._
-
 import com.ibm.icu.text.MessageFormat
 import com.ibm.icu.util.ULocale
+
+import scala.collection.JavaConverters._
+import scala.collection.concurrent.TrieMap
+import scala.collection.mutable.ArrayBuffer
 
 abstract class Translator(id: String, usages: List[String], kinds: List[String]) {
   private val cache = TrieMap[String, String]()
@@ -127,22 +127,28 @@ object Translator extends Loggable {
   }
 }
 
-class TranslatorResolver(val locale: ULocale, configuration: Configuration) {
+abstract class BaseResolver(val locale: ULocale) {
   val root: Translator = createTranslator("", List(""), List())
 
   private val cache = TrieMap[String, Translator]()
 
-  protected def resolve(fullKey: String): Option[String] = configuration.getString(fullKey)
+  protected def resolve(fullKey: String): Option[String]
 
-  protected def unresolved(fullKey: String, default: String): Unit = Translator.logger.info(s"Unresolved $fullKey: $default")
+  protected def unresolved(fullKey: String, default: String): Unit
 
   def createTranslator(id: String, usages: List[String], kinds: List[String]): Translator = new Translator(id, usages, kinds) {
-    def locale = TranslatorResolver.this.locale
+    def locale = BaseResolver.this.locale
 
     protected def getTranslator(nid: String, usages: => List[String], kinds: => List[String]): Translator = cache.getOrElseUpdate(nid, createTranslator(nid, usages, kinds))
 
-    protected def resolve(fullKey: String): Option[String] = TranslatorResolver.this.resolve(fullKey)
+    protected def resolve(fullKey: String): Option[String] = BaseResolver.this.resolve(fullKey)
 
-    override def unresolved(fullKey: String, default: String): Unit = TranslatorResolver.this.unresolved(fullKey, default)
+    override def unresolved(fullKey: String, default: String): Unit = BaseResolver.this.unresolved(fullKey, default)
   }
+}
+
+class TranslatorResolver(locale: ULocale, configuration: Configuration) extends BaseResolver(locale) {
+  protected def resolve(fullKey: String): Option[String] = configuration.getString(fullKey)
+
+  protected def unresolved(fullKey: String, default: String): Unit = Translator.logger.info(s"Unresolved $fullKey: $default")
 }

@@ -144,7 +144,7 @@ trait Component extends TranslationSupport {
   }
 }
 
-trait Container extends Component {
+trait Container extends Component with ValidateInTree {
   private[form] val _children = ListBuffer[Component]()
 
   def children: Seq[Component] = _children.seq
@@ -160,7 +160,7 @@ trait Container extends Component {
   }
 
   override def validate(): Boolean = {
-    children.foreach(_.validate())
+    children.collect { case v: ValidateInTree => v}.foreach(_.validate())
     super.validate()
   }
 
@@ -220,7 +220,7 @@ trait Container extends Component {
     override protected def computeValid = valid
   }
 
-  trait Field extends InputComponent with Focusable {
+  trait Field extends InputComponent with Focusable with ValidateInTree {
     override def translator: Translator = super.translator.kind("FIELD")
 
     def fieldTitle = t"field-title: #$ilk"
@@ -328,9 +328,9 @@ trait Container extends Component {
 
 }
 
-trait Floating extends Component
+trait ValidateInTree extends Component
 
-trait Detachable extends Container
+trait Floating extends Component
 
 trait Focusable extends Component {
   def needsFocus: Boolean
@@ -338,13 +338,27 @@ trait Focusable extends Component {
   def focusJs: JsCmd
 }
 
+trait CancelStateInheritance extends Component {
+  override protected def computeDisabled: Boolean = selfIsDisabled
+
+  override protected def computeHidden: Boolean = selfIsHidden
+
+  override protected def computeIgnored: Boolean = selfIsIgnored
+}
+
+trait UseLastParameterOnly extends Component {
+  override def parse(parameters: Seq[String]) = super.parse(parameters.lastOption.map(_ :: Nil) getOrElse Nil)
+}
+
+trait Detachable extends Container
+
 object FormConstants {
   val PN_FORM_ID_SUFFIX = "-form-id"
 
   val PN_FORM_MODAL_SUFFIX = "-form-modal"
 }
 
-class Form(val ilk: String, parametersOption: Option[Parameters] = None) extends Container {
+class Form(val ilk: String, parametersOption: Option[Parameters] = None) extends Container with CancelStateInheritance {
   def this(ilk: String, parameters: Parameters) = this(ilk, Some(parameters))
 
   override final val prefixForChildNames: String = ""
@@ -447,14 +461,8 @@ class Form(val ilk: String, parametersOption: Option[Parameters] = None) extends
   lazy val defaultButtonOption: Option[DefaultButton] = components.collectFirst { case b: DefaultButton if b.isEnabled => b}
 
   // Form is Root
-  override protected def computeDisabled: Boolean = selfIsDisabled
-
-  override protected def computeHidden: Boolean = selfIsHidden
-
-  override protected def computeIgnored: Boolean = selfIsIgnored
 
   validateSettings()
 }
-
 
 class FormException(message: String) extends RuntimeException(message)

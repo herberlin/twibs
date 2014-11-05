@@ -10,9 +10,10 @@ import java.net.{InetAddress, UnknownHostException}
 import com.ibm.icu.util.ULocale
 import com.typesafe.config.{Config, ConfigFactory, ConfigParseOptions}
 import org.apache.tika.Tika
-import scala.collection.JavaConverters._
-
 import org.threeten.bp.ZoneId
+
+import scala.collection.JavaConverters._
+import scala.concurrent.duration._
 
 private object ConfigHelper {
 
@@ -61,27 +62,23 @@ case class SystemSettings(startedAt: Long,
 
   val version = if (runMode.isProduction) majorVersion else fullVersion
 
-  def use(f: => Unit): Unit = {
-    val was = SystemSettings.current
-    this.activate()
-    try {f} finally {SystemSettings._current = was}
-  }
-
-  def activate(): Unit = SystemSettings._current = this
+  def use[T](f: => T) = RequestSettings.applicationSettings.copy(systemSettings = this).use(f)
 }
 
 object SystemSettings extends Loggable {
-  implicit def unwrap(companion: SystemSettings.type) = current
+  @inline implicit def unwrap(companion: SystemSettings.type) = current
 
-  def current = _current
+  @inline def current = ApplicationSettings.current.systemSettings
 
-  val default = {
-    val ret = computeDefault()
-    logger.info(s"Run mode is '${ret.runMode.name}'")
-    ret
-  }
+  private def isCalledFromTestClass = new Exception().getStackTrace.exists(_.getClassName.startsWith("org.scalatest"))
 
-  def computeDefault() = new SystemSettings(
+  def default = defaultCached.value
+
+  private val internalDefault = computeDefault()
+
+  private val defaultCached = LazyCache(if (internalDefault.runMode.isDevelopment) 15 second else 8 hours)(computeDefault())
+
+  private def computeDefault() = new SystemSettings(
     startedAt = System.currentTimeMillis,
     hostName =
       try InetAddress.getLocalHost.getHostName
@@ -103,9 +100,7 @@ object SystemSettings extends Loggable {
     zoneId = ZoneId.systemDefault()
   )
 
-  private var _current: SystemSettings = default
-
-  private def isCalledFromTestClass = new Exception().getStackTrace.exists(_.getClassName.startsWith("org.scalatest"))
+  logger.info(s"Run mode is '${default.runMode.name}'")
 }
 
 case class RunMode(name: String) {
@@ -129,9 +124,9 @@ object RunMode {
 
   val DEVELOPMENT = new RunMode("development")
 
-  implicit def unwrap(companion: RunMode.type): RunMode = current
+  @inline implicit def unwrap(companion: RunMode.type): RunMode = current
 
-  def current = SystemSettings.current.runMode
+  @inline def current = SystemSettings.runMode
 }
 
 case class OperatingSystem(os: String) {
@@ -145,9 +140,9 @@ case class OperatingSystem(os: String) {
 }
 
 object OperatingSystem {
-  implicit def unwrap(companion: OperatingSystem.type): OperatingSystem = current
+  @inline implicit def unwrap(companion: OperatingSystem.type): OperatingSystem = current
 
-  def current = SystemSettings.current.os
+  @inline def current = SystemSettings.os
 }
 
 trait UserSettings {
@@ -156,7 +151,7 @@ trait UserSettings {
   def locale: ULocale
 }
 
-class ApplicationSettings(val name: String, val systemSettings: SystemSettings) {
+case class ApplicationSettings(name: String, systemSettings: SystemSettings) {
   private val configUnresolved = systemSettings.configUnresolved.childConfig("APPLICATIONS." + name)
 
   val configuration: Configuration = new ConfigurationForTypesafeConfig(configUnresolved.resolve())
@@ -169,17 +164,19 @@ class ApplicationSettings(val name: String, val systemSettings: SystemSettings) 
 
   lazy val tika = new Tika()
 
-  def use[T](f: => T) = ApplicationSettings.use(this)(f)
+  def use[T](f: => T) = RequestSettings.copy(applicationSettings = this).use(f)
 
   def matches(path: String) = configuration.getStringList("pathes", Nil).exists(path.startsWith)
 }
 
-object ApplicationSettings extends DynamicVariableWithDefault[ApplicationSettings] {
+object ApplicationSettings {
   val PN_NAME = "application-name"
 
   val DEFAULT_NAME = "default"
 
-  override def default: ApplicationSettings = SystemSettings.defaultApplicationSettings
+  @inline implicit def unwrap(companion: ApplicationSettings.type): ApplicationSettings = current
+
+  @inline def current = RequestSettings.applicationSettings
 }
 
 trait CurrentRequestSettings {
@@ -192,7 +189,7 @@ trait CurrentRequestSettings {
   def formatters = requestSettings.formatters
 }
 
-class RequestSettings(val applicationSettings: ApplicationSettings) {
+case class RequestSettings(applicationSettings: ApplicationSettings) {
   lazy val locale: ULocale = applicationSettings.locales.head
 
   lazy val translator: Translator = applicationSettings.translators(locale)
@@ -208,5 +205,5 @@ class RequestSettings(val applicationSettings: ApplicationSettings) {
 }
 
 object RequestSettings extends DynamicVariableWithDefault[RequestSettings] {
-  override def default: RequestSettings = ApplicationSettings.defaultRequestSettings
+  override def default: RequestSettings = RequestSettings(SystemSettings.default.defaultApplicationSettings)
 }

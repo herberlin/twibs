@@ -127,4 +127,21 @@ class TranslatorTest extends TwibsTest {
     t"fm1: ONE: {$x, plural, =1{one}other{#}}" should be("ONE: one")
     t"fm2: TWO: {$y, plural, =1{one}other{#}}" should be("TWO: 2")
   }
+
+  test("Translations are cached") {
+    var count = 0
+
+    val t = new BaseResolver(ULocale.GERMAN) {
+      override protected def unresolved(fullKey: String, default: String): Unit = count += 1
+
+      override protected def resolve(fullKey: String): Option[String] = None
+    }
+
+    t.root.translate("test", "test") should be ("test")
+    count should be(1)
+    t.root.translate("test", "test") should be ("test")
+    count should be(1)
+    t.root.translate("test2", "test") should be ("test")
+    count should be(2)
+  }
 }

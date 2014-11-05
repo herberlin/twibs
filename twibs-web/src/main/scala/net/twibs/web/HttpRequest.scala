@@ -64,19 +64,17 @@ private[web] abstract class HttpRequest(httpServletRequest: HttpServletRequest, 
   @Transient
   val session = new HttpSession(httpServletRequest)
 
-  def setAttribute(name: String, value: Any): Unit =
-    httpServletRequest.setAttribute(name, value)
+  def setAttribute(name: String, value: Any): Unit = httpServletRequest.setAttribute(name, value)
 
   def getAttribute(name: String): Option[Any] = Option(httpServletRequest.getAttribute(name))
 
-  def removeAttribute(name: String): Unit =
-    httpServletRequest.removeAttribute(name)
+  def removeAttribute(name: String): Unit = httpServletRequest.removeAttribute(name)
 
   val useCache = !((RunMode.isDevelopment || RunMode.isTest) && httpServletRequest.getHeader("Cache-Control") == "no-cache" && httpServletRequest.getHeader("If-Modified-Since") == null)
 
   def multiPartParameters: Map[String, Seq[String]]
 
-  def getCookie(name: String) = httpServletRequest.getCookies.find(_.getName.equalsIgnoreCase(name)).map(_.getValue)
+  def getCookie(name: String) = Option(httpServletRequest.getCookies).flatMap(_.find(_.getName.equalsIgnoreCase(name))).map(_.getValue)
 
   def removeCookie(name: String) = {
     val cookie: Cookie = new Cookie(name, "empty")

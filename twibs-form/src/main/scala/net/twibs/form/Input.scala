@@ -165,7 +165,7 @@ trait Optional extends Input {
   override def required = false
 }
 
-trait TranslatedTitles extends Input {
+trait TranslatedValueTitles extends Input {
   override protected def titleFor(string: String): String = translator.usage("value-title").translate(string, super.titleFor(string))
 }
 
@@ -221,7 +221,7 @@ trait HtmlInput extends StringInput {
 
   override def stringProcessors = super.stringProcessors andThen cleanupHtml
 
-  private def cleanupHtml = (entry: Entry) => entry.copy(string = policyFactory.sanitize(string))
+  private def cleanupHtml = (entry: Entry) => entry.copy(string = policyFactory.sanitize(entry.string))
 }
 
 trait BooleanInput extends Input {
@@ -258,4 +258,22 @@ trait Options extends Input {
 
   override protected def stringToEntry(string: String): Entry =
     optionEntries.find(_.string == string) getOrElse Entry(string, None, string, Some(warn"not-an-option-message: ''$string'' is not an option"))
+}
+
+trait EnumerationInput[E <: Enumeration] extends Input with Options {
+  type ValueType = E#Value
+
+  def enumeration: E
+
+  override def convertToString(value: ValueType): String = value.id.toString
+
+  override def convertToValue(string: String): Option[ValueType] = try {
+    Some(enumeration.apply(string.toInt))
+  } catch {
+    case _: NoSuchElementException | _: NumberFormatException => None
+  }
+
+  override def options: Seq[ValueType] = enumeration.values.toList
+
+  override protected def titleFor(string: String): String = translator.usage("value-title").translate(string, string)
 }

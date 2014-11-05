@@ -24,7 +24,7 @@ class ThreeTenTransitionTest extends TwibsTest {
 
   test("From Calendar to LocalDateTime and back") {
     val cal = Calendar.getInstance()
-    cal should be(cal.toLocalDateTime.toCalendar)
+    cal.getTime should be(cal.toLocalDateTime.toCalendar.getTime)
   }
 
   test("From LocalDateTime to Calendar and back") {
@@ -35,5 +35,11 @@ class ThreeTenTransitionTest extends TwibsTest {
   test("From LocalDate to Date and back") {
     val ldt = LocalDate.of(2012, 12, 21)
     ldt should be(ldt.toDate.toLocalDate)
+  }
+
+  test("Precision") {
+    val dt = LocalDateTime.of(2014, 11, 17, 10, 37, 34, 376308000)
+    dt.getNano should be(376308000)
+    dt.toTimestamp.toLocalDateTime.getNano should be(376308000)
   }
 }
