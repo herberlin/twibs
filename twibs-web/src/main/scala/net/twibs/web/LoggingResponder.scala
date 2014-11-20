@@ -5,7 +5,7 @@
 package net.twibs.web
 
 import org.threeten.bp.Duration
-import net.twibs.util.{ Loggable}
+import net.twibs.util.{RequestSettings, Loggable}
 import net.twibs.util.Formatters._
 
 class LoggingResponder(delegate: Responder) extends Responder with Loggable {
@@ -35,7 +35,7 @@ class LoggingResponder(delegate: Responder) extends Responder with Loggable {
       case _ => "Ok"
     }
 
-    def uri = request.domain + WebContext.path + request.path
+    def uri = request.domain + RequestSettings.contextPath + request.path
 
     //    def remoteAddress = request.remoteAddress
     //

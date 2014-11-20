@@ -115,7 +115,9 @@ class RequestWrapper(val delegatee: Request) extends Request {
   def setCookie(name: String, value: String) = delegatee.setCookie(name, value)
 }
 
-object Request extends DynamicVariableWithDynamicDefault[Request](ImmutableRequest) {
+object Request extends DynamicVariableWithDynamicDefault[Request] {
+  override def createFallback: Request = ImmutableRequest
+
   def now() = LocalDateTime.now()
 }
 

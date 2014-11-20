@@ -235,7 +235,7 @@ trait BaseForm extends Container with CurrentRequestSettings {
 
   def actionLinkWithContextPathAndParameters(parameters: (String, String)*): String = actionLinkWithContextPath + queryString(parameters: _*)
 
-  def actionLinkWithContextPath: String = WebContext.path + actionLink
+  def actionLinkWithContextPath: String = RequestSettings.contextPath + actionLink
 
   private def queryString(parameters: (String, String)*) = {
     val escaper = UrlEscapers.urlFormParameterEscaper()

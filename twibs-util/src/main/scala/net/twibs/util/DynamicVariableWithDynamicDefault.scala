@@ -6,7 +6,9 @@ package net.twibs.util
 
 import scala.util.DynamicVariable
 
-class DynamicVariableWithDynamicDefault[T](createFallback: => T) extends DynamicVariableWithDefault[T] {
+abstract class DynamicVariableWithDynamicDefault[T] extends DynamicVariableWithDefault[T] {
+  def createFallback: T
+
   def default = actives.headOption getOrElse fallback
 
   private var actives: List[T] = Nil

@@ -10,7 +10,7 @@ import com.ibm.icu.util.ULocale
 import org.threeten.bp.format.{DateTimeFormatterBuilder, DateTimeFormatter}
 import org.threeten.bp._
 
-class Formatters(translator: Translator, locale: ULocale, currencyCode: String, zoneId: ZoneId) {
+class Formatters(translator: Translator, locale: ULocale, currency: Currency, zoneId: ZoneId) {
   val decimalFormat = {
     val ret = NumberFormat.getNumberInstance(locale)
     ret.setMinimumFractionDigits(2)
@@ -26,14 +26,14 @@ class Formatters(translator: Translator, locale: ULocale, currencyCode: String, 
     ret
   }
 
-  val currency = Currency.getInstance(currencyCode)
-  val currencyFormat = {
+//  val currency = Currency.getInstance(currencyCode)
+  val currencyFormatWithSymbol = {
     val ret = NumberFormat.getCurrencyInstance(locale)
     ret.setCurrency(currency)
     ret
   }
   val currencyFormatWithoutSymbol = decimalFormat
-  val currencyFormatWithCodeInsteadOfSymbol = {
+  val currencyFormatWithCode = {
     val ret = NumberFormat.getInstance(locale, NumberFormat.ISOCURRENCYSTYLE)
     ret.setCurrency(currency)
     ret
@@ -54,11 +54,11 @@ class Formatters(translator: Translator, locale: ULocale, currencyCode: String, 
 
     def formatAsPercent = percentFormat.format(value)
 
-    def formatAsCurrency = currencyFormat.format(value)
+    def formatAsCurrencyWithSymbol = currencyFormatWithSymbol.format(value)
 
     def formatAsCurrencyWithoutSymbol = currencyFormatWithoutSymbol.format(value)
 
-    def formatAsCurrencyWithCodeInsteadOfSymbol = currencyFormatWithCodeInsteadOfSymbol.format(value)
+    def formatAsCurrencyWithCode = currencyFormatWithCode.format(value)
   }
 
   implicit def intToFormattable(value: Int) = new {
@@ -66,9 +66,9 @@ class Formatters(translator: Translator, locale: ULocale, currencyCode: String, 
 
     def formatAsPercent = percentFormat.format(value)
 
-    def formatAsCurrency = currencyFormat.format(value)
+    def formatAsCurrencyWithSymbol = currencyFormatWithSymbol.format(value)
 
-    def formatAsCurrencyWithCodeInsteadOfSymbol = currencyFormatWithCodeInsteadOfSymbol.format(value)
+    def formatAsCurrencyWithCode = currencyFormatWithCode.format(value)
   }
 
   implicit def dateTimeToFormattable(dateTime: LocalDateTime) = new {

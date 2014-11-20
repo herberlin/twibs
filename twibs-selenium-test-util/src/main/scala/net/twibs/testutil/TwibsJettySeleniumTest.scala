@@ -6,8 +6,8 @@ package net.twibs.testutil
 
 import java.io.File
 
-import net.twibs.util.RunMode
-import net.twibs.web.{WebContext, Filter}
+import net.twibs.util.{RequestSettings, RunMode}
+import net.twibs.web.Filter
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.webapp.WebAppContext
 
@@ -38,10 +38,10 @@ trait TwibsJettySeleniumTest extends TwibsSeleniumTest {
     System.setProperty(RunMode.SYSTEM_PROPERTY_NAME, RunMode.TEST.name)
     server = new Server(port)
     server.setStopAtShutdown(true)
-    WebContext.activate(new WebContext(contextPath))
+    RequestSettings.activate(RequestSettings.copy(contextPath = contextPath))
     val webAppContext = new WebAppContext()
     webAppContext.setClassLoader(Thread.currentThread.getContextClassLoader)
-    webAppContext.setContextPath(WebContext.path)
+    webAppContext.setContextPath(RequestSettings.contextPath)
     webAppContext.setResourceBase(new File(resourceBase).getAbsolutePath)
     webAppContext.addFilter(filterClass, "/*", null)
     server.setHandler(webAppContext)
@@ -51,6 +51,6 @@ trait TwibsJettySeleniumTest extends TwibsSeleniumTest {
   def stopServer(): Unit = {
     server.stop()
     server.join()
-    WebContext.deactivate(WebContext)
+    RequestSettings.deactivate(RequestSettings)
   }
 }

@@ -4,13 +4,13 @@
 
 package net.twibs.util
 
-import com.ibm.icu.util.ULocale
+import com.ibm.icu.util.{Currency, ULocale}
 import org.scalatest.{FunSuite, Matchers}
 import org.threeten.bp._
 
 class FormattersTest extends FunSuite with Matchers {
-  val ukFormatter = new Formatters(ApplicationSettings.translators(ULocale.ENGLISH), ULocale.ENGLISH, "USD", ZoneId.of("America/New_York"))
-  val deFormatter = new Formatters(ApplicationSettings.translators(ULocale.GERMAN), ULocale.GERMAN, "EUR", ZoneId.of("Europe/Berlin"))
+  val ukFormatter = new Formatters(ApplicationSettings.translators(ULocale.ENGLISH), ULocale.ENGLISH, Currency.getInstance("USD"), ZoneId.of("America/New_York"))
+  val deFormatter = new Formatters(ApplicationSettings.translators(ULocale.GERMAN), ULocale.GERMAN, Currency.getInstance("EUR"), ZoneId.of("Europe/Berlin"))
 
   test("Display country") {
     deFormatter.getDisplayCountry("DE") should equal("Deutschland")
@@ -18,8 +18,8 @@ class FormattersTest extends FunSuite with Matchers {
   }
 
   test("Currency") {
-    deFormatter.currencyFormat.format(1111.555) should equal("1.111,56 €")
-    ukFormatter.currencyFormat.format(1111.555) should equal("$1,111.56")
+    deFormatter.currencyFormatWithSymbol.format(1111.555) should equal("1.111,56 €")
+    ukFormatter.currencyFormatWithSymbol.format(1111.555) should equal("$1,111.56")
   }
 
   test("Currency without symbol") {
@@ -28,8 +28,8 @@ class FormattersTest extends FunSuite with Matchers {
   }
 
   test("Currency with code instead of symbol") {
-    deFormatter.currencyFormatWithCodeInsteadOfSymbol.format(1111.555) should equal("1.111,56 EUR")
-    ukFormatter.currencyFormatWithCodeInsteadOfSymbol.format(1111.555) should equal("USD1,111.56")
+    deFormatter.currencyFormatWithCode.format(1111.555) should equal("1.111,56 EUR")
+    ukFormatter.currencyFormatWithCode.format(1111.555) should equal("USD1,111.56")
   }
 
   test("Decimal Format") {
@@ -74,9 +74,9 @@ class FormattersTest extends FunSuite with Matchers {
   }
 
   test("Implicit currency") {
-    1.1.formatAsCurrency should equal("1,10 €")
-    1.116.formatAsCurrency should equal("1,12 €")
-    12345.formatAsCurrency should equal("12.345,00 €")
+    1.1.formatAsCurrencyWithSymbol should equal("1,10 €")
+    1.116.formatAsCurrencyWithSymbol should equal("1,12 €")
+    12345.formatAsCurrencyWithSymbol should equal("12.345,00 €")
   }
 
   test("Implicit MediumDateFormat") {

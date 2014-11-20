@@ -92,7 +92,9 @@ trait Database {
   }
 }
 
-object Database extends DynamicVariableWithDynamicDefault[Database](null) {
+object Database extends DynamicVariableWithDynamicDefault[Database] {
+  override def createFallback: Database = null
+
   implicit def implicitConnection: Connection = SlickDatabase.dynamicSession.conn
 
   def connection: Connection = SlickDatabase.dynamicSession.conn

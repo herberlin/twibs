@@ -5,7 +5,6 @@ import java.io.File
 import java.net.URI
 
 import net.twibs.util.RunMode
-import net.twibs.web.WebContext
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.webapp.WebAppContext
 
@@ -15,7 +14,6 @@ object Demo {
     System.setProperty(RunMode.SYSTEM_PROPERTY_NAME, RunMode.DEVELOPMENT.name)
     val server = new Server(port)
     server.setStopAtShutdown(true)
-    WebContext.activate(new WebContext(""))
     val webAppContext = new WebAppContext()
     webAppContext.setClassLoader(Thread.currentThread.getContextClassLoader)
     webAppContext.setContextPath("")

@@ -7,7 +7,7 @@ package net.twibs.util
 import java.io.File
 import java.net.{InetAddress, UnknownHostException}
 
-import com.ibm.icu.util.ULocale
+import com.ibm.icu.util.{Currency, ULocale}
 import com.typesafe.config.{Config, ConfigFactory, ConfigParseOptions}
 import org.apache.tika.Tika
 import org.threeten.bp.ZoneId
@@ -160,7 +160,7 @@ case class ApplicationSettings(name: String, systemSettings: SystemSettings) {
 
   val translators: Map[ULocale, Translator] = locales.map(locale => locale -> new TranslatorResolver(locale, new ConfigurationForTypesafeConfig(configUnresolved.childConfig("LOCALES." + locale.toString).resolve())).root.usage(name)).toMap
 
-  val defaultRequestSettings = new RequestSettings(this)
+  val defaultRequestSettings = RequestSettings(this)
 
   lazy val tika = new Tika()
 
@@ -189,21 +189,27 @@ trait CurrentRequestSettings {
   def formatters = requestSettings.formatters
 }
 
-case class RequestSettings(applicationSettings: ApplicationSettings) {
-  lazy val locale: ULocale = applicationSettings.locales.head
-
+case class RequestSettings private(applicationSettings: ApplicationSettings, locale: ULocale, contextPath: String = "") {
   lazy val translator: Translator = applicationSettings.translators(locale)
 
-  lazy val formatters = new Formatters(translator, locale, "EUR", applicationSettings.systemSettings.zoneId)
+  lazy val formatters = new Formatters(translator, locale, Currency.getInstance("EUR"), applicationSettings.systemSettings.zoneId)
 
   def use[T](f: => T) = RequestSettings.use(this)(f)
 
-  def withLocale(localeArg: ULocale): RequestSettings =
-    new RequestSettings(applicationSettings) {
-      override lazy val locale = localeArg
-    }
+  RequestSettings.assertThatContextPathIsValid(contextPath)
 }
 
-object RequestSettings extends DynamicVariableWithDefault[RequestSettings] {
-  override def default: RequestSettings = RequestSettings(SystemSettings.default.defaultApplicationSettings)
+object RequestSettings extends DynamicVariableWithDynamicDefault[RequestSettings] {
+  def createFallback: RequestSettings = RequestSettings(SystemSettings.default.defaultApplicationSettings)
+
+  def apply(applicationSettings: ApplicationSettings): RequestSettings = RequestSettings(applicationSettings, applicationSettings.locales.head)
+
+  def assertThatContextPathIsValid(contextPath: String) = {
+    if (!contextPath.isEmpty) {
+      assert(contextPath != "/", "contextPath must not be /")
+      assert(contextPath.startsWith("/"), s"contextPath '$contextPath' must start with /")
+      assert("/" + UrlUtils.encodeUrl(UrlUtils.decodeUrl(contextPath.substring(1))) == contextPath, s"contextPath '$contextPath' is invalid")
+    }
+    contextPath
+  }
 }

@@ -45,18 +45,18 @@ class SettingsTest extends TwibsTest {
     }
   }
 
-    test("Find configured applications") {
-      SystemSettings.default.use {
-        SystemSettings.applicationSettings.values.map(_.name).toList.sorted should be(List("default", "t1", "t2"))
-      }
+  test("Find configured applications") {
+    SystemSettings.default.use {
+      SystemSettings.applicationSettings.values.map(_.name).toList.sorted should be(List("default", "t1", "t2"))
     }
+  }
 
-    test("Find application settings by path") {
-      SystemSettings.default.use {
-        SystemSettings.applicationSettingsForPath("/content/t1").name should be("t1")
-        SystemSettings.applicationSettingsForPath("/content/t").name should be(ApplicationSettings.DEFAULT_NAME)
-      }
+  test("Find application settings by path") {
+    SystemSettings.default.use {
+      SystemSettings.applicationSettingsForPath("/content/t1").name should be("t1")
+      SystemSettings.applicationSettingsForPath("/content/t").name should be(ApplicationSettings.DEFAULT_NAME)
     }
+  }
 
   test("Loading configuration") {
 
@@ -64,5 +64,21 @@ class SettingsTest extends TwibsTest {
     //    b.getString("message") should be("Runmode unknown Host unknown User unknown")
     //    cfg.getString("mode") should be("test")
     //    cfg.getString("message") should be("Runmode test Host unknown User unknown")
+  }
+
+  test("Validate context path") {
+    intercept[NullPointerException] {
+      RequestSettings.assertThatContextPathIsValid(null)
+    }
+    intercept[AssertionError] {
+      RequestSettings.assertThatContextPathIsValid("/")
+    }.getMessage should include("not be /")
+    intercept[AssertionError] {
+      RequestSettings.assertThatContextPathIsValid("nix")
+    }.getMessage should include("start with /")
+    intercept[AssertionError] {
+      RequestSettings.assertThatContextPathIsValid("/x x")
+    }.getMessage should include("invalid")
+    RequestSettings.assertThatContextPathIsValid("") should equal("")
   }
 }

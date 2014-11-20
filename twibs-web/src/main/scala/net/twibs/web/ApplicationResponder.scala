@@ -22,9 +22,7 @@ class ApplicationResponder(delegate: Responder) extends Responder {
 
     val applicationSettings = applicationSettingsFromParameterOption getOrElse applicationSettingsForPath
 
-    new RequestSettings(applicationSettings) {
-      override lazy val locale = LocaleUtils.lookupLocale(ApplicationSettings.locales, request.desiredLocale)
-    } use {
+    RequestSettings.copy(applicationSettings, LocaleUtils.lookupLocale(ApplicationSettings.locales, request.desiredLocale)).use {
       delegate.respond(request)
     }
   }

@@ -4,9 +4,11 @@
 
 package net.twibs.web
 
+import net.twibs.util.RequestSettings
+
 class IndexRedirectResponder extends Responder {
   def respond(request: Request): Option[Response] =
-    if (needsRedirectToIndex(request)) Some(new RedirectResponse(WebContext.path + "/index.html"))
+    if (needsRedirectToIndex(request)) Some(new RedirectResponse(RequestSettings.contextPath + "/index.html"))
     else None
 
   private def needsRedirectToIndex(request: Request): Boolean =
