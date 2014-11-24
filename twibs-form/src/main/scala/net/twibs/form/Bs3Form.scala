@@ -150,10 +150,12 @@ sealed trait Bs3Container extends Container {
 
     def renderEntry(entry: Entry): NodeSeq =
       if (isIgnored) NodeSeq.Empty
-      else if (isHidden) hidden(name, entry.string)
+      else if (isHidden) renderHidden(entry)
       else inner(entry)
 
     protected def inner(entry: Entry): NodeSeq
+
+    protected def renderHidden(entry: Entry) = hidden(name, entry.string)
   }
 
   abstract class SingleLineField(ilk: String) extends super.SingleLineField(ilk) with Field {
@@ -162,6 +164,7 @@ sealed trait Bs3Container extends Container {
         .setIfMissing(isDisabled, "disabled", "disabled")
         .addClass(isDisabled, "disabled")
         .addClass(!isDisabled, "can-be-disabled")
+        .set(maximumLength < Int.MaxValue, "maxlength", maximumLength.toString)
   }
 
   abstract class MultiLineField(ilk: String) extends super.MultiLineField(ilk) with Field {
@@ -170,8 +173,11 @@ sealed trait Bs3Container extends Container {
         .setIfMissing(isDisabled, "disabled", "disabled")
         .addClass(isDisabled, "disabled")
         .addClass(!isDisabled, "can-be-disabled")
+        .set(maximumLength < Int.MaxValue, "maxlength", maximumLength.toString)
 
     def rows = 6
+
+    override protected def renderHidden(entry: Entry): NodeSeq = <textarea class="concealed" name={name}>{entry.string}</textarea>
   }
 
   abstract class HtmlField(ilk: String) extends MultiLineField(ilk) {
@@ -232,6 +238,7 @@ sealed trait Bs3Container extends Container {
   }
 
   class HorizontalLayout extends StaticContainer("hl") with Bs3HorizontalLayout
+
 }
 
 trait Bs3HorizontalLayout extends Bs3Container {
@@ -271,6 +278,9 @@ trait Bs3HorizontalLayout extends Bs3Container {
       else NodeSeq.Empty
 
     override def renderEntry(entry: Entry): NodeSeq =
+      if (isHidden)
+        super.renderEntry(entry)
+      else
         <div class={cssMessageClass(entry.messageOption)}>
           {super.renderEntry(entry)}
           {renderEntryMessage(entry)}

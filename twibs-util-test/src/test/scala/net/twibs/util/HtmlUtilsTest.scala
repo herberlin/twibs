@@ -30,6 +30,6 @@ class HtmlUtilsTest extends TwibsTest {
 
   test("Anything goes") {
     HtmlUtils.cleanup("<font color='red'>50% RABATT (bereits im") should be("50% RABATT (bereits im")
-    HtmlUtils.cleanup("""<span class="red"><strong><b>50</b></strong>""") should be("""<span class="red"><strong><b>50</b></strong></span>""")
+    HtmlUtils.cleanup( """<span class="red"><strong><b>50</b></strong>""") should be( """<span class="red"><strong><b>50</b></strong></span>""")
   }
 }

@@ -53,7 +53,7 @@ trait Input extends TranslationSupport {
       case e => e
     }
 
-  def stringProcessors = processTrimmed andThen processRequired
+  def stringProcessors = processTrimmed andThen processRequired andThen minimumLengthProcessor andThen maximumLengthProcessor
 
   def valueProcessors = (entry: Entry) => entry
 
@@ -67,6 +67,10 @@ trait Input extends TranslationSupport {
     if (trim)
       entry.copy(string = trim(entry.string))
     else entry
+
+  private def minimumLengthProcessor = (entry: Entry) => entry.validate(entry.string.length >= minimumLength, warn"minimum-length-message: Please enter at least $minimumLength characters")
+
+  private def maximumLengthProcessor = (entry: Entry) => entry.validate(entry.string.length <= maximumLength, warn"maxiumum-length-message: Please enter no more than $maximumLength characters")
 
   protected def trim(string: String) = string.trim
 
@@ -93,6 +97,10 @@ trait Input extends TranslationSupport {
   def minimumNumberOfEntries = 1
 
   def maximumNumberOfEntries = 1
+
+  def minimumLength = 0
+
+  def maximumLength = Int.MaxValue
 
   def computeDefaultEntries = {
     val ret = defaults.map(valueToEntry)
@@ -176,19 +184,11 @@ trait StringInput extends Input {
 
   override def convertToValue(string: String): Option[ValueType] = Some(string)
 
-  override def stringProcessors: (Entry) => Entry = super.stringProcessors andThen minimumLengthProcessor andThen maximumLengthProcessor andThen regexProcessor
-
-  private def minimumLengthProcessor = (entry: Entry) => entry.validate(entry.string.length >= minimumLength, warn"minimum-length-message: Please enter at least $minimumLength characters")
-
-  private def maximumLengthProcessor = (entry: Entry) => entry.validate(entry.string.length <= maximumLength, warn"maxiumum-length-message: Please enter no more than $maximumLength characters")
+  override def stringProcessors: (Entry) => Entry = super.stringProcessors andThen regexProcessor
 
   private def regexProcessor = (entry: Entry) => entry.validate(regex.isEmpty || entry.string.matches(regex), warn"regex-message: Please enter a string that matches ''$regex''")
 
   // Overideable
-  def minimumLength = 0
-
-  def maximumLength = Int.MaxValue
-
   def regex = ""
 }
 

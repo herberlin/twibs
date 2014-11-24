@@ -177,6 +177,8 @@ trait Container extends Component with ValidateInTree {
 
   def >>(nodeSeq: => NodeSeq) = new DisplayHtml(nodeSeq)
 
+  def >>(visible: => Boolean, nodeSeq: => NodeSeq) = new DisplayHtml(visible, nodeSeq)
+
   override def html = children.map(child => if (child.isFloating) NodeSeq.Empty else renderChild(child)).flatten
 
   def renderChild(child: Component) = child.html
