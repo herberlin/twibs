@@ -10,7 +10,6 @@ import java.util.concurrent.TimeUnit
 
 import net.twibs.util.XmlUtils._
 import net.twibs.util._
-import net.twibs.web.Upload
 
 import com.google.common.cache.{Cache, CacheBuilder}
 import com.ibm.icu.text.NumberFormat
@@ -466,7 +465,7 @@ trait LocaleValues extends Values {
 
   override def stringToValueOption(string: String) = Some(ULocale.forLanguageTag(string))
 
-  override def computeTitleForValue(value: ValueType): String = value.getDisplayName(RequestSettings.locale)
+  override def computeTitleForValue(value: ValueType): String = value.getDisplayName(Request.locale)
 
   abstract override def translator: Translator = super.translator.kind("LOCALE")
 }

@@ -5,6 +5,7 @@
 package net.twibs.web
 
 import com.google.common.cache.{CacheLoader, CacheBuilder, LoadingCache}
+import net.twibs.util.{Request, RequestCacheKey}
 import concurrent.duration.Duration
 
 class MemoryCachingResponder(delegate: Responder, cacheSizeInBytes: Long = 100000000, maxFileSizeInBytes: Long = 1000000) extends LoadingCacheResponder(delegate) {

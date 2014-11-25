@@ -5,6 +5,7 @@
 package net.twibs.web
 
 import com.google.common.cache.LoadingCache
+import net.twibs.util.RequestCacheKey
 
 trait CacheResponder extends Responder {
   protected def cache: LoadingCache[RequestCacheKey, Option[Response]]

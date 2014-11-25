@@ -6,7 +6,7 @@ package net.twibs.web
 
 import java.net.URL
 import net.twibs.util.Predef._
-import net.twibs.util.{ApplicationSettings, IOUtils}
+import net.twibs.util.{GetMethod, Request, ApplicationSettings, IOUtils}
 
 trait ResourceResponder extends Responder {
   def respond(request: Request): Option[Response] =

@@ -4,7 +4,7 @@
 
 package net.twibs.web
 
-import net.twibs.util.{RunMode, Loggable, JsMinimizerException, JsMinimizer}
+import net.twibs.util._
 
 class JsMinimizerResponder(contentResponder: Responder) extends JsMinimizer with Responder with Loggable {
   def respond(request: Request): Option[Response] =

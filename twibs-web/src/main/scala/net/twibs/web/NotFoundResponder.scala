@@ -4,6 +4,8 @@
 
 package net.twibs.web
 
+import net.twibs.util.Request
+
 class NotFoundResponder(contentResponder: Responder, fallbackContentResponder: Responder) extends RecursiveFilenameResolverResponder(fallbackContentResponder, "_404.html") {
   def respond(request: Request): Option[Response] =
     contentResponder.respond(request) match {

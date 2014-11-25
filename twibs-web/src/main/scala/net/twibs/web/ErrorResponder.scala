@@ -4,7 +4,7 @@
 
 package net.twibs.web
 
-import net.twibs.util.Loggable
+import net.twibs.util.{Request, Loggable}
 
 class ErrorResponder(contentResponder: Responder, errorContentResponder: Responder) extends RecursiveFilenameResolverResponder(errorContentResponder, "_500.html") with Loggable {
   def respond(request: Request): Option[Response] =

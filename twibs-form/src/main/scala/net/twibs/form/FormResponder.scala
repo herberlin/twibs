@@ -4,11 +4,11 @@
 
 package net.twibs.form
 
-import net.twibs.util.Parameters
-import net.twibs.web.{PostMethod, GetMethod, Response, Request, Responder}
+import net.twibs.util.{Request, PostMethod, GetMethod}
+import net.twibs.web.{Responder, Response}
 
-class FormResponder(makeForm: (Parameters) => Form) extends Responder {
-  lazy val actionLink = enhance(makeForm(new Parameters()).actionLink)
+class FormResponder(makeForm: () => Form) extends Responder {
+  lazy val actionLink = enhance(makeForm().actionLink)
 
   def respond(request: Request): Option[Response] =
     if (request.path == actionLink) process(request)
@@ -20,7 +20,7 @@ class FormResponder(makeForm: (Parameters) => Form) extends Responder {
       case _ => None
     }
 
-  def parse(request: Request) = makeForm(request.parameters).process(request.parameters)
+  def parse(request: Request) = makeForm().process(request.parameters)
 
   def enhance[R](f: => R): R = f
 }

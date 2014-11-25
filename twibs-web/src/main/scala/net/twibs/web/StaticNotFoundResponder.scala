@@ -4,6 +4,8 @@
 
 package net.twibs.web
 
+import net.twibs.util.Request
+
 class StaticNotFoundResponder(contentResponder: Responder) extends Responder {
   def respond(request: Request): Option[Response] =
     Some(contentResponder.respond(request) getOrElse {

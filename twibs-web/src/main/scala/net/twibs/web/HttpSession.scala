@@ -6,6 +6,8 @@ package net.twibs.web
 
 import javax.servlet.http.HttpServletRequest
 
+import net.twibs.util.Session
+
 class HttpSession(httpServletRequest: HttpServletRequest) extends Session {
   def setAttribute(name: String, value: Any): Unit =
     httpServletRequest.getSession(true).setAttribute(name, value)

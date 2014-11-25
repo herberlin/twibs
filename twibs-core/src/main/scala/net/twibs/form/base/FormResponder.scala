@@ -4,6 +4,7 @@
 
 package net.twibs.form.base
 
+import net.twibs.util.{Request, GetMethod, PostMethod}
 import net.twibs.web._
 
 class FormResponder(makeForm: () => BaseForm) extends Responder {

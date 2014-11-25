@@ -4,13 +4,13 @@
 
 package net.twibs.web
 
-import net.twibs.util.{RequestSettings, ClassUtils}
+import net.twibs.util.{Request, ClassUtils}
 
 class LessVarsResponder extends Responder {
   def respond(request: Request): Option[Response] =
     if (request.path == "/inc/_foreign/twibs-vars.less") Some(
       new StringResponse with CacheableResponse with CssMimeType with CompilationTimeResponse {
-        def asString: String = s"""@context-path: "${RequestSettings.contextPath}";"""
+        def asString: String = s"""@context-path: "${request.contextPath}";"""
 
         override def compilationTime: Long = ClassUtils.getCompilationTime(classOf[LessVarsResponder])
       })

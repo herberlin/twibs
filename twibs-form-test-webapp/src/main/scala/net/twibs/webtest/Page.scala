@@ -4,7 +4,7 @@
 
 package net.twibs.webtest
 
-import net.twibs.util.ClassUtils
+import net.twibs.util.{Request, GetMethod, ClassUtils}
 import net.twibs.util.Formatters._
 import net.twibs.util.Predef._
 import net.twibs.web._
@@ -48,7 +48,7 @@ class Page extends Responder {
       </head>
       <body>
         <div class="container">
-          {new TestForm(None).inlineHtml}
+          {new TestForm().inlineHtml}
         </div>
       </body>
     </html>

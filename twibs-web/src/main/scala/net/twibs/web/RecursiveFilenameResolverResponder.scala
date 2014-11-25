@@ -4,6 +4,8 @@
 
 package net.twibs.web
 
+import net.twibs.util.Request
+
 abstract class RecursiveFilenameResolverResponder(contentResponder: Responder, filename: String) extends Responder {
   def respondWithFilename(request: Request) = respondRecursive(request.relative(filename))
 

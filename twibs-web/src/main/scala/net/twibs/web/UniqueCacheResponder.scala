@@ -8,7 +8,7 @@ import com.google.common.cache.{CacheLoader, CacheBuilder, LoadingCache}
 import java.io._
 import scala.collection.JavaConverters._
 import net.twibs.util.Predef._
-import net.twibs.util.{RunMode, Loggable}
+import net.twibs.util.{Request, RequestCacheKey, RunMode, Loggable}
 
 class UniqueCacheResponder(delegate: Responder, fileOption: Option[File] = None) extends LoadingCacheResponder(delegate) with Loggable {
   protected val cache: LoadingCache[RequestCacheKey, Option[Response]] = CacheBuilder.newBuilder().build(loader)

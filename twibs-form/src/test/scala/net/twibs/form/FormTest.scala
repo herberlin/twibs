@@ -3,7 +3,7 @@ package net.twibs.form
 import scala.xml.PrettyPrinter
 
 import net.twibs.testutil.TwibsTest
-import net.twibs.util.{IdString, Message, PrimaryDisplayType}
+import net.twibs.util.{Request, IdString, Message, PrimaryDisplayType}
 
 class FormTest extends TwibsTest {
   test("Invalid name throws exception") {
@@ -269,9 +269,12 @@ class FormTest extends TwibsTest {
   }
 
   test("Focus") {
-    val f = new Form("test", Map("test-form-id" -> Seq("a"), "test-form-modal" -> Seq("false"))) with Bs3Form {
-      val hl = new HorizontalLayout {
-        val f = new SingleLineField("field") with StringInput
+
+    val f = Request.copy(parameters = Map("test-form-id" -> Seq("a"), "test-form-modal" -> Seq("false"))).use {
+      new Form("test") with Bs3Form {
+        val hl = new HorizontalLayout {
+          val f = new SingleLineField("field") with StringInput
+        }
       }
     }
 
@@ -288,36 +291,38 @@ class FormTest extends TwibsTest {
   }
 
   test("Form renderer") {
-    val out = new Form("test", Map("test-form-id" -> Seq("a"), "test-form-modal" -> Seq("false"))) with Bs3Form {
+    val out = Request.copy(parameters = Map("test-form-id" -> Seq("a"), "test-form-modal" -> Seq("false"))).use {
+      new Form("test") with Bs3Form {
 
-      new DisplayText("<h3>Display text</h3>")
+        new DisplayText("<h3>Display text</h3>")
 
-      val dynamics = new DynamicContainer("users") {
+        val dynamics = new DynamicContainer("users") {
 
-        trait UserContainer extends Dynamic {
-          val username = new SingleLineField("username") with StringInput
+          trait UserContainer extends Dynamic {
+            val username = new SingleLineField("username") with StringInput
 
-          val password = new SingleLineField("password") with StringInput
+            val password = new SingleLineField("password") with StringInput
+          }
+
+          type T = UserContainer
+
+          override def minimumNumberOfDynamics: Int = 1
+
+          override def maximumNumberOfDynamics: Int = 2
+
+          override def create(dynamicId: String): UserContainer with Dynamic = new Dynamic("user", dynamicId) with UserContainer with Detachable
         }
 
-        type T = UserContainer
+        new StaticContainer("easy") with Detachable {
+          new Button("wait") with StringInput with PrimaryDisplayType with DefaultButton
+          new Hidden("hidden") with StringInput
+        }
 
-        override def minimumNumberOfDynamics: Int = 1
+        dynamics.create("admin")
 
-        override def maximumNumberOfDynamics: Int = 2
-
-        override def create(dynamicId: String): UserContainer with Dynamic = new Dynamic("user", dynamicId) with UserContainer with Detachable
-      }
-
-      new StaticContainer("easy") with Detachable {
-        new Button("wait") with StringInput with PrimaryDisplayType with DefaultButton
-        new Hidden("hidden") with StringInput
-      }
-
-      dynamics.create("admin")
-
-      override def messages: Seq[Message] = warn"invalid: Fill out form" +: warn"invalid: Fill out form".copy(dismissable = false) +: super.messages
-    }.html
+        override def messages: Seq[Message] = warn"invalid: Fill out form" +: warn"invalid: Fill out form".copy(dismissable = false) +: super.messages
+      }.html
+    }
 
     println(new PrettyPrinter(2000, 4).format(out.head))
     new PrettyPrinter(2000, 4).format(out.head) should be(

@@ -26,7 +26,7 @@ object Logger extends Loggable {
   SLF4JBridgeHandler.removeHandlersForRootLogger()
   SLF4JBridgeHandler.install()
 
-  def init(): Unit = Unit
+  def init(): Unit = ()
 
   def loadConfiguration(configuration: String): Unit =
     if (configuration != "test" && configuration != "") {

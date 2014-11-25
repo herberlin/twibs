@@ -4,16 +4,15 @@
 
 package net.twibs.web
 
-import collection.mutable.ListBuffer
 import net.twibs.util._
+
+import scala.collection.mutable.ListBuffer
 
 class LessCssParserResponder(contentResponder: Responder, compress: Boolean = true) extends Responder with Loggable {
   def respond(request: Request): Option[Response] =
     if (request.path.toLowerCase.endsWith(".less")) contentResponder.respond(request)
     else if (request.path.toLowerCase.endsWith(".css")) {
-      val lessRequest = new RequestWrapper(request) {
-        override def path = request.path.dropRight(3) + "less"
-      }
+      val lessRequest = request.copy(path = request.path.dropRight(3) + "less")
       contentResponder.respond(request) orElse lessRequest.use {contentResponder.respond(lessRequest)} match {
         case Some(response) if !response.isContentFinal => Some(compile(lessRequest, response))
         case any => any

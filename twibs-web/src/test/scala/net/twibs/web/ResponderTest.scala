@@ -10,13 +10,13 @@ import scala.concurrent.duration._
 
 import net.twibs.testutil.TwibsTest
 import net.twibs.util.Parameters._
-import net.twibs.util.{Loggable, Parameters}
+import net.twibs.util.{Request, Loggable, Parameters}
 
 class ResponderTest extends TwibsTest with Loggable {
   private implicit def toRequest(pathArg: String): Request = toRequest(pathArg, "localhost", Parameters())
 
   private def toRequest(path: String, domain: String, parameters: Parameters, useCache: Boolean = true): Request =
-    new StaticRequest(path, domain, parameters, useCache)
+    Request.copy(path = path, domain = domain, parameters = parameters, useCache = useCache)
 
   val defaultFileResponder: Responder = new FileResponder(new File("src/test/webapp/default"))
   val www1FileResponder: Responder = new FileResponder(new File("src/test/webapp/www1")) :: defaultFileResponder :: Nil

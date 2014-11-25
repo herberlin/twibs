@@ -4,6 +4,8 @@
 
 package net.twibs.web
 
+import net.twibs.util.Request
+
 trait Responder {
   def respond(request: Request): Option[Response]
 }

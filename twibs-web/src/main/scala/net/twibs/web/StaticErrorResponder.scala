@@ -4,7 +4,7 @@
 
 package net.twibs.web
 
-import net.twibs.util.Loggable
+import net.twibs.util.{Request, Loggable}
 
 class StaticErrorResponder(contentResponder: Responder) extends Responder with Loggable {
   def respond(request: Request): Option[Response] =

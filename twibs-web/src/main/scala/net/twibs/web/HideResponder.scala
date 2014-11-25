@@ -4,6 +4,8 @@
 
 package net.twibs.web
 
+import net.twibs.util.Request
+
 class HideResponder(contentResponder: Responder) extends Responder {
   def respond(request: Request): Option[Response] =
     if (request.path.matches(".*/_.*")) None

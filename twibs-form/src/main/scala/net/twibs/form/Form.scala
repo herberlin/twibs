@@ -360,9 +360,7 @@ object FormConstants {
   val PN_FORM_MODAL_SUFFIX = "-form-modal"
 }
 
-class Form(val ilk: String, parametersOption: Option[Parameters] = None) extends Container with CancelStateInheritance {
-  def this(ilk: String, parameters: Parameters) = this(ilk, Some(parameters))
-
+class Form(val ilk: String) extends Container with CancelStateInheritance {
   override final val prefixForChildNames: String = ""
 
   private[form] final val pnId = ilk + FormConstants.PN_FORM_ID_SUFFIX
@@ -375,21 +373,17 @@ class Form(val ilk: String, parametersOption: Option[Parameters] = None) extends
 
   override final val parent: Container = this
 
-  override final val id: IdString = parametersOption match {
-    case Some(parameters) => parameters.getString(pnId, IdGenerator.next())
-    case None => IdGenerator.next()
-  }
+  final val requestSettings: Request = Request
 
-  final val modal = parametersOption match {
-    case Some(parameters) => parameters.getBoolean(pnModal, default = true)
-    case None => false
-  }
+  override final val id: IdString = requestSettings.parameters.getString(pnId, IdGenerator.next())
+
+  final val modal = requestSettings.parameters.getBoolean(pnModal, default = false)
 
   final val formId = id ~ "form"
 
   final val modalId = id ~ "modal"
 
-  override def translator = RequestSettings.current.translator.usage("FORM").usage(ilk)
+  override def translator = Request.current.translator.usage("FORM").usage(ilk)
 
   def inlineHtml: NodeSeq = html
 
@@ -448,13 +442,13 @@ class Form(val ilk: String, parametersOption: Option[Parameters] = None) extends
 
   def actionLinkWithContextPathAndParameters(parameters: (String, String)*): String = actionLinkWithContextPath + queryString(parameters: _*)
 
-  def actionLinkWithContextPath: String = RequestSettings.contextPath + actionLink
+  def actionLinkWithContextPath: String = Request.contextPath + actionLink
 
   private def queryString(parameters: (String, String)*) = {
-    val escaper = UrlEscapers.urlFormParameterEscaper()
-
     val keyValues = (pnId -> id.string) +: (pnModal -> modal.toString) +: (componentParameters ++ parameters.toSeq)
     val all = if (ApplicationSettings.name != ApplicationSettings.DEFAULT_NAME) (ApplicationSettings.PN_NAME -> ApplicationSettings.name) +: keyValues else keyValues
+
+    val escaper = UrlEscapers.urlFormParameterEscaper()
     "?" + all.distinct.map(e => escaper.escape(e._1) + "=" + escaper.escape(e._2)).mkString("&")
   }
 

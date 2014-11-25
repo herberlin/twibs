@@ -7,16 +7,16 @@ package net.twibs.web
 import javax.servlet.annotation.WebListener
 import javax.servlet.{ServletContextEvent, ServletContextListener}
 
-import net.twibs.util.RequestSettings
+import net.twibs.util.Request
 
 @WebListener
 class WebContextListener extends ServletContextListener {
-  private var was: RequestSettings = null
+  private var was: Request = null
 
   def contextInitialized(sce: ServletContextEvent): Unit = {
-    was = RequestSettings.copy(contextPath = sce.getServletContext.getContextPath)
-    RequestSettings.activate(was)
+    was = Request.copy(contextPath = sce.getServletContext.getContextPath)
+    Request.activate(was)
   }
 
-  def contextDestroyed(sce: ServletContextEvent): Unit = RequestSettings.deactivate(was)
+  def contextDestroyed(sce: ServletContextEvent): Unit = Request.deactivate(was)
 }

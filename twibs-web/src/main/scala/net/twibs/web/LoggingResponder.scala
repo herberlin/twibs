@@ -4,8 +4,8 @@
 
 package net.twibs.web
 
-import org.threeten.bp.Duration
-import net.twibs.util.{RequestSettings, Loggable}
+import org.threeten.bp.{LocalDateTime, Duration}
+import net.twibs.util.{Request, Loggable}
 import net.twibs.util.Formatters._
 
 class LoggingResponder(delegate: Responder) extends Responder with Loggable {
@@ -16,7 +16,7 @@ class LoggingResponder(delegate: Responder) extends Responder with Loggable {
   }
 
   def log(request: Request, response: Response): Unit = {
-    def elapsed = Duration.between(timestamp, Request.now()).toMillis
+    def elapsed = Duration.between(timestamp, LocalDateTime.now()).toMillis
 
     def timestamp = request.timestamp
 
@@ -35,7 +35,7 @@ class LoggingResponder(delegate: Responder) extends Responder with Loggable {
       case _ => "Ok"
     }
 
-    def uri = request.domain + RequestSettings.contextPath + request.path
+    def uri = request.domain + request.contextPath + request.path
 
     //    def remoteAddress = request.remoteAddress
     //

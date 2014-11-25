@@ -6,6 +6,8 @@ package net.twibs.web
 
 import java.io.File
 
+import net.twibs.util.{Request, GetMethod}
+
 class FileResponder(baseDir: File) extends Responder {
   def respond(request: Request): Option[Response] = {
     if (request.method != GetMethod) None

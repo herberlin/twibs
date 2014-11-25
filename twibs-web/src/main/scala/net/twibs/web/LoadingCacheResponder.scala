@@ -4,11 +4,13 @@
 
 package net.twibs.web
 
+import net.twibs.util.{Request, RequestCacheKey}
+
 abstract class LoadingCacheResponder(delegate: Responder) extends CacheResponder {
   def respond(request: Request): Option[Response] =
     request.use {
       val requestCacheKey = request.cacheKey
-      if (!Request.useCache) {
+      if (!request.useCache) {
         cache.invalidate(requestCacheKey)
       }
       getIfPresentAndNotModified(requestCacheKey) getOrElse respond(requestCacheKey)

@@ -4,9 +4,8 @@ import java.io.{File, FileFilter}
 
 import net.twibs.form.base._
 import net.twibs.form.bootstrap3._
-import net.twibs.util.{Message, PrimaryDisplayType}
+import net.twibs.util.{Upload, Message, PrimaryDisplayType}
 import net.twibs.util.Predef._
-import net.twibs.web.Upload
 
 import com.google.common.io.Files
 import org.apache.commons.io.FileUtils

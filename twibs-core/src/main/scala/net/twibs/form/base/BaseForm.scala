@@ -23,15 +23,15 @@ import com.google.common.net.UrlEscapers
 trait Component extends TranslationSupport {
   def state: ComponentState = parent.state
 
-  def reset(): Unit = Unit
+  def reset(): Unit = ()
 
-  def initialize(): Unit = Unit
+  def initialize(): Unit = ()
 
-  def prepare(request: Request): Unit = Unit
+  def prepare(request: Request): Unit = ()
 
-  def parse(request: Request): Unit = Unit
+  def parse(request: Request): Unit = ()
 
-  def execute(request: Request): Unit = Unit
+  def execute(request: Request): Unit = ()
 
   def parent: Container
 
@@ -201,9 +201,9 @@ trait BaseForm extends Container with CurrentRequestSettings {
 
   def pnModal = ilk + BaseForm.PN_MODAL_SUFFIX
 
-  override val id: IdString = Request.parameters.getString(pnId, IdGenerator.next())
+  override val id: IdString = requestSettings.parameters.getString(pnId, IdGenerator.next())
 
-  val modal = Request.parameters.getBoolean(pnModal, default = false)
+  val modal = requestSettings.parameters.getBoolean(pnModal, default = false)
 
   val formReload = new Executor("form-reload") with StringValues {
     override def execute(): Unit = result = InsteadOfFormDisplay(reloadFormJs)
@@ -235,7 +235,7 @@ trait BaseForm extends Container with CurrentRequestSettings {
 
   def actionLinkWithContextPathAndParameters(parameters: (String, String)*): String = actionLinkWithContextPath + queryString(parameters: _*)
 
-  def actionLinkWithContextPath: String = RequestSettings.contextPath + actionLink
+  def actionLinkWithContextPath: String = requestSettings.contextPath + actionLink
 
   private def queryString(parameters: (String, String)*) = {
     val escaper = UrlEscapers.urlFormParameterEscaper()
@@ -252,7 +252,7 @@ trait BaseForm extends Container with CurrentRequestSettings {
 
   def reloadFormJs = displayJs
 
-  def displayJs = Request.method match {
+  def displayJs = requestSettings.method match {
     case GetMethod => openModalJs
     case PostMethod => refreshJs
     case _ => JsEmpty
@@ -331,7 +331,7 @@ trait Executable extends InteractiveComponent {
 
   def callValidation() = form.validate()
 
-  def executeValidated(): Unit = Unit
+  def executeValidated(): Unit = ()
 
   def executionLink(value: ValueType) = form.actionLinkWithContextPath + "?" + name + "=" + valueToString(value)
 
@@ -378,7 +378,7 @@ trait BaseField extends InteractiveComponent with Validatable {
 trait SubmitOnChange extends BaseField {
   override def submitOnChange = true
 
-  def isSubmittedOnChange = Request.parameters.getString("form-change", "") == name
+  def isSubmittedOnChange = form.requestSettings.parameters.getString("form-change", "") == name
 }
 
 trait UseLastParameterOnly extends BaseField {

@@ -6,6 +6,8 @@ package net.twibs.web
 
 import java.net.URL
 
+import net.twibs.util.Request
+
 class ClassLoaderResponder(classLoader: ClassLoader, prefixPath: String) extends ResourceResponder {
   def getResourceOption(request: Request): Option[URL] = Option(classLoader.getResource(withPrefixPath(request.path)))
 

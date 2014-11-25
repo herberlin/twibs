@@ -4,8 +4,7 @@
 
 package net.twibs.form.bootstrap3
 
-import net.twibs.util.{Message, XmlUtils}
-import net.twibs.web.Session
+import net.twibs.util.{Message, Session, XmlUtils}
 
 trait FormUtils extends XmlUtils {
   implicit def wrapMessage(message: Message) = new {

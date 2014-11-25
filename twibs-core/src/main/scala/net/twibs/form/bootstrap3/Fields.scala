@@ -8,8 +8,7 @@ import scala.xml._
 
 import net.twibs.form.base._
 import net.twibs.util.JavaScript._
-import net.twibs.util.{DangerDisplayType, InfoDisplayType, Message, Translator}
-import net.twibs.web.Upload
+import net.twibs.util._
 
 import org.threeten.bp.format.DateTimeFormatter
 import org.threeten.bp.{LocalDate, LocalDateTime}

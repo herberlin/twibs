@@ -5,6 +5,7 @@
 package net.twibs.web
 
 import com.googlecode.htmlcompressor.compressor.HtmlCompressor
+import net.twibs.util.Request
 
 class HtmlMinimizerResponder(contentResponder: Responder) extends Responder {
   def respond(request: Request): Option[Response] =

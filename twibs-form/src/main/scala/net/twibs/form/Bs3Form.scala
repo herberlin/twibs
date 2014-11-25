@@ -4,11 +4,13 @@
 
 package net.twibs.form
 
+import com.google.common.net.UrlEscapers
+
 import scala.xml.{NodeSeq, Text, Unparsed}
 
 import net.twibs.util.JavaScript._
 import net.twibs.util.XmlUtils._
-import net.twibs.util.{DisplayType, ApplicationSettings, Message, RequestSettings}
+import net.twibs.util.{DisplayType, ApplicationSettings, Message, Request}
 
 sealed trait Bs3Container extends Container {
   override def html = {
@@ -129,12 +131,19 @@ sealed trait Bs3Container extends Container {
     override def render(string: String, index: Int): NodeSeq = {
       if (isHidden) NodeSeq.Empty
       else if (isDisabled) <span class={"disabled" :: buttonCssClasses}>{renderButtonTitle}</span>
-      else <a href="#" class={"can-be-disabled" :: buttonCssClasses} data-call={form.actionLinkWithContextPathAndParameters(name -> string)}>{renderButtonTitle}</a>
+      else <a href="#" class={"can-be-disabled" :: buttonCssClasses} data-call={link(name, string)}>{renderButtonTitle}</a>
     }
+
+    def link(name: String, string: String) = form.actionLinkWithContextPathAndParameters(name -> string)
   }
 
   abstract class OpenModalLink extends Button("open-modal") with LinkButton with Floating {
     override def execute(): Seq[Result] = InsteadOfFormDisplay(form.openModalJs)
+
+    override def link(name: String, string: String) = {
+      val escaper = UrlEscapers.urlFormParameterEscaper()
+      form.actionLinkWithContextPath + "?" + escaper.escape(name) + "=" + escaper.escape(string)
+    }
   }
 
   abstract class Hidden(ilk: String) extends super.InputComponent(ilk) {
@@ -353,7 +362,7 @@ trait Bs3Form extends Form with Bs3Container {
 
   def surround(content: NodeSeq, modalValue: String = modal.toString) =
     <form id={formId} name={name} class="twibs-form" action={actionLinkWithContextPath} method="post" enctype="multipart/form-data">
-      {hidden(pnId, id) ++ hidden(pnModal, modalValue) ++ hidden(ApplicationSettings.PN_NAME, RequestSettings.applicationSettings.name)}
+      {hidden(pnId, id) ++ hidden(pnModal, modalValue) ++ hidden(ApplicationSettings.PN_NAME, Request.applicationSettings.name)}
       {content}
     </form>
 

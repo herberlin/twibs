@@ -9,9 +9,7 @@ import net.twibs.db.TableData
 import net.twibs.form.base._
 import net.twibs.util.JavaScript._
 import net.twibs.util.SortOrder._
-import net.twibs.util.SortOrder
-import net.twibs.util.{Pagination, Translator}
-import net.twibs.web.Request
+import net.twibs.util.{Request, SortOrder, Pagination, Translator}
 
 trait DataTable[T] extends StaticContainer {
   def columns: List[Column]

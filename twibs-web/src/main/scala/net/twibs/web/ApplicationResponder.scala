@@ -22,8 +22,6 @@ class ApplicationResponder(delegate: Responder) extends Responder {
 
     val applicationSettings = applicationSettingsFromParameterOption getOrElse applicationSettingsForPath
 
-    RequestSettings.copy(applicationSettings, LocaleUtils.lookupLocale(ApplicationSettings.locales, request.desiredLocale)).use {
-      delegate.respond(request)
-    }
+    request.copy(applicationSettings).useIt(delegate.respond)
   }
 }

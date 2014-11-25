@@ -8,8 +8,7 @@ import scala.xml.{Elem, NodeSeq, Text, Unparsed}
 
 import net.twibs.form.base._
 import net.twibs.util.JavaScript._
-import net.twibs.util.{DisplayType, PrimaryDisplayType, Translator}
-import net.twibs.web.{Request, Upload}
+import net.twibs.util._
 
 trait UploadButton extends Button with StringValues with PrimaryDisplayType {
   override def buttonAsEnrichedElem =
@@ -25,7 +24,7 @@ trait UploadButton extends Button with StringValues with PrimaryDisplayType {
   // Use auto complete because firefox fills in previously uploaded files.
   override def buttonAsElem: Elem = <input type="file" multiple="multiple" autocomplete="off" />
 
-  override def parse(request: Request) = Request.uploads.get(name).map(uploads => uploaded(uploads.toList))
+  override def parse(request: Request) = request.uploads.get(name).map(uploads => uploaded(uploads.toList))
 
   // TODO: Convert UploadButton to input without appropriate Renderer
   override def execute(): Unit = Unit

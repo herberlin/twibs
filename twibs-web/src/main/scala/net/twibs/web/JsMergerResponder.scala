@@ -5,7 +5,7 @@
 package net.twibs.web
 
 import collection.mutable.ListBuffer
-import net.twibs.util.Loggable
+import net.twibs.util.{Request, Loggable}
 import util.matching.Regex
 import util.matching.Regex.Match
 

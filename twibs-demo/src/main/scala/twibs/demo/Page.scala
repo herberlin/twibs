@@ -1,6 +1,6 @@
 package net.twibs.demo
 
-import net.twibs.util.ClassUtils
+import net.twibs.util.{Request, GetMethod, ClassUtils}
 import net.twibs.web._
 import net.twibs.util.Predef._
 import net.twibs.util.Formatters._

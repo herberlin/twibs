@@ -8,9 +8,11 @@ import com.google.common.base.Charsets
 import com.google.common.io.ByteStreams
 import javax.servlet.http.{HttpServletRequest, HttpServletResponse}
 import net.twibs.util.Predef._
+import net.twibs.util.Request
+import org.threeten.bp.LocalDateTime
 
 class HttpResponseRenderer(request: Request, response: Response, httpRequest: HttpServletRequest, httpResponse: HttpServletResponse) {
-  private val currentDateTime = Request.now()
+  private val currentDateTime = LocalDateTime.now()
 
   private def currentDateTimeInMillis = currentDateTime.toSystemEpochMillis
 

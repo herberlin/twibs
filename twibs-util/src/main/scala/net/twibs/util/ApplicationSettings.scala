@@ -5,15 +5,16 @@
 package net.twibs.util
 
 import java.io.File
-import java.net.{InetAddress, UnknownHostException}
+import java.net.{InetAddress, URI, UnknownHostException}
 
 import com.ibm.icu.util.{Currency, ULocale}
 import com.typesafe.config.{Config, ConfigFactory, ConfigParseOptions}
 import org.apache.tika.Tika
-import org.threeten.bp.ZoneId
+import org.threeten.bp.{LocalDateTime, ZoneId}
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
+import scala.xml.{NodeSeq, Unparsed}
 
 private object ConfigHelper {
 
@@ -62,7 +63,7 @@ case class SystemSettings(startedAt: Long,
 
   val version = if (runMode.isProduction) majorVersion else fullVersion
 
-  def use[T](f: => T) = RequestSettings.applicationSettings.copy(systemSettings = this).use(f)
+  def use[T](f: => T) = Request.applicationSettings.copy(systemSettings = this).use(f)
 }
 
 object SystemSettings extends Loggable {
@@ -160,13 +161,15 @@ case class ApplicationSettings(name: String, systemSettings: SystemSettings) {
 
   val translators: Map[ULocale, Translator] = locales.map(locale => locale -> new TranslatorResolver(locale, new ConfigurationForTypesafeConfig(configUnresolved.childConfig("LOCALES." + locale.toString).resolve())).root.usage(name)).toMap
 
-  val defaultRequestSettings = RequestSettings(this)
+  val defaultRequestSettings = Request(this)
 
   lazy val tika = new Tika()
 
-  def use[T](f: => T) = RequestSettings.copy(applicationSettings = this).use(f)
+  def use[T](f: => T) = Request.copy(applicationSettings = this).use(f)
 
   def matches(path: String) = configuration.getStringList("pathes", Nil).exists(path.startsWith)
+
+  def lookupLocale(desiredLocale: ULocale) = LocaleUtils.lookupLocale(locales, desiredLocale)
 }
 
 object ApplicationSettings {
@@ -176,11 +179,41 @@ object ApplicationSettings {
 
   @inline implicit def unwrap(companion: ApplicationSettings.type): ApplicationSettings = current
 
-  @inline def current = RequestSettings.applicationSettings
+  @inline def current = Request.applicationSettings
+}
+
+trait Session extends AttributeContainer {
+  def invalidate(): Unit
+
+  import net.twibs.util.Session._
+
+  def addNotificationToSession(notificationScript: String): Unit =
+    setAttribute(NOTIFICATIONS_PARAMETER_NAME, notificationScriptsFromSession + notificationScript)
+
+  private def notificationScriptsFromSession = getAttribute(NOTIFICATIONS_PARAMETER_NAME, "")
+
+  def notifications = {
+    val notificationsString = notificationScriptsFromSession
+    removeAttribute(NOTIFICATIONS_PARAMETER_NAME)
+    if (notificationsString.isEmpty) NodeSeq.Empty
+    else <script>{Unparsed("$" + s"(function () {$notificationsString});")}</script>
+  }
+}
+
+class SimpleSession extends SimpleAttributeContainer with Session {
+  def invalidate(): Unit = ()
+}
+
+object Session {
+  private val NOTIFICATIONS_PARAMETER_NAME: String = "NOTIFICATIONS"
+
+  implicit def unwrap(companion: Session.type): Session = current
+
+  def current = Request.session
 }
 
 trait CurrentRequestSettings {
-  final val requestSettings = RequestSettings.current
+  final val requestSettings = Request.current
 
   def locale = requestSettings.locale
 
@@ -189,20 +222,45 @@ trait CurrentRequestSettings {
   def formatters = requestSettings.formatters
 }
 
-case class RequestSettings private(applicationSettings: ApplicationSettings, locale: ULocale, contextPath: String = "") {
+case class Request private(applicationSettings: ApplicationSettings,
+                           desiredLocale: ULocale,
+                           parameters: Parameters,
+                           contextPath: String = "",
+                           timestamp: LocalDateTime = LocalDateTime.now(),
+                           method: RequestMethod = GetMethod,
+                           domain: String = "localhost",
+                           path: String = "/",
+                           accept: List[String] = Nil,
+                           remoteAddress: String = "::1",
+                           remoteHost: String = "localhost",
+                           userAgent: String = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/34.0.1847.116 Chrome/34.0.1847.116 Safari/537.36",
+                           doesClientSupportGzipEncoding: Boolean = true,
+                           useCache: Boolean = true,
+                           uploads: Map[String, Seq[Upload]] = Map(),
+                           attributes: AttributeContainer = new SimpleAttributeContainer(),
+                           cookies: CookieContainer = new SimpleCookieContainer(),
+                           session: Session = new SimpleSession()) {
+  val locale = applicationSettings.lookupLocale(desiredLocale)
+
+  lazy val cacheKey = new RequestCacheKey(path, method, domain, parameters)
+
   lazy val translator: Translator = applicationSettings.translators(locale)
 
   lazy val formatters = new Formatters(translator, locale, Currency.getInstance("EUR"), applicationSettings.systemSettings.zoneId)
 
-  def use[T](f: => T) = RequestSettings.use(this)(f)
+  def use[T](f: => T) = Request.use(this)(f)
 
-  RequestSettings.assertThatContextPathIsValid(contextPath)
+  def useIt[R](f: (Request) => R): R = Request.use(this)(f(this))
+
+  def relative(relativePath: String) = this.copy(path = new URI(path).resolve(relativePath).normalize().toString)
+
+  Request.assertThatContextPathIsValid(contextPath)
 }
 
-object RequestSettings extends DynamicVariableWithDynamicDefault[RequestSettings] {
-  def createFallback: RequestSettings = RequestSettings(SystemSettings.default.defaultApplicationSettings)
+object Request extends DynamicVariableWithDynamicDefault[Request] {
+  def createFallback: Request = Request(SystemSettings.default.defaultApplicationSettings)
 
-  def apply(applicationSettings: ApplicationSettings): RequestSettings = RequestSettings(applicationSettings, applicationSettings.locales.head)
+  def apply(applicationSettings: ApplicationSettings): Request = Request(applicationSettings, applicationSettings.locales.head, Parameters())
 
   def assertThatContextPathIsValid(contextPath: String) = {
     if (!contextPath.isEmpty) {

@@ -120,7 +120,7 @@ trait TranslationSupport {
 object Translator extends Loggable {
   implicit def unwrap(companion: Translator.type): Translator = current
 
-  def current: Translator = RequestSettings.current.translator
+  def current: Translator = Request.current.translator
 
   implicit def withTranslationFormatter(sc: StringContext)(implicit translator: Translator = current) = new {
     def t(args: Any*): String = translator.translate(sc, args: _*)

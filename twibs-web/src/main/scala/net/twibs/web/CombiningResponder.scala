@@ -5,7 +5,7 @@
 package net.twibs.web
 
 import java.io.File
-import net.twibs.util.RequestSettings
+import net.twibs.util.Request
 import org.apache.commons.io.FileUtils
 import scala.concurrent.duration._
 
@@ -33,7 +33,7 @@ trait CombiningResponder extends Responder {
   final lazy val uniqueCacheResponderVal: UniqueCacheResponder = uniqueCacheResponder()
 
   def uniqueCacheResponder() = {
-    val storageFile = new File(FileUtils.getTempDirectory, "defaultresponder" + RequestSettings.contextPath.replaceAll("/", "_"))
+    val storageFile = new File(FileUtils.getTempDirectory, "defaultresponder" + Request.contextPath.replaceAll("/", "_"))
     val ret = new UniqueCacheResponder(processingResponder, Some(storageFile))
     ret.load()
     ret

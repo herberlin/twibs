@@ -107,7 +107,7 @@ object Formatters {
 
   implicit def unwrap(companion: Formatters.type): Formatters = current
 
-  def current = RequestSettings.current.formatters
+  def current = Request.current.formatters
 
   implicit def doubleToFormattable(value: Double) = current.doubleToFormattable(value)
 

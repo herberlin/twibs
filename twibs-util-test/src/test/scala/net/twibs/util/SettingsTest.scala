@@ -68,17 +68,17 @@ class SettingsTest extends TwibsTest {
 
   test("Validate context path") {
     intercept[NullPointerException] {
-      RequestSettings.assertThatContextPathIsValid(null)
+      Request.assertThatContextPathIsValid(null)
     }
     intercept[AssertionError] {
-      RequestSettings.assertThatContextPathIsValid("/")
+      Request.assertThatContextPathIsValid("/")
     }.getMessage should include("not be /")
     intercept[AssertionError] {
-      RequestSettings.assertThatContextPathIsValid("nix")
+      Request.assertThatContextPathIsValid("nix")
     }.getMessage should include("start with /")
     intercept[AssertionError] {
-      RequestSettings.assertThatContextPathIsValid("/x x")
+      Request.assertThatContextPathIsValid("/x x")
     }.getMessage should include("invalid")
-    RequestSettings.assertThatContextPathIsValid("") should equal("")
+    Request.assertThatContextPathIsValid("") should equal("")
   }
 }

@@ -13,7 +13,7 @@ import net.twibs.web._
 class TestFilter extends Filter {
   override def createCombiningResponder() = new FilterResponder(this) {
     override def contentResponders(): List[Responder] =
-      new FormResponder(parameters => new TestForm(Some(parameters))) ::
+      new FormResponder(() => new TestForm()) ::
         new Page() ::
         super.contentResponders()
   }
