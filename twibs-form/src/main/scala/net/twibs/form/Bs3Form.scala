@@ -17,7 +17,7 @@ sealed trait Bs3Container extends Container {
     if (isIgnored) NodeSeq.Empty
     else if (isHidden) super.html
     else {
-      <div id={shellId} class={("form-container-shell" :: Nil).addClass(isDetachable, "detachable")}>
+      <div id={shellId} name={name} class={("form-container-shell" :: Nil).addClass(isDetachable, "detachable")}>
         {if (isDetachable) closeButton else NodeSeq.Empty}
         {containerCore}
       </div>
@@ -173,6 +173,7 @@ sealed trait Bs3Container extends Container {
         .setIfMissing(isDisabled, "disabled", "disabled")
         .addClass(isDisabled, "disabled")
         .addClass(!isDisabled, "can-be-disabled")
+        .addClass(submitOnChange && isEnabled, "submit-on-change")
         .set(maximumLength < Int.MaxValue, "maxlength", maximumLength.toString)
   }
 
@@ -182,6 +183,7 @@ sealed trait Bs3Container extends Container {
         .setIfMissing(isDisabled, "disabled", "disabled")
         .addClass(isDisabled, "disabled")
         .addClass(!isDisabled, "can-be-disabled")
+        .addClass(submitOnChange && isEnabled, "submit-on-change")
         .set(maximumLength < Int.MaxValue, "maxlength", maximumLength.toString)
 
     def rows = 6
@@ -208,7 +210,7 @@ sealed trait Bs3Container extends Container {
     override def focusJs: JsCmd = jQuery(entries.find(!_.valid).map(e => indexId(e.index)) getOrElse id).call("ckeditorGet").call("focus")
   }
 
-  trait BsCheckboxField extends super.CheckboxField {
+  trait BsCheckboxOrRadioField extends super.SelectField {
     def triggerValue = "TRIGGER"
 
     override def parse(parameterStrings: Seq[String]): Unit = super.parse(parameterStrings.filter(_ != triggerValue))
@@ -223,16 +225,29 @@ sealed trait Bs3Container extends Container {
     def renderOptions = optionEntries.map(renderOption).flatten ++ triggerHtml
 
     def renderOption(option: Entry): NodeSeq =
-        <input type="checkbox" name={name} id={indexId(option.index)} value={option.string}/>
+        <input type={inputType} name={name} id={indexId(option.index)} value={option.string}/>
         .setIfMissing(isDisabled, "disabled", "disabled")
         .addClass(isDisabled, "disabled")
         .addClass(!isDisabled, "can-be-disabled")
+        .addClass(submitOnChange && isEnabled, "submit-on-change")
         .set(values.contains(option.valueOption.get), "checked")
+
+    def inputType: String
+  }
+
+  trait BsCheckboxField extends BsCheckboxOrRadioField {
+    override def inputType: String = "checkbox"
+  }
+
+  trait BsRadioField extends BsCheckboxOrRadioField {
+    override def inputType: String = "radio"
   }
 
   abstract class CheckboxField(ilk: String) extends super.CheckboxField(ilk) with BsCheckboxField
 
   class BooleanCheckboxField(ilk: String) extends super.BooleanCheckboxField(ilk) with BsCheckboxField
+
+  abstract class RadioField(ilk: String) extends super.RadioField(ilk) with BsRadioField
 
   class StaticContainer(ilk: String) extends super.StaticContainer(ilk) with Bs3Container
 
@@ -247,6 +262,13 @@ sealed trait Bs3Container extends Container {
   }
 
   class HorizontalLayout extends StaticContainer("hl") with Bs3HorizontalLayout
+
+  class ButtonRow extends StaticContainer("br") with Bs3Container {
+    override def html =
+      if (isIgnored) NodeSeq.Empty
+      else if (isHidden) super.html
+      else <div>{containerCore}</div>
+  }
 
 }
 
@@ -296,7 +318,7 @@ trait Bs3HorizontalLayout extends Bs3Container {
         </div>
   }
 
-  trait HlCheckboxField extends BsCheckboxField with Messages {
+  trait HlCheckboxOrRadioField extends BsCheckboxOrRadioField with Messages {
     override def renderOptions: NodeSeq =
       <div class="form-group">
           <div class={labelCssMessageClass :: "col-sm-3" :: Nil}><label class="control-label">{fieldTitle}</label></div>
@@ -317,9 +339,11 @@ trait Bs3HorizontalLayout extends Bs3Container {
 
   abstract class HtmlField(ilk: String) extends super.HtmlField(ilk) with Field
 
-  abstract class CheckboxField(ilk: String) extends super.CheckboxField(ilk) with HlCheckboxField
+  abstract class CheckboxField(ilk: String) extends super.CheckboxField(ilk) with HlCheckboxOrRadioField
 
-  class BooleanCheckboxField(ilk: String) extends super.BooleanCheckboxField(ilk) with HlCheckboxField
+  abstract class RadioField(ilk: String) extends super.RadioField(ilk) with HlCheckboxOrRadioField
+
+  class BooleanCheckboxField(ilk: String) extends super.BooleanCheckboxField(ilk) with HlCheckboxOrRadioField
 
   abstract class Button(ilk: String) extends super.Button(ilk) {
     override def html: NodeSeq =
@@ -328,6 +352,13 @@ trait Bs3HorizontalLayout extends Bs3Container {
           <div class="form-group">
             <div class="col-sm-offset-3 col-sm-9">{super.html}</div>
           </div>
+  }
+
+  class ButtonRow extends StaticContainer("br") with Bs3Container {
+    override def html =
+      if (isIgnored) NodeSeq.Empty
+      else if (isHidden) super.html
+      else <div class="form-group"><div class="col-sm-offset-3 col-sm-9">{containerCore}</div></div>
   }
 
 }

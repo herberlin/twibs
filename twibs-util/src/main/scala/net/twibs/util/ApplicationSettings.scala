@@ -4,11 +4,13 @@
 
 package net.twibs.util
 
-import java.io.File
+import java.io.{PrintStream, FileOutputStream, File}
 import java.net.{InetAddress, URI, UnknownHostException}
+import java.util.Properties
 
 import com.ibm.icu.util.{Currency, ULocale}
 import com.typesafe.config.{Config, ConfigFactory, ConfigParseOptions}
+import org.apache.commons.io.FileUtils
 import org.apache.tika.Tika
 import org.threeten.bp.{LocalDateTime, ZoneId}
 
@@ -34,7 +36,8 @@ case class SystemSettings(startedAt: Long,
                           fullVersion: String,
                           runMode: RunMode,
                           os: OperatingSystem,
-                          zoneId: ZoneId) {
+                          zoneId: ZoneId,
+                          mailSession: javax.mail.Session) {
   private[util] val configUnresolved = {
     ConfigFactory.invalidateCaches()
 
@@ -53,6 +56,11 @@ case class SystemSettings(startedAt: Long,
     userConfigWithOsgiFallback.withFallback(baseConfig)
   }
 
+  if (runMode.isTest || runMode.isDevelopment) {
+    mailSession.setDebugOut(new PrintStream(new FileOutputStream(new File(FileUtils.getTempDirectory, "twibs-mail.log"))))
+    mailSession.setDebug(true)
+  }
+
   val applicationSettings = configUnresolved.getObject("APPLICATIONS").unwrapped().keySet().asScala.map(name => name -> new ApplicationSettings(name, this)).toMap
 
   val defaultApplicationSettings = applicationSettings(ApplicationSettings.DEFAULT_NAME)
@@ -64,9 +72,13 @@ case class SystemSettings(startedAt: Long,
   val version = if (runMode.isProduction) majorVersion else fullVersion
 
   def use[T](f: => T) = Request.applicationSettings.copy(systemSettings = this).use(f)
+
+  def activate() = use {Request.activate()}
 }
 
 object SystemSettings extends Loggable {
+  Logger.init()
+
   @inline implicit def unwrap(companion: SystemSettings.type) = current
 
   @inline def current = ApplicationSettings.current.systemSettings
@@ -98,7 +110,8 @@ object SystemSettings extends Loggable {
       case _ => RunMode.PRODUCTION
     },
     os = OperatingSystem(System.getProperty("os.name").toLowerCase),
-    zoneId = ZoneId.systemDefault()
+    zoneId = ZoneId.systemDefault(),
+    mailSession = javax.mail.Session.getInstance(new Properties())
   )
 
   logger.info(s"Run mode is '${default.runMode.name}'")
@@ -161,7 +174,7 @@ case class ApplicationSettings(name: String, systemSettings: SystemSettings) {
 
   val translators: Map[ULocale, Translator] = locales.map(locale => locale -> new TranslatorResolver(locale, new ConfigurationForTypesafeConfig(configUnresolved.childConfig("LOCALES." + locale.toString).resolve())).root.usage(name)).toMap
 
-  val defaultRequestSettings = Request(this)
+  val defaultRequest = Request(this)
 
   lazy val tika = new Tika()
 
@@ -212,14 +225,14 @@ object Session {
   def current = Request.session
 }
 
-trait CurrentRequestSettings {
-  final val requestSettings = Request.current
+trait CurrentRequest {
+  final val request = Request.current
 
-  def locale = requestSettings.locale
+  def locale = request.locale
 
-  def translator = requestSettings.translator
+  def translator = request.translator
 
-  def formatters = requestSettings.formatters
+  def formatters = request.formatters
 }
 
 case class Request private(applicationSettings: ApplicationSettings,
@@ -253,6 +266,8 @@ case class Request private(applicationSettings: ApplicationSettings,
   def useIt[R](f: (Request) => R): R = Request.use(this)(f(this))
 
   def relative(relativePath: String) = this.copy(path = new URI(path).resolve(relativePath).normalize().toString)
+
+  def activate() = Request.activate(this)
 
   Request.assertThatContextPathIsValid(contextPath)
 }

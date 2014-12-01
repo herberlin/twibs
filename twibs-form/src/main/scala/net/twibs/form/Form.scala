@@ -112,11 +112,7 @@ trait Component extends TranslationSupport {
 
   def callExecute(): Seq[Result] = if (isEnabled && parsed) execute() else Ignored
 
-  def execute(): Seq[Result] = if (callValidation()) executeValidated() else Ignored
-
-  def callValidation() = form.validate()
-
-  def executeValidated(): Seq[Result] = Ignored
+  def execute(): Seq[Result] = Ignored
 
   implicit def wrapMessage(message: Message) = new {
     def showNotificationAfterReload(session: Session = Session.current) = session.addNotificationToSession(message.showNotification.toString + ";")
@@ -142,6 +138,14 @@ trait Component extends TranslationSupport {
     require(!name.endsWith(FormConstants.PN_FORM_MODAL_SUFFIX), s"Suffix '${FormConstants.PN_FORM_MODAL_SUFFIX}' is reserved")
     require(name != ApplicationSettings.PN_NAME, s"'${ApplicationSettings.PN_NAME}' is reserved")
   }
+}
+
+trait ExecuteValidated extends Component {
+  override def execute(): Seq[Result] = if (callValidation()) executeValidated() else super.execute()
+
+  def callValidation() = form.validate()
+
+  def executeValidated(): Seq[Result] = Ignored
 }
 
 trait Container extends Component with ValidateInTree {
@@ -232,6 +236,14 @@ trait Container extends Component with ValidateInTree {
     def needsFocus = !isValid
 
     def focusJs: JsCmd = jQuery(entries.find(!_.valid).map(e => indexId(e.index)) getOrElse id).call("focus")
+
+    def submitOnChange = false
+  }
+
+  trait SubmitOnChange extends Field {
+    override def submitOnChange = true
+
+    def isSubmittedOnChange = form.request.parameters.getString("form-change", "") == name
   }
 
   abstract class SingleLineField(ilk: String) extends InputComponent(ilk) with Field {
@@ -242,7 +254,11 @@ trait Container extends Component with ValidateInTree {
     override def translator: Translator = super.translator.kind("MULTI-LINE")
   }
 
-  abstract class CheckboxField(ilk: String) extends InputComponent(ilk) with Field with Options {
+  abstract class SelectField(ilk: String) extends InputComponent(ilk) with Field with Options {
+    override def translator: Translator = super.translator.kind("SELECT")
+  }
+
+  abstract class CheckboxField(ilk: String) extends SelectField(ilk) {
     override def translator: Translator = super.translator.kind("CHECKBOX")
 
     override def required: Boolean = false
@@ -256,6 +272,16 @@ trait Container extends Component with ValidateInTree {
     override def translator: Translator = super.translator.kind("BOOLEAN-CHECKBOX")
 
     override def options: Seq[ValueType] = true :: Nil
+
+    def isChecked = valueOption.exists(v => v)
+  }
+
+  abstract class RadioField(ilk: String) extends SelectField(ilk) with Options {
+    override def translator: Translator = super.translator.kind("RADIO")
+
+    override def minimumNumberOfEntries: Int = 1
+
+    override def maximumNumberOfEntries: Int = optionEntries.size
   }
 
   abstract class Button(ilk: String) extends InputComponent(ilk) with DisplayType {
@@ -373,11 +399,11 @@ class Form(val ilk: String) extends Container with CancelStateInheritance {
 
   override final val parent: Container = this
 
-  final val requestSettings: Request = Request
+  final val request: Request = Request
 
-  override final val id: IdString = requestSettings.parameters.getString(pnId, IdGenerator.next())
+  override final val id: IdString = request.parameters.getString(pnId, IdGenerator.next())
 
-  final val modal = requestSettings.parameters.getBoolean(pnModal, default = false)
+  final val modal = request.parameters.getBoolean(pnModal, default = false)
 
   final val formId = id ~ "form"
 

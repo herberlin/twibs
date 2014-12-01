@@ -34,6 +34,8 @@ case class GermanIban(str: String) {
 
   def bic = GermanIban.blzToBicAndName(blz)._1
 
+  def shortBic = bic.stripSuffix("XXX")
+
   def bankName = GermanIban.blzToBicAndName(blz)._2
 
   def kto = string.substring(12)

@@ -17,8 +17,8 @@ Can be found on Maven Central (Java 7 and Scala 2.10).
 
     <dependency>
         <groupId>net.twibs</groupId>
-        <artifactId>twibs-core</artifactId>
-        <version>0.10</version>
+        <artifactId>twibs-*</artifactId>
+        <version>0.12</version>
     </dependency>
 
 # API docs
@@ -33,27 +33,6 @@ Is done with plain maven.
 
 Currently the library is maintained against Java 7 and Scala 2.11.
 
-# Other software
+# What twibs can do for you
 
-* Configuration is done with [Typesafe Config](https://github.com/typesafehub/config)
-
-# Run modes
-
-Specified with `java -Drun.mode=(development|test|staging|production) ...` at startup (default: `production`).
-
-`test` is used if Stacktrace contains `org.scalatest.tools.Runner` and no run mode defined.
-
-## Date picker component
-
-Two formats need to be defined in configuration:
-
-1. "data-time-format": Java Format described [here](http://download.java.net/jdk8/docs/api/java/time/format/DateTimeFormatter.html). Example "dd.MM.yyy HH:mm"
-
-2. "date-time-format-browser": JavaScript Format described [here](http://www.malot.fr/bootstrap-datetimepicker). Example "yyyy-mm-ddThh:ii:ssZ"
-
-# Field states
-
-- Enabled:         shown,     validated,     submitted
-- Disabled:       shown, not validated,     submitted (encrypted)
-- Hidden:     not shown, not validated,     submitted (encrypted)
-- Unrendered: not shown, not validated, not submitted
+See the modules description for details.

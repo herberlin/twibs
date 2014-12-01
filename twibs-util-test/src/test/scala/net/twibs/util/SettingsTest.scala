@@ -13,6 +13,15 @@ class SettingsTest extends TwibsTest {
     sys.version should be(sys.majorVersion)
     SystemSettings.version should be(sys.fullVersion)
   }
+  SystemSettings.runMode.isTest should beTrue
+
+  test("Check activation") {
+    val was:SystemSettings = SystemSettings
+    SystemSettings.copy(runMode = RunMode.PRODUCTION).activate()
+    SystemSettings.runMode.isProduction should beTrue
+    was.activate()
+    SystemSettings.runMode.isTest should beTrue
+  }
 
   test("Default Mode") {
     RunMode.isProduction should beFalse

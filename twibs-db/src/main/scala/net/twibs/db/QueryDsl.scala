@@ -144,7 +144,12 @@ object QueryDsl {
       (rs, ac) => (self.from(rs, ac), right.asInstanceOf[QueryImpl[R]].from(rs, ac))
     )
 
-    override def insertAndReturn[R](values: T)(column: Column[R])(implicit connection: Connection): R = insertStatement(values).insertAndReturn(connection)(column)
+    override def returning[R](column: Column[R]): InsertWithReturn[T, R] = new InsertWithReturn[T,R] {
+      override def insert(values: T)(implicit connection: Connection): R =
+        insertStatement(values).insertAndReturn(connection)(column)
+
+      override def toInsertSql: String = self.toInsertSql
+    }
 
     override def insert(values: T)(implicit connection: Connection): Unit = insertStatement(values).insert(connection)
 

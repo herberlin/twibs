@@ -196,14 +196,14 @@ object BaseForm {
   val deferredResponses: Cache[String, Response] = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).build()
 }
 
-trait BaseForm extends Container with CurrentRequestSettings {
+trait BaseForm extends Container with CurrentRequest {
   def pnId = ilk + BaseForm.PN_ID_SUFFIX
 
   def pnModal = ilk + BaseForm.PN_MODAL_SUFFIX
 
-  override val id: IdString = requestSettings.parameters.getString(pnId, IdGenerator.next())
+  override val id: IdString = request.parameters.getString(pnId, IdGenerator.next())
 
-  val modal = requestSettings.parameters.getBoolean(pnModal, default = false)
+  val modal = request.parameters.getBoolean(pnModal, default = false)
 
   val formReload = new Executor("form-reload") with StringValues {
     override def execute(): Unit = result = InsteadOfFormDisplay(reloadFormJs)
@@ -235,7 +235,7 @@ trait BaseForm extends Container with CurrentRequestSettings {
 
   def actionLinkWithContextPathAndParameters(parameters: (String, String)*): String = actionLinkWithContextPath + queryString(parameters: _*)
 
-  def actionLinkWithContextPath: String = requestSettings.contextPath + actionLink
+  def actionLinkWithContextPath: String = request.contextPath + actionLink
 
   private def queryString(parameters: (String, String)*) = {
     val escaper = UrlEscapers.urlFormParameterEscaper()
@@ -252,7 +252,7 @@ trait BaseForm extends Container with CurrentRequestSettings {
 
   def reloadFormJs = displayJs
 
-  def displayJs = requestSettings.method match {
+  def displayJs = request.method match {
     case GetMethod => openModalJs
     case PostMethod => refreshJs
     case _ => JsEmpty
@@ -378,7 +378,7 @@ trait BaseField extends InteractiveComponent with Validatable {
 trait SubmitOnChange extends BaseField {
   override def submitOnChange = true
 
-  def isSubmittedOnChange = form.requestSettings.parameters.getString("form-change", "") == name
+  def isSubmittedOnChange = form.request.parameters.getString("form-change", "") == name
 }
 
 trait UseLastParameterOnly extends BaseField {

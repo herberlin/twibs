@@ -6,24 +6,31 @@ package net.twibs.util
 
 import java.io.{File, FileOutputStream}
 import java.net.URL
+
 import com.google.common.io.ByteStreams
 import org.apache.commons.io.FileUtils
 
 object Predef extends ThreeTenTransition {
   type WithCloseMethod = {def close(): Unit}
 
-  implicit def toRichClosable[C <: WithCloseMethod](closable: C) = new {
+  class RichClosable[C](closable: C, close: () => Unit) {
     def closeAfter[R](f: => R): R = useAndClose(Unit => f)
 
     def useAndClose[R](f: C => R): R = {
       var t: Throwable = null
       try f(closable) catch {
         case x: Throwable => t = x; throw x
-      } finally try closable.close() catch {
+      } finally try close() catch {
         case x: Throwable => if (t != null) t.addSuppressed(x) else throw x
       }
     }
   }
+
+  implicit def toRichClosable[C <: AutoCloseable](closable: C) =
+    new RichClosable(closable, () => closable.close())
+
+  implicit def toRichClosableReflected[C <: WithCloseMethod](closable: C) =
+    new RichClosable(closable, () => closable.close())
 }
 
 object IOUtils {
@@ -34,7 +41,7 @@ object IOUtils {
 
   def downloadIfDoesNotExist(file: File, url: URL) = if (!file.exists()) copy(url, file) else file
 
-  import Predef._
+  import net.twibs.util.Predef._
 
   def copy(url: URL, file: File) = {
     new FileOutputStream(file) useAndClose {

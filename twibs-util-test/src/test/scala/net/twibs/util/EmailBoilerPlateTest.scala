@@ -13,7 +13,7 @@ import net.twibs.testutil.TwibsTest
 class EmailBoilerPlateTest extends TwibsTest {
   test("Convert to id") {
     val file = new File("target/inkemail.html")
-    Files.write(new EmailBoilerPlate().toString("BESTELL", <p>Header</p>, <p>Content</p>, <p>Footer</p>), file, Charsets.UTF_8)
+    Files.write(EmailBoilerPlate.toString("BESTELL", <p>Header</p>, <p>Content</p>, <p>Footer</p>), file, Charsets.UTF_8)
 //    Desktop.getDesktop.open(file)
   }
 }

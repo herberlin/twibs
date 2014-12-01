@@ -69,7 +69,7 @@ class TestForm extends Form("test") with Bs3Form {
 
     val enabled = new SingleLineField("enabled") with StringInput
     enabled.strings = "" :: "" :: Nil
-    enabled.validate()
+//    enabled.validate()
 
     >> {<h5>Even though the disabled field has values and is validated no validation information is displayed</h5>}
     val disabled = new SingleLineField("disabled") with StringInput {
@@ -90,11 +90,19 @@ class TestForm extends Form("test") with Bs3Form {
 
     new HtmlField("html") with StringInput
 
-    >> {<h4>Checkboxes</h4>}
+    >> {<h4>Checkboxes &amp; Radiobuttons</h4>}
     new BooleanCheckboxField("boolean")
 
     new CheckboxField("checkbox") with StringInput {
       override def options = "a" :: "b" :: Nil
+    }
+
+    new RadioField("radio") with StringInput with SubmitOnChange {
+      override def options = "a" :: "b" :: Nil
+
+      override def execute(): Seq[Result] =
+        if (isSubmittedOnChange) AfterFormDisplay(info"pressed: Radio button changed: $string".showNotification)
+        else Ignored
     }
 
     >> {<h3>Modal</h3>}

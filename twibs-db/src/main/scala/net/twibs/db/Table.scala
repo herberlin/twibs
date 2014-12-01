@@ -182,7 +182,7 @@ abstract class Column[T](implicit val table: Table) {
 
   def asVarChar: String
 
-  private lazy val asStringColumn =  new table.StringColumn(asVarChar) {
+  private lazy val asStringColumn = new table.StringColumn(asVarChar) {
     override def fullName: String = name
   }
 
@@ -297,7 +297,7 @@ trait OrderBy {
 
   def nullsLast: OrderBy = new OrderBy {
     override private[db] def toStatement: Statement = self.toStatement ~ Statement(" NULLS LAST")
-}
+  }
 
   def nullsFirst: OrderBy = new OrderBy {
     override private[db] def toStatement: Statement = self.toStatement ~ Statement(" NULLS FIRST")
@@ -395,7 +395,7 @@ trait Query[T <: Product] {
 
   def insert(value: T)(implicit connection: Connection): Unit
 
-  def insertAndReturn[R](value: T)(column: Column[R])(implicit connection: Connection): R
+  def returning[R](column: Column[R]): InsertWithReturn[T,R]
 
   def update(value: T)(implicit connection: Connection): Long
 
@@ -452,4 +452,10 @@ trait DeleteFrom {
   def delete(implicit connection: Connection): Long
 
   def toDeleteSql: String
+}
+
+trait InsertWithReturn[T,R] {
+  def insert(value: T)(implicit connection: Connection): R
+
+  def toInsertSql: String
 }

@@ -56,7 +56,7 @@ abstract class Form(override val ilk: String) extends BaseForm {
     else if (state.isHidden) noAccessHtml
     else
       <form id={id} name={name} class={formCssClasses} action={actionLinkWithContextPath} method="post" enctype={enctype}>
-      {renderer.hiddenInput(pnId, id) ++ renderer.hiddenInput(pnModal, "" + modal) ++ renderer.hiddenInput(ApplicationSettings.PN_NAME, requestSettings.applicationSettings.name)}
+      {renderer.hiddenInput(pnId, id) ++ renderer.hiddenInput(pnModal, "" + modal) ++ renderer.hiddenInput(ApplicationSettings.PN_NAME, request.applicationSettings.name)}
       <div class="modal transfer-modal">
         <div class="modal-dialog">
           <div class="modal-content">

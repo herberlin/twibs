@@ -74,7 +74,7 @@ class QueryDslTest extends TwibsTest {
         userTable.size should be(3)
         query(userTable.lastName).where(userTable.firstName like "Frank").size should be(0)
         query(userTable.lastName).where(userTable.firstName like "frank").size should be(1)
-        query(userTable.firstName).also(query(userTable.lastName)).insertAndReturn("Frank", "appa")(userTable.id) should be(4L)
+        query(userTable.firstName).also(query(userTable.lastName)).returning(userTable.id).insert("Frank", "appa") should be(4L)
         userTable.size should be(4)
         query(userTable.firstName).where(userTable.firstName like "frank").size should be(2)
         query(userTable.firstName).where(userTable.firstName like "frank").distinct.size should be(1)
