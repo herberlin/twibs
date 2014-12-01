@@ -22,10 +22,16 @@ class HtmlUtilsTest extends TwibsTest {
         |    <p><strong>Frohes Fest</strong></p>
         |    <p>Das beste Rezept für kalte Tage: Dick einpacken, gemütlich zusammenrücken und einander warme Gedanken senden.</p>
       """.stripMargin) should be(
-      """Frohes Fest
-        |
-        |Das beste Rezept für kalte Tage: Dick einpacken, gemütlich zusammenrücken und einander warme Gedanken senden.
-        | """.stripMargin.trim)
+      "Frohes Fest\n\nDas beste Rezept für kalte Tage: Dick einpacken, gemütlich zusammenrücken \n" +
+        "und einander warme Gedanken senden.")
+  }
+
+  test("Convert to email html") {
+    HtmlUtils.convertEmailHtmlToPlain(
+      """<p href="https://www.example.com/imprint">Look at our (Grüße) impressum <a href="https://www.example.com/imprint">here</a> &amp; <a href="https://www.example.com/imprint">here</a> kontakt@example.com.</p>"""
+    ) should be(
+      """Look at our (Grüße) impressum here <https://www.example.com/imprint> & """ + "\n" +
+        """here <https://www.example.com/imprint> kontakt@example.com.""")
   }
 
   test("Anything goes") {

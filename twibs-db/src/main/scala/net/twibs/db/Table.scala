@@ -11,7 +11,7 @@ import org.threeten.bp.{LocalDate, LocalDateTime}
 
 object Sql extends Loggable
 
-class Table(val tableName: String) {
+case class Table(tableName: String) {
   protected implicit def table: Table = this
 
   case class StringColumn(name: String, default: String = "") extends Column[String] {

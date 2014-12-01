@@ -12,8 +12,15 @@ class QueryDslTest extends TwibsTest {
   }
 
   val newsTable = new Table("ns") {
-    val id = new LongColumn("id")
+    val id = new LongColumn("news_id")
     val userId = new LongColumn("user_id")
+    val title = new StringColumn("title")
+  }
+
+  val newsDetail = new Table("nd") {
+    val id = new LongColumn("news_detail_id")
+    val newsId =  new LongColumn("news_id")
+    val detail = new StringColumn("detail")
   }
 
   import QueryDsl._
@@ -59,8 +66,27 @@ class QueryDslTest extends TwibsTest {
   }
 
   test("Group by sql statement") {
-    val q = query(userTable.firstName, userTable.id.max).join(userTable.id, newsTable.userId).groupBy(userTable.firstName).offset(10).limit(20).where(userTable.firstName =!= "Frank")
-    q.toSelectSql should be("SELECT users.first_name,max(users.id) FROM users JOIN ns ON ns.user_id = users.id WHERE users.first_name <> ? GROUP BY users.first_name OFFSET 10 LIMIT 20")
+    val q = query(userTable.firstName, userTable.id.max, newsDetail.detail).join(userTable.id, newsTable.userId).join(newsTable.id, newsDetail.newsId).groupBy(userTable.firstName).offset(10).limit(20).where(userTable.firstName =!= "Frank")
+    q.toSelectSql should be("SELECT users.first_name,max(users.id),nd.detail FROM users JOIN ns ON users.id = ns.user_id JOIN nd ON ns.news_id = nd.news_id WHERE users.first_name <> ? GROUP BY users.first_name OFFSET 10 LIMIT 20")
+  }
+
+  test("Join with 'also'") {
+    val l = new JoinList(Seq())
+      .add(userTable.id, newsTable.userId)
+      .add(userTable.firstName, newsTable.title)
+      .add(userTable.id, newsTable.userId) // Multiple times to proof distinct
+      .add(newsTable.id, newsDetail.newsId)
+    l.tables should be(Seq(newsDetail, newsTable, userTable))
+    l.toJoinSql should be("users JOIN ns ON users.first_name = ns.title AND users.id = ns.user_id JOIN nd ON ns.news_id = nd.news_id")
+
+    val q1 = query(userTable.firstName, newsTable.id).join(userTable.id, newsTable.userId)
+    q1.toSelectSql should be("SELECT users.first_name,ns.news_id FROM users JOIN ns ON users.id = ns.user_id")
+
+    val q2 = query(newsTable.title, newsDetail.detail).join(newsTable.id, newsDetail.newsId)
+    q2.toSelectSql should be("SELECT ns.title,nd.detail FROM ns JOIN nd ON ns.news_id = nd.news_id")
+
+    q1.also(q2).toSelectSql should be("SELECT users.first_name,ns.news_id,ns.title,nd.detail FROM users JOIN ns ON users.id = ns.user_id JOIN nd ON ns.news_id = nd.news_id")
+    q2.also(q1).toSelectSql should be("SELECT ns.title,nd.detail,users.first_name,ns.news_id FROM users JOIN ns ON users.id = ns.user_id JOIN nd ON ns.news_id = nd.news_id")
   }
 
   test("Empty order by") {

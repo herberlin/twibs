@@ -3,7 +3,7 @@ package net.twibs.form
 import scala.xml.PrettyPrinter
 
 import net.twibs.testutil.TwibsTest
-import net.twibs.util.{Request, IdString, Message, PrimaryDisplayType}
+import net.twibs.util._
 
 class FormTest extends TwibsTest {
   test("Invalid name throws exception") {
@@ -87,6 +87,7 @@ class FormTest extends TwibsTest {
 
         override protected def computeValid: Boolean = false
       }
+      val submit = new Button("submit") with StringInput with DefaultDisplayType with ExecuteValidated
     }
 
     f.enabled.isValid should beTrue
@@ -99,10 +100,9 @@ class FormTest extends TwibsTest {
         "enabled" -> Seq("e"),
         "disabled" -> Seq("d"),
         "hidden" -> Seq("h"),
-        "ignored" -> Seq("i")
+        "ignored" -> Seq("i"),
+        "submit" -> Seq("")
       ))
-
-    f.validate()
 
     f.enabled.isValid should beFalse
     f.disabled.isValid should beTrue
@@ -353,7 +353,7 @@ class FormTest extends TwibsTest {
         |        <h3>test</h3>
         |    </header>
         |    <input type="submit" class="concealed" tabindex="-1" name="wait" value=""/>
-        |    <div id="a_shell" class="form-container-shell">
+        |    <div id="a_shell" name="test" class="form-container-shell">
         |        <div id="a" class="form-container">
         |            <div class="alert alert-warning alert-dismissable">
         |                <button type="button" class="close" data-dismiss="alert">×</button>
@@ -361,9 +361,9 @@ class FormTest extends TwibsTest {
         |            </div>
         |            <div class="alert alert-warning">Fill out form</div>
         |            <h3>Display text</h3>
-        |            <div id="a_users_shell" class="form-container-shell">
+        |            <div id="a_users_shell" name="users" class="form-container-shell">
         |                <div id="a_users" class="form-container">
-        |                    <div id="a_users_user_shell" class="detachable form-container-shell">
+        |                    <div id="a_users_user_shell" name="user" class="detachable form-container-shell">
         |                        <button type="button" class="close" data-toggle="popover" data-html="true" data-placement="auto left" data-title="Delete component?" data-content='<button type="button" class="btn btn-danger" data-dismiss="detachable">Delete</button>'>&times;</button>
         |                        <div id="a_users_user" class="form-container">
         |                            <input class="can-be-disabled" type="text" name="adminusername" id="a_users_user_adminusername" placeholder="username" value=""/>
@@ -373,7 +373,7 @@ class FormTest extends TwibsTest {
         |                    <input type="hidden" autocomplete="off" name="users" value="admin"/>
         |                </div>
         |            </div>
-        |            <div id="a_easy_shell" class="detachable form-container-shell">
+        |            <div id="a_easy_shell" name="easy" class="detachable form-container-shell">
         |                <button type="button" class="close" data-toggle="popover" data-html="true" data-placement="auto left" data-title="Delete component?" data-content='<button type="button" class="btn btn-danger" data-dismiss="detachable">Delete</button>'>&times;</button>
         |                <div id="a_easy" class="form-container">
         |                    <button type="submit" name="wait" id="a_easy_wait" class="can-be-disabled btn btn-primary" value="">wait</button>
@@ -407,4 +407,19 @@ class FormTest extends TwibsTest {
     f.f.strings should be(Seq())
   }
 
+  test("Link parameters") {
+    val f = new Form("a") with Bs3Form {
+      val field = new SingleLineField("s") with StringInput
+      val ignored = new SingleLineField("i") with StringInput {
+        override protected def selfIsIgnored: Boolean = true
+      }
+      val button = new Button("s") with StringInput with PrimaryDisplayType
+      val link = new OpenModalLink() with LongInput with DefaultDisplayType
+    }
+
+    f.field.strings = "1" :: "2" :: Nil
+    f.ignored.strings = "5" :: "6" :: Nil
+    f.button.strings = "3" :: "4" :: Nil
+    f.link.link(Seq("a" -> "b")) should be("/forms/net/twibs/form/Form?s=1&s=2&a=b")
+  }
 }

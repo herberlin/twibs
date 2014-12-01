@@ -39,7 +39,11 @@ trait Component extends TranslationSupport {
 
   def shellId = id ~ "shell"
 
-  def messages: Seq[Message] = Nil
+  def messages: Seq[Message] = _messages
+
+  val _messages: ListBuffer[Message] = ListBuffer()
+
+  def addMessage(message:Message) = _messages += message
 
   private var _validated = false
 
@@ -67,6 +71,7 @@ trait Component extends TranslationSupport {
     hiddenCache.reset()
     ignoredCache.reset()
     validCache.reset()
+    _messages.clear()
     _validated = false
     _parsed = false
   }
@@ -109,6 +114,10 @@ trait Component extends TranslationSupport {
   implicit def toResultSeq(result: Result): Seq[Result] = result :: Nil
 
   implicit def toResultSeq(resultOption: Option[Result]): Seq[Result] = resultOption.map(_ :: Nil) getOrElse Nil
+
+  implicit def toParameterSeq(parameters: (String, String)*) = parameters.toSeq
+
+  implicit def toParameterSeq(parameter: (String, String)) = Seq(parameter)
 
   def callExecute(): Seq[Result] = if (isEnabled && parsed) execute() else Ignored
 
@@ -226,7 +235,13 @@ trait Container extends Component with ValidateInTree {
     override protected def computeValid = valid
   }
 
-  trait Field extends InputComponent with Focusable with ValidateInTree {
+  trait ParametersInLinks extends InputComponent {
+    override def linkParameters: Seq[(String, String)] = if(!isIgnored && isChanged) strings.map(v => name -> v) else Nil
+  }
+
+  abstract class Hidden(ilk: String) extends InputComponent(ilk: String) with ParametersInLinks
+
+  trait Field extends InputComponent with Focusable with ValidateInTree with ParametersInLinks {
     override def translator: Translator = super.translator.kind("FIELD")
 
     def fieldTitle = t"field-title: #$ilk"
@@ -386,6 +401,12 @@ object FormConstants {
   val PN_FORM_MODAL_SUFFIX = "-form-modal"
 }
 
+object FormUtils {
+  val escaper = UrlEscapers.urlFormParameterEscaper()
+
+  def toQueryString(parameters: Seq[(String, String)]) = parameters.map(e => escaper.escape(e._1) + "=" + escaper.escape(e._2)).mkString("&")
+}
+
 class Form(val ilk: String) extends Container with CancelStateInheritance {
   override final val prefixForChildNames: String = ""
 
@@ -466,23 +487,24 @@ class Form(val ilk: String) extends Container with CancelStateInheritance {
   private def getClassForActionLink(classToCheck: Class[_]): Class[_] =
     if (classToCheck.isLocalClass) getClassForActionLink(classToCheck.getSuperclass) else classToCheck
 
-  def actionLinkWithContextPathAndParameters(parameters: (String, String)*): String = actionLinkWithContextPath + queryString(parameters: _*)
+  def actionLinkWithContextPathAppIdAndParameters(parameters: Seq[(String, String)]): String = actionLinkWithContextPath + queryString(addAppIdAndModal(addComponentParameters(parameters)))
+
+  def actionLinkWithContextPathAndParameters(parameters: Seq[(String, String)]): String = actionLinkWithContextPath + queryString(addComponentParameters(parameters))
 
   def actionLinkWithContextPath: String = Request.contextPath + actionLink
 
-  private def queryString(parameters: (String, String)*) = {
-    val keyValues = (pnId -> id.string) +: (pnModal -> modal.toString) +: (componentParameters ++ parameters.toSeq)
-    val all = if (ApplicationSettings.name != ApplicationSettings.DEFAULT_NAME) (ApplicationSettings.PN_NAME -> ApplicationSettings.name) +: keyValues else keyValues
+  def queryString(parameters: Seq[(String, String)]) = "?" + FormUtils.toQueryString(parameters)
 
-    val escaper = UrlEscapers.urlFormParameterEscaper()
-    "?" + all.distinct.map(e => escaper.escape(e._1) + "=" + escaper.escape(e._2)).mkString("&")
+  def addAppIdAndModal(parameters: Seq[(String, String)]) = {
+    val keyValues = (pnId -> id.string) +: (pnModal -> modal.toString) +: addComponentParameters(parameters)
+    if (ApplicationSettings.name != ApplicationSettings.DEFAULT_NAME) (ApplicationSettings.PN_NAME -> ApplicationSettings.name) +: keyValues else keyValues
   }
+
+  def addComponentParameters(parameters: Seq[(String, String)]) =  componentParameters ++ parameters
 
   def componentParameters: Seq[(String, String)] = components.toSeq.map(_.linkParameters).flatten
 
   lazy val defaultButtonOption: Option[DefaultButton] = components.collectFirst { case b: DefaultButton if b.isEnabled => b}
-
-  // Form is Root
 
   validateSettings()
 }

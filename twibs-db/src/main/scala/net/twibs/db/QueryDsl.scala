@@ -98,13 +98,11 @@ object QueryDsl {
 
   def deleteFrom(table: Table): DeleteFrom = new DeleteFromImpl(table)
 
-  private case class QueryImpl[T <: Product](columns: List[Column[_]], where: Where = EmptyWhere, orderBy: OrderBy = EmptyOrderBy, groupBy: List[Column[_]] = Nil, joins: List[(Column[_], Column[_])] = Nil, offset: Long = 0L, limit: Long = Long.MaxValue, isDistinct: Boolean = false, from: (ResultSet, AutoCounter) => T = null) extends Query[T] {
+  private case class QueryImpl[T <: Product](columns: List[Column[_]], where: Where = EmptyWhere, orderBy: OrderBy = EmptyOrderBy, groupBy: List[Column[_]] = Nil, joinList: JoinList = JoinList(Seq()), offset: Long = 0L, limit: Long = Long.MaxValue, isDistinct: Boolean = false, from: (ResultSet, AutoCounter) => T = null) extends Query[T] {
     self =>
     private val columnsWithIndex = columns.zipWithIndex
 
-    private val tables = (joins.map(_._1.table) ::: columns.map(_.table)).distinct.diff(joinedTables)
-
-    def joinedTables = joins.map(_._2.table).distinct
+    private val tables = columns.map(_.table).distinct.diff(joinList.tables)
 
     def to(ps: PreparedStatement, values: T): Unit = makeFlat(values).zip(columnsWithIndex) map { case (value, (column, index)) => column.set(ps, index, value)}
 
@@ -112,7 +110,7 @@ object QueryDsl {
 
     override def groupBy(columns: Column[_]*): Query[T] = copy(groupBy = columns.toList ::: groupBy)
 
-    override def join(left: Column[_], right: Column[_]): Query[T] = copy(joins = (left, right) :: joins)
+    override def join(left: Column[_], right: Column[_]): Query[T] = copy(joinList = joinList.add(left, right))
 
     override def offset(offset: Long): Query[T] = copy(offset = offset)
 
@@ -130,21 +128,21 @@ object QueryDsl {
     override def orderByName(orderBys: List[(String, SortOrder)]): Query[T] =
       orderBy(orderBys.map { case (name, sort) =>
         columnForName(name).flatMap(column =>
-            sort match {
-              case SortOrder.Ascending => Some(column.asc)
-              case SortOrder.Descending => Some(column.desc)
-              case _ => None
-            }
+          sort match {
+            case SortOrder.Ascending => Some(column.asc)
+            case SortOrder.Descending => Some(column.desc)
+            case _ => None
+          }
         )
       }.flatten)
 
     def columnForName(columnName: String) = columns.find(_.name == columnName)
 
-    override def also[R <: Product](right: Query[R]): Query[(T, R)] = new QueryImpl[(T, R)](columns ::: right.columns, where, orderBy, groupBy, joins, offset, limit, isDistinct,
+    override def also[R <: Product](right: Query[R]): Query[(T, R)] = new QueryImpl[(T, R)](columns ::: right.columns, where, orderBy, groupBy, joinList.add(right.asInstanceOf[QueryImpl[R]].joinList), offset, limit, isDistinct,
       (rs, ac) => (self.from(rs, ac), right.asInstanceOf[QueryImpl[R]].from(rs, ac))
     )
 
-    override def returning[R](column: Column[R]): InsertWithReturn[T, R] = new InsertWithReturn[T,R] {
+    override def returning[R](column: Column[R]): InsertWithReturn[T, R] = new InsertWithReturn[T, R] {
       override def insert(values: T)(implicit connection: Connection): R =
         insertStatement(values).insertAndReturn(connection)(column)
 
@@ -192,7 +190,7 @@ object QueryDsl {
 
     private def sizeOrSelectStatement = Statement(s"SELECT${if (isDistinct) " DISTINCT" else ""} $columnListSql FROM $tableListSql", Nil) ~ joinStatement ~ where.toStatement ~ groupByStatement
 
-    private def joinStatement = Statement(joins.map { case (l, r) => s" JOIN ${r.table.tableName} ON ${r.fullName} = ${l.fullName}"}.mkString)
+    private def joinStatement = Statement(joinList.toJoinSql)
 
     private def limitStatement = if (limit < Long.MaxValue) Statement(s" LIMIT $limit") else EmptyStatement
 
@@ -227,7 +225,7 @@ object QueryDsl {
     override def toInsertSql: String = s"INSERT INTO $tableListSql(${columns.map(_.name).mkString(",")}) VALUES(${columns.map(x => "?").mkString(",")})"
 
     override def convert[R <: Product](convertTo: (T) => R, convertFrom: (R) => Option[T]): Query[R] =
-      new QueryImpl[R](columns, where, orderBy, groupBy, joins, offset, limit, isDistinct,
+      new QueryImpl[R](columns, where, orderBy, groupBy, joinList, offset, limit, isDistinct,
         (rs, ac) => convertTo(self.from(rs, ac))) {
         override def to(ps: PreparedStatement, values: R): Unit = self.to(ps, convertFrom(values).get)
       }
@@ -264,4 +262,66 @@ object QueryDsl {
 
   private object EmptyStatement extends Statement("", Nil)
 
+}
+
+case class Join(left: Column[_], right: Column[_]) {
+  def tables = Seq(left.table, right.table)
+}
+
+case class JoinList(joins: Seq[Join]) {
+  def add(joinList: JoinList): JoinList = joinList.joins.foldLeft(this)((l, j) => l.add(j))
+
+  def add(c1: Column[_], c2: Column[_]): JoinList =
+    if (c1.table.tableName < c2.table.tableName) add(Join(c1, c2))
+    else add(Join(c2, c1))
+
+  def add(join: Join): JoinList = if (joins.contains(join)) this else copy(join +: joins)
+
+  def tables = joins.map(_.tables).flatten.distinct
+
+  def toJoinSql = JoinList.render(joins)
+}
+
+object JoinList {
+  def render(joins: Seq[Join]): String =
+    joins match {
+      case Nil => ""
+      case _ => best(joins)
+    }
+
+  def best(joins: Seq[Join]) = {
+    val tableUsage = (joins.map(j => (j.left.table, j.right.table)) ++ joins.map(j => (j.right.table, j.left.table)))
+      .distinct.map(_._1)
+      .groupBy(l => l).map(t => (t._1, t._2.length)).toSeq.sortBy(_._2)
+    val b = (tableUsage.find(_._2 % 2 == 1) getOrElse tableUsage.last)._1
+    b.tableName + render(b, joins)
+  }
+
+  def render(table: Table, joins: Seq[Join]): String =
+    joins.find(_.left.table == table) match {
+      case Some(head) => render(head, joins, left = true)
+      case None => joins.find(_.right.table == table) match {
+        case Some(head) => render(head, joins, left = false)
+        case None => "," + render(joins)
+      }
+    }
+
+  def render(head: Join, joins: Seq[Join], left: Boolean): String =
+    partition(head, joins) match {
+      case (Seq(), remaining) => render(remaining)
+      case (used, Seq()) => render(used, left)
+      case (used, remaining) => render(used, left) + render(if (left) head.right.table else head.left.table, remaining)
+    }
+
+  def render(joins: Seq[Join], left: Boolean): String =
+    if (left) renderLeft(joins) else renderRight(joins)
+
+  def renderLeft(joins: Seq[Join]): String =
+    " JOIN " + joins.head.right.table.tableName + " ON " + joins.map(join => join.left.fullName + " = " + join.right.fullName).mkString(" AND ")
+
+  def renderRight(joins: Seq[Join]): String =
+    " JOIN " + joins.head.left.table.tableName + " ON " + joins.map(join => join.right.fullName + " = " + join.left.fullName).mkString(" AND ")
+
+  def partition(head: Join, joins: Seq[Join]) =
+    joins.partition(j => j.left.table == head.left.table && j.right.table == head.right.table)
 }

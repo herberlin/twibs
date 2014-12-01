@@ -10,6 +10,7 @@ import com.ibm.icu.util.ULocale
 import scala.collection.JavaConverters._
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.ArrayBuffer
+import scala.xml.Unparsed
 
 abstract class Translator(id: String, usages: List[String], kinds: List[String]) {
   private val cache = TrieMap[String, String]()
@@ -103,17 +104,15 @@ trait TranslationSupport {
   private lazy val cachedTranslator = translator
 
   implicit def withTranslationFormatter(sc: StringContext) = new {
-    import net.twibs.util.XmlUtils._
-
     def t(args: Any*): String = cachedTranslator.translate(sc, args: _*)
 
-    def warn(args: Any*): Message = Message.warning(cachedTranslator.translate(sc, args: _*))
+    def warn(args: Any*): Message = Message.warning(Unparsed(cachedTranslator.translate(sc, args: _*)))
 
-    def info(args: Any*): Message = Message.info(cachedTranslator.translate(sc, args: _*))
+    def info(args: Any*): Message = Message.info(Unparsed(cachedTranslator.translate(sc, args: _*)))
 
-    def danger(args: Any*): Message = Message.danger(cachedTranslator.translate(sc, args: _*))
+    def danger(args: Any*): Message = Message.danger(Unparsed(cachedTranslator.translate(sc, args: _*)))
 
-    def success(args: Any*): Message = Message.success(cachedTranslator.translate(sc, args: _*))
+    def success(args: Any*): Message = Message.success(Unparsed(cachedTranslator.translate(sc, args: _*)))
   }
 }
 

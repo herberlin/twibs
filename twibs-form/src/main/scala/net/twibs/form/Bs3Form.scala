@@ -4,13 +4,11 @@
 
 package net.twibs.form
 
-import com.google.common.net.UrlEscapers
-
-import scala.xml.{NodeSeq, Text, Unparsed}
-
 import net.twibs.util.JavaScript._
 import net.twibs.util.XmlUtils._
-import net.twibs.util.{DisplayType, ApplicationSettings, Message, Request}
+import net.twibs.util.{ApplicationSettings, DisplayType, Message, Request}
+
+import scala.xml.{NodeSeq, Text, Unparsed}
 
 sealed trait Bs3Container extends Container {
   override def html = {
@@ -134,19 +132,16 @@ sealed trait Bs3Container extends Container {
       else <a href="#" class={"can-be-disabled" :: buttonCssClasses} data-call={link(name, string)}>{renderButtonTitle}</a>
     }
 
-    def link(name: String, string: String) = form.actionLinkWithContextPathAndParameters(name -> string)
+    def link(parameters: Seq[(String, String)]) = form.actionLinkWithContextPathAppIdAndParameters(parameters)
   }
 
   abstract class OpenModalLink extends Button("open-modal") with LinkButton with Floating {
     override def execute(): Seq[Result] = InsteadOfFormDisplay(form.openModalJs)
 
-    override def link(name: String, string: String) = {
-      val escaper = UrlEscapers.urlFormParameterEscaper()
-      form.actionLinkWithContextPath + "?" + escaper.escape(name) + "=" + escaper.escape(string)
-    }
+    override def link(parameters: Seq[(String, String)]) = form.actionLinkWithContextPathAndParameters(parameters)
   }
 
-  abstract class Hidden(ilk: String) extends super.InputComponent(ilk) {
+  abstract class Hidden(ilk: String) extends super.Hidden(ilk) {
     override def html: NodeSeq =
       if (isIgnored) NodeSeq.Empty
       else entries.map(entry => hidden(name, entry.string)).flatten
@@ -392,10 +387,12 @@ trait Bs3Form extends Form with Bs3Container {
   override def html: NodeSeq = surround({if (modal) modalContent else inlineContent})
 
   def surround(content: NodeSeq, modalValue: String = modal.toString) =
-    <form id={formId} name={name} class="twibs-form" action={actionLinkWithContextPath} method="post" enctype="multipart/form-data">
+    <form id={formId} name={name} class={formCssClasses} action={actionLinkWithContextPath} method="post" enctype="multipart/form-data">
       {hidden(pnId, id) ++ hidden(pnModal, modalValue) ++ hidden(ApplicationSettings.PN_NAME, Request.applicationSettings.name)}
       {content}
     </form>
+
+  def formCssClasses = "twibs-form" :: Nil
 
   def modalContent: NodeSeq =
     <div class="modal-content">

@@ -18,6 +18,8 @@ case class Message(text: NodeSeq, displayTypeString: String, importance: Int, di
   override def hashCode(): Int = text.hashCode + displayTypeString.hashCode
 
   override def equals(obj: Any): Boolean = obj match {case o: Message if o.text == text && o.displayTypeString == displayTypeString => true case _ => false }
+
+  def permanent = copy(dismissable = false)
 }
 
 object Message {

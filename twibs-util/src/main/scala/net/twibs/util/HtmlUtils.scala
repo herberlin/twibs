@@ -5,9 +5,21 @@
 package net.twibs.util
 
 import org.owasp.html.HtmlPolicyBuilder
+import net.htmlparser.jericho._
 
 object HtmlUtils {
-  private val NOTHING_GOES = new HtmlPolicyBuilder().allowElements("p", "br").toFactory
+  private val NOTHING_GOES =
+    new HtmlPolicyBuilder()
+      .allowElements("p", "br", "a")
+      .toFactory
+
+  private val EMAIL_POLICY_FACTORY =
+    new HtmlPolicyBuilder()
+      .allowElements("p", "br", "a")
+      .allowAttributes("href").onElements("a")
+      .allowStandardUrlProtocols()
+      .toFactory
+
   private val ANYTHING_GOES =
     new HtmlPolicyBuilder()
       .allowAttributes("class").globally()
@@ -17,13 +29,13 @@ object HtmlUtils {
       .toFactory
   //  private val ANYTHING_GOES = new HtmlPolicyBuilder().allowCommonInlineFormattingElements().toFactory
 
-  def removeAllTagsExceptPandBR(html: String): String = NOTHING_GOES.sanitize(html)
+  def convertEmailHtmlToPlain(html: String): String =
+    new Source(html).getRenderer.setNewLine("\n").toString
 
   def convertHtmlToPlain(html: String): String =
-    removeAllTagsExceptPandBR(html)
-      .replaceAll("\\s*<br ?/?>\\s*", "\n")
-      .replaceAll("</p>\\s*<p>", "\n\n")
-      .replaceAll("</?p>", "").trim
+    new Source(html).getRenderer.setNewLine("\n").setIncludeHyperlinkURLs(false).toString
 
   def cleanup(html: String) = ANYTHING_GOES.sanitize(html)
+
+  Config.LoggerProvider = LoggerProvider.DISABLED
 }
