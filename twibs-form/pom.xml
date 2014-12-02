@@ -7,7 +7,7 @@
     <parent>
         <groupId>net.twibs</groupId>
         <artifactId>twibs-parent</artifactId>
-        <version>0.12-SNAPSHOT</version>
+        <version>0.12</version>
     </parent>
     <artifactId>twibs-form</artifactId>
     <name>Twibs: Form</name>
@@ -34,7 +34,7 @@
 
         <dependency>
             <groupId>net.twibs</groupId>
-            <artifactId>twibs-testutil</artifactId>
+            <artifactId>twibs-test-util</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
