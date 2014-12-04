@@ -4,13 +4,11 @@
 
 package net.twibs.util
 
-import java.io.{PrintStream, FileOutputStream, File}
+import java.io.File
 import java.net.{InetAddress, URI, UnknownHostException}
-import java.util.Properties
 
 import com.ibm.icu.util.{Currency, ULocale}
 import com.typesafe.config.{Config, ConfigFactory, ConfigParseOptions}
-import org.apache.commons.io.FileUtils
 import org.apache.tika.Tika
 import org.threeten.bp.{LocalDateTime, ZoneId}
 
@@ -36,8 +34,7 @@ case class SystemSettings(startedAt: Long,
                           fullVersion: String,
                           runMode: RunMode,
                           os: OperatingSystem,
-                          zoneId: ZoneId,
-                          mailSession: javax.mail.Session) {
+                          zoneId: ZoneId) {
   private[util] val configUnresolved = {
     ConfigFactory.invalidateCaches()
 
@@ -56,11 +53,6 @@ case class SystemSettings(startedAt: Long,
     userConfigWithOsgiFallback.withFallback(baseConfig)
   }
 
-  if (runMode.isTest || runMode.isDevelopment) {
-    mailSession.setDebugOut(new PrintStream(new FileOutputStream(new File(FileUtils.getTempDirectory, "twibs-mail.log"))))
-    mailSession.setDebug(true)
-  }
-
   val applicationSettings = configUnresolved.getObject("APPLICATIONS").unwrapped().keySet().asScala.map(name => name -> new ApplicationSettings(name, this)).toMap
 
   val defaultApplicationSettings = applicationSettings(ApplicationSettings.DEFAULT_NAME)
@@ -72,8 +64,6 @@ case class SystemSettings(startedAt: Long,
   val version = if (runMode.isProduction) majorVersion else fullVersion
 
   def use[T](f: => T) = Request.applicationSettings.copy(systemSettings = this).use(f)
-
-  def activate() = use {Request.activate()}
 }
 
 object SystemSettings extends Loggable {
@@ -110,8 +100,7 @@ object SystemSettings extends Loggable {
       case _ => RunMode.PRODUCTION
     },
     os = OperatingSystem(System.getProperty("os.name").toLowerCase),
-    zoneId = ZoneId.systemDefault(),
-    mailSession = javax.mail.Session.getInstance(new Properties())
+    zoneId = ZoneId.systemDefault()
   )
 
   logger.info(s"Run mode is '${default.runMode.name}'")

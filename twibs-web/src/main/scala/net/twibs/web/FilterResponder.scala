@@ -11,7 +11,6 @@ trait FilterResponderTrait extends CombiningResponder {
 
   def servletContextResponder: ServletContextResponder = new ServletContextResponder(servletContext)
 
-
   def servletContext: ServletContext
 }
 
