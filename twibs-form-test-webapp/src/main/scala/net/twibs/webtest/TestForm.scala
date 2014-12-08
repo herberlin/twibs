@@ -85,6 +85,14 @@ class TestForm extends Form("test") with Bs3Form {
       override protected def computeIgnored: Boolean = true
     }
 
+    new SingleSelectField("single-select") with StringInput with Chosen with Optional {
+      override def options: Seq[ValueType] = "Dear" :: "Bear" :: "Lion" :: Nil
+    }
+
+    new MultiSelectField("multi-select") with StringInput with Chosen {
+      override def options: Seq[ValueType] = "Dear" :: "Bear" :: "Lion" :: Nil
+    }
+
     >> {<h4>Multiline</h4>}
     new MultiLineField("multiline") with StringInput
 

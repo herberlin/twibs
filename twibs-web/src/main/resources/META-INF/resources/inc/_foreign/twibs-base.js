@@ -196,6 +196,7 @@ $(function () {
             })
             .on("twibs-update-dom", function () {
                 $('.twibs-form select.chosen').chosen({disable_search_threshold: 6, width: '100%'});
+                $('.twibs-form select.chosen-optional').chosen({allow_single_deselect: true, disable_search_threshold: 6, width: '100%'});
 
                 // 'chosen' does not preserve the focus, 'twibs' does.
                 $('.twibs-form select.chosen:focus').each(function () {
