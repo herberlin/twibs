@@ -4,19 +4,33 @@
 
 package net.twibs.web
 
+import javax.servlet.FilterChain
 import javax.servlet.http.{HttpServletRequest, HttpServletResponse}
 
 import com.google.common.base.Charsets
 import net.twibs.util.{CollectionUtils, Parameters, Request, Upload}
-import org.apache.sling.api.SlingHttpServletRequest
 import org.apache.sling.api.request.RequestParameter
+import org.apache.sling.api.{SlingHttpServletRequest, SlingHttpServletResponse}
 
 import scala.collection.JavaConverters._
+import scala.util.DynamicVariable
 
 class SlingFilter extends Filter {
+  override def doFilter(httpRequest: HttpServletRequest, httpResponse: HttpServletResponse, filterChain: FilterChain): Unit =
+    (httpRequest, httpResponse) match {
+      case (slingRequest: SlingHttpServletRequest, slingResponse: SlingHttpServletResponse) =>
+        CurrentSlingHttpServletRequest.withValue(slingRequest) {
+          CurrentSlingHttpServletResponse.withValue(slingResponse) {
+            super.doFilter(httpRequest, httpResponse, filterChain)
+          }
+        }
+      case _ => super.doFilter(httpRequest, httpResponse, filterChain)
+    }
+
   override def createRequest(httpRequest: HttpServletRequest, httpResponse: HttpServletResponse): Request =
-    httpRequest match {
-      case slingRequest: SlingHttpServletRequest => HttpServletRequestWithSlingUpload(slingRequest, httpResponse)
+    (httpRequest, httpResponse) match {
+      case (slingRequest: SlingHttpServletRequest, slingResponse: SlingHttpServletResponse) =>
+        HttpServletRequestWithSlingUpload(slingRequest, slingResponse)
       case _ => super.createRequest(httpRequest, httpResponse)
     }
 }
@@ -53,3 +67,12 @@ object HttpServletRequestWithSlingUpload extends HttpServletUtils {
     HttpServletRequestBase(httpServletRequest, httpServletResponse).copy(parameters = parameters, uploads = uploads)
   }
 }
+
+object CurrentSlingHttpServletRequest extends DynamicVariable[SlingHttpServletRequest](null) {
+  implicit def unwrap(companion: CurrentSlingHttpServletRequest.type): SlingHttpServletRequest = value
+}
+
+object CurrentSlingHttpServletResponse extends DynamicVariable[SlingHttpServletResponse](null) {
+  implicit def unwrap(companion: CurrentSlingHttpServletResponse.type): SlingHttpServletResponse = value
+}
+

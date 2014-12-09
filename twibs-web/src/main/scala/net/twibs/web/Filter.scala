@@ -56,21 +56,20 @@ class Filter extends javax.servlet.Filter {
         httpResponse.setHeader("X-Twibs", if (RunMode.isProduction) SystemSettings.version else SystemSettings.version + " - " + RunMode.name)
         val request = createRequest(httpRequest, httpResponse)
         request.use {
-          combiningResponderVar.respond(request) match {
+          combiningResponder.respond(request) match {
             case Some(response) =>
               new HttpResponseRenderer(request, response, httpRequest, httpResponse).render()
             case None =>
-              new ApplicationResponder(new Responder() {
-                override def respond(request: Request): Option[Response] = {
-                  filterChain.doFilter(httpRequest, httpResponse)
-                  None
-                }
-              }).respond(request)
+              combiningResponder.modifyForChaining(request).use {
+                filterChain.doFilter(httpRequest, httpResponse)
+                None
+              }
           }
         }
       }
     }
   }
+
 
   def createRequest(httpServletRequest: HttpServletRequest, httpServletResponse: HttpServletResponse): Request =
     HttpServletRequestWithCommonsFileUpload(httpServletRequest, httpServletResponse)

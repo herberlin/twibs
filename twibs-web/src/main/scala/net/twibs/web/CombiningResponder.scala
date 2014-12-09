@@ -18,7 +18,9 @@ trait CombiningResponder extends Responder {
 
   def loggingResponder(): Responder = new LoggingResponder(applicationResponder())
 
-  def applicationResponder() = new ApplicationResponder(errorResponder())
+  def applicationResponder() = new ApplicationResponder(localeResponder())
+
+  def localeResponder() = errorResponder()
 
   def errorResponder(): Responder = new StaticErrorResponder(new ErrorResponder(notFoundResponder(), cachingResponderVal))
 
@@ -57,4 +59,6 @@ trait CombiningResponder extends Responder {
   def staticContentResponders(): List[Responder] = classLoaderResponder :: new LessVarsResponder() :: Nil
 
   def classLoaderResponder: ClassLoaderResponder = new ClassLoaderResponder(getClass.getClassLoader, "/META-INF/resources")
+
+  def modifyForChaining(request: Request): Request = ApplicationResponder.modify(request)
 }
