@@ -102,10 +102,8 @@ class Formatters(translator: Translator, locale: ULocale, currency: Currency, zo
   }
 }
 
-object Formatters {
+object Formatters extends UnwrapCurrent[Formatters] {
   val systemZoneOffset = OffsetDateTime.now().getOffset
-
-  implicit def unwrap(companion: Formatters.type): Formatters = current
 
   def current = Request.current.formatters
 

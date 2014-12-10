@@ -8,12 +8,11 @@ import javax.servlet.FilterChain
 import javax.servlet.http.{HttpServletRequest, HttpServletResponse}
 
 import com.google.common.base.Charsets
-import net.twibs.util.{CollectionUtils, Parameters, Request, Upload}
+import net.twibs.util._
 import org.apache.sling.api.request.RequestParameter
 import org.apache.sling.api.{SlingHttpServletRequest, SlingHttpServletResponse}
 
 import scala.collection.JavaConverters._
-import scala.util.DynamicVariable
 
 class SlingFilter extends Filter {
   override def doFilter(httpRequest: HttpServletRequest, httpResponse: HttpServletResponse, filterChain: FilterChain): Unit =
@@ -68,11 +67,6 @@ object HttpServletRequestWithSlingUpload extends HttpServletUtils {
   }
 }
 
-object CurrentSlingHttpServletRequest extends DynamicVariable[SlingHttpServletRequest](null) {
-  implicit def unwrap(companion: CurrentSlingHttpServletRequest.type): SlingHttpServletRequest = value
-}
+object CurrentSlingHttpServletRequest extends UnwrapableDynamicVariable[SlingHttpServletRequest](null)
 
-object CurrentSlingHttpServletResponse extends DynamicVariable[SlingHttpServletResponse](null) {
-  implicit def unwrap(companion: CurrentSlingHttpServletResponse.type): SlingHttpServletResponse = value
-}
-
+object CurrentSlingHttpServletResponse extends UnwrapableDynamicVariable[SlingHttpServletResponse](null)

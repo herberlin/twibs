@@ -2,7 +2,7 @@ package net.twibs.db
 
 import java.sql._
 
-import net.twibs.util.{SqlUtils, Translator, Loggable}
+import net.twibs.util.{TableData, SqlUtils, Translator, Loggable}
 import net.twibs.util.Predef._
 import net.twibs.util.SortOrder.SortOrder
 

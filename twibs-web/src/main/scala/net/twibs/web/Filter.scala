@@ -17,7 +17,6 @@ import org.apache.commons.io.FileUtils
 import org.threeten.bp.LocalDateTime
 
 import scala.collection.JavaConverters._
-import scala.util.DynamicVariable
 
 class Filter extends javax.servlet.Filter {
   private var servletContextVar: ServletContext = null
@@ -194,18 +193,10 @@ object HttpServletRequestWithCommonsFileUpload extends HttpServletUtils {
   }
 }
 
-object CurrentServletRequest extends DynamicVariable[ServletRequest](null) {
-  implicit def unwrap(companion: CurrentServletRequest.type): ServletRequest = value
-}
+object CurrentServletRequest extends UnwrapableDynamicVariable[ServletRequest](null)
 
-object CurrentServletResponse extends DynamicVariable[ServletResponse](null) {
-  implicit def unwrap(companion: CurrentServletResponse.type): ServletResponse = value
-}
+object CurrentServletResponse extends UnwrapableDynamicVariable[ServletResponse](null)
 
-object CurrentHttpServletRequest extends DynamicVariable[HttpServletRequest](null) {
-  implicit def unwrap(companion: CurrentHttpServletRequest.type): HttpServletRequest = value
-}
+object CurrentHttpServletRequest extends UnwrapableDynamicVariable[HttpServletRequest](null)
 
-object CurrentHttpServletResponse extends DynamicVariable[HttpServletResponse](null) {
-  implicit def unwrap(companion: CurrentHttpServletResponse.type): HttpServletResponse = value
-}
+object CurrentHttpServletResponse extends UnwrapableDynamicVariable[HttpServletResponse](null)

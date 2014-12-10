@@ -96,7 +96,8 @@ class QueryDslTest extends TwibsTest {
 
   test("Modifiy database") {
     Database.use(new MemoryDatabase()) {
-      Database.withStaticTransaction { implicit connection =>
+      Database.withTransaction {
+        implicit def connection = Database.connection
         userTable.size should be(3)
         query(userTable.lastName).where(userTable.firstName like "Frank").size should be(0)
         query(userTable.lastName).where(userTable.firstName like "frank").size should be(1)

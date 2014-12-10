@@ -66,10 +66,8 @@ case class SystemSettings(startedAt: Long,
   def use[T](f: => T) = Request.applicationSettings.copy(systemSettings = this).use(f)
 }
 
-object SystemSettings extends Loggable {
+object SystemSettings extends UnwrapCurrent[SystemSettings] with Loggable {
   Logger.init()
-
-  @inline implicit def unwrap(companion: SystemSettings.type) = current
 
   @inline def current = ApplicationSettings.current.systemSettings
 
@@ -116,7 +114,7 @@ case class RunMode(name: String) {
   lazy val isProduction = this == RunMode.PRODUCTION
 }
 
-object RunMode {
+object RunMode extends UnwrapCurrent[RunMode] {
   val SYSTEM_PROPERTY_NAME = "run.mode"
 
   val PRODUCTION = new RunMode("production")
@@ -126,8 +124,6 @@ object RunMode {
   val TEST = new RunMode("test")
 
   val DEVELOPMENT = new RunMode("development")
-
-  @inline implicit def unwrap(companion: RunMode.type): RunMode = current
 
   @inline def current = SystemSettings.runMode
 }
@@ -142,9 +138,7 @@ case class OperatingSystem(os: String) {
   val isSolaris = os.indexOf("sunos") >= 0
 }
 
-object OperatingSystem {
-  @inline implicit def unwrap(companion: OperatingSystem.type): OperatingSystem = current
-
+object OperatingSystem extends UnwrapCurrent[OperatingSystem] {
   @inline def current = SystemSettings.os
 }
 
@@ -174,12 +168,10 @@ case class ApplicationSettings(name: String, systemSettings: SystemSettings) {
   def lookupLocale(desiredLocale: ULocale) = LocaleUtils.lookupLocale(locales, desiredLocale)
 }
 
-object ApplicationSettings {
+object ApplicationSettings extends UnwrapCurrent[ApplicationSettings] {
   val PN_NAME = "application-name"
 
   val DEFAULT_NAME = "default"
-
-  @inline implicit def unwrap(companion: ApplicationSettings.type): ApplicationSettings = current
 
   @inline def current = Request.applicationSettings
 }
@@ -206,10 +198,8 @@ class SimpleSession extends SimpleAttributeContainer with Session {
   def invalidate(): Unit = ()
 }
 
-object Session {
+object Session extends UnwrapCurrent[Session] {
   private val NOTIFICATIONS_PARAMETER_NAME: String = "NOTIFICATIONS"
-
-  implicit def unwrap(companion: Session.type): Session = current
 
   def current = Request.session
 }

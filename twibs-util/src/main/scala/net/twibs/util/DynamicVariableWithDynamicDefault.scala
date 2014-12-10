@@ -24,9 +24,7 @@ abstract class DynamicVariableWithDynamicDefault[T] extends DynamicVariableWithD
   override def toString(): String = "DynamicVariableWithDynamicDefault(" + current + ")"
 }
 
-abstract class DynamicVariableWithDefault[T] extends DynamicVariable[Option[T]](None) {
-  implicit def unwrap(companion: DynamicVariableWithDefault[T]): T = current
-
+abstract class DynamicVariableWithDefault[T] extends DynamicVariable[Option[T]](None) with UnwrapCurrent[T] {
   def current = value getOrElse default
 
   def use[R](newValue: T)(f: => R): R = withValue(Some(newValue))(f)
