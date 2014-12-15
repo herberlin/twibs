@@ -187,11 +187,9 @@ abstract class Column[T](implicit val table: Table) {
   }
 
   protected class ColumnWhere(operator: String, right: T) extends Where {
-    private[db] override def toStatement = Statement(s"$fullName $operator ?", (self, right) :: Nil)
-  }
-
-  protected class ColumnSeqWhere(operator: String, right: Seq[T]) extends Where {
-    private[db] override def toStatement = Statement(s"$fullName $operator ?", (self, right) :: Nil)
+    private[db] override def toStatement =
+      if (right == None) Statement(s"$fullName IS NULL")
+      else Statement(s"$fullName $operator ?", (self, right) :: Nil)
   }
 
   protected class ColumnToColumn(operator: String, right: Column[T]) extends Where {
@@ -395,7 +393,7 @@ trait Query[T <: Product] {
 
   def insert(value: T)(implicit connection: Connection): Unit
 
-  def returning[R](column: Column[R]): InsertWithReturn[T,R]
+  def returning[R](column: Column[R]): InsertWithReturn[T, R]
 
   def update(value: T)(implicit connection: Connection): Long
 
@@ -454,7 +452,7 @@ trait DeleteFrom {
   def toDeleteSql: String
 }
 
-trait InsertWithReturn[T,R] {
+trait InsertWithReturn[T, R] {
   def insert(value: T)(implicit connection: Connection): R
 
   def toInsertSql: String
