@@ -204,6 +204,18 @@ object Session extends UnwrapCurrent[Session] {
   def current = Request.session
 }
 
+case class User(userName: String, roles: Seq[String])
+
+object User extends UnwrapCurrent[User] {
+  def current = Request.user
+
+  def anonymous = User("anonymous", Seq(Roles.EVERYONE))
+}
+
+object Roles {
+  val EVERYONE = "everyone"
+}
+
 trait CurrentRequest {
   final val request = Request.current
 
@@ -220,7 +232,9 @@ case class Request private(applicationSettings: ApplicationSettings,
                            contextPath: String = "",
                            timestamp: LocalDateTime = LocalDateTime.now(),
                            method: RequestMethod = GetMethod,
+                           protocol: String = "http",
                            domain: String = "localhost",
+                           port: Int = 80,
                            path: String = "/",
                            accept: List[String] = Nil,
                            remoteAddress: String = "::1",
@@ -231,7 +245,8 @@ case class Request private(applicationSettings: ApplicationSettings,
                            uploads: Map[String, Seq[Upload]] = Map(),
                            attributes: AttributeContainer = new SimpleAttributeContainer(),
                            cookies: CookieContainer = new SimpleCookieContainer(),
-                           session: Session = new SimpleSession()) {
+                           session: Session = new SimpleSession(),
+                           user: User = User.anonymous) {
   val locale = applicationSettings.lookupLocale(desiredLocale)
 
   lazy val cacheKey = new RequestCacheKey(path, method, domain, parameters)

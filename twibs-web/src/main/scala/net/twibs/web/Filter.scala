@@ -91,7 +91,11 @@ object HttpServletRequestBase extends HttpServletUtils {
         case _ => UnknownMethod
       },
 
+      protocol = httpServletRequest.getProtocol,
+
       domain = httpServletRequest.getServerName,
+
+      port = httpServletRequest.getServerPort,
 
       path = httpServletRequest.getServletPath + (Option(httpServletRequest.getPathInfo) getOrElse ""),
 
