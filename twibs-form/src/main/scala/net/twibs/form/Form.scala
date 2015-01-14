@@ -269,11 +269,21 @@ trait Container extends Component with ValidateInTree {
     override def translator: Translator = super.translator.kind("MULTI-LINE")
   }
 
-  abstract class SelectField(ilk: String) extends InputComponent(ilk) with Field with Options {
+  abstract class FieldWithOptions(ilk: String) extends InputComponent(ilk) with Field with Options
+
+  abstract class SelectField(ilk: String) extends FieldWithOptions(ilk) {
     override def translator: Translator = super.translator.kind("SELECT")
   }
 
-  abstract class CheckboxField(ilk: String) extends SelectField(ilk) {
+  abstract class SingleSelectField(ilk: String) extends SelectField(ilk) {
+    override def translator: Translator = super.translator.kind("SINGLE-SELECT")
+  }
+
+  abstract class MultiSelectField(ilk: String) extends SelectField(ilk) {
+    override def translator: Translator = super.translator.kind("MULTI-SELECT")
+  }
+
+  abstract class CheckboxField(ilk: String) extends FieldWithOptions(ilk) {
     override def translator: Translator = super.translator.kind("CHECKBOX")
 
     override def required: Boolean = false
@@ -291,7 +301,7 @@ trait Container extends Component with ValidateInTree {
     def isChecked = valueOption.exists(v => v)
   }
 
-  abstract class RadioField(ilk: String) extends SelectField(ilk) with Options {
+  abstract class RadioField(ilk: String) extends FieldWithOptions(ilk) with Options {
     override def translator: Translator = super.translator.kind("RADIO")
 
     override def minimumNumberOfEntries: Int = 1

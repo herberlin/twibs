@@ -10,6 +10,8 @@ import java.net.URL
 import com.google.common.io.ByteStreams
 import org.apache.commons.io.FileUtils
 
+import scala.util.DynamicVariable
+
 object Predef extends ThreeTenTransition {
   type WithCloseMethod = {def close(): Unit}
 
@@ -51,4 +53,14 @@ object IOUtils {
     }
     file
   }
+}
+
+class UnwrapableDynamicVariable[T](init: T) extends DynamicVariable[T](init: T) {
+  @inline implicit def unwrap(companion: this.type): T = value
+}
+
+trait UnwrapCurrent[T] {
+  @inline implicit def unwrap(companion: this.type): T = current
+
+  def current: T
 }

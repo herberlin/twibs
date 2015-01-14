@@ -48,6 +48,10 @@ trait XmlMimeType {
   def mimeType: String = MimeTypes.XML
 }
 
+trait OctetStreamMimeType {
+  def mimeType: String = MimeTypes.OCTECT_STREAM
+}
+
 object MimeTypes {
   val JSON: String = MediaType.JSON_UTF_8.withoutParameters.toString
   val PDF: String = MediaType.PDF.toString
@@ -55,6 +59,7 @@ object MimeTypes {
   val HTML: String = MediaType.HTML_UTF_8.withoutParameters.toString
   val TEXT: String = MediaType.PLAIN_TEXT_UTF_8.withoutParameters.toString
   val XML: String = MediaType.XML_UTF_8.withoutParameters.toString
+  val OCTECT_STREAM: String = MediaType.OCTET_STREAM.toString
   val JAVASCRIPT: String = MediaType.JAVASCRIPT_UTF_8.withoutParameters.toString
   val MICROSOFT_EXCEL = MediaType.MICROSOFT_EXCEL.withoutParameters.toString
 }

@@ -36,9 +36,7 @@ trait Configuration {
   def getIntList(key: String, default: List[Int]): List[Int] = getIntList(key) getOrElse default
 }
 
-object Configuration {
-  implicit def unwrap(companion: Configuration.type): Configuration = current
-
+object Configuration extends UnwrapCurrent[Configuration] {
   def current = ApplicationSettings.current.configuration
 }
 

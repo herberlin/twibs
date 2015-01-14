@@ -4,16 +4,15 @@
 
 package net.twibs.db
 
-import java.sql.Connection
+import java.sql.{Connection, SQLException}
 import javax.sql.DataSource
 
-import scala.concurrent.duration._
-import scala.slick.jdbc.JdbcBackend.{Database => SlickDatabase}
-
-import net.twibs.util.DynamicVariableWithDynamicDefault
-
+import net.twibs.util.{DynamicVariableWithDefault, DynamicVariableWithDynamicDefault}
+import net.twibs.util.Predef._
 import org.apache.tomcat.jdbc.pool.{PoolProperties, DataSource => TomcatDataSource}
 import org.flywaydb.core.Flyway
+
+import scala.concurrent.duration._
 
 trait Database {
   def password: String
@@ -26,13 +25,28 @@ trait Database {
 
   def migrationLocations = "db/migration" :: Nil
 
-  def withTransaction[R](func: => R): R = database.withDynTransaction(func)
-
-  def withStaticTransaction[R](func: (Connection) => R): R = database.withTransaction(session => func(session.conn))
+  def withTransaction[R](func: => R): R =
+    dataSource.getConnection.useAndClose { conn =>
+      try {
+        conn.setAutoCommit(false)
+        try {
+          var done = false
+          try {
+            val ret = Database.useConnection(conn)(func)
+            conn.commit()
+            done = true
+            ret
+          } finally
+            if (!done) conn.rollback()
+        } finally {
+          conn.setAutoCommit(true)
+        }
+      }
+    }
 
   def withSavepoint[T](f: => T): T = {
     var ok = false
-    val connection = SlickDatabase.dynamicSession.conn
+    val connection = Database.connection
     val savePoint = connection.setSavepoint()
     try {
       val ret = f
@@ -63,28 +77,27 @@ trait Database {
     ret
   }
 
-  private lazy val database: SlickDatabase = synchronized {
-    migrate()
-    SlickDatabase.forDataSource(dataSource)
+  def init(): Unit = dataSource
+
+  lazy val dataSource: DataSource = {
+    val ret = createDataSource()
+    migrate(ret)
+    ret
   }
 
-  def migrate(): Unit =
+  protected def migrate(ds: DataSource): Unit =
     if (migrationLocations.nonEmpty) {
       val flyway = new Flyway()
       flyway.setInitOnMigrate(true)
       flyway.setLocations(migrationLocations: _*)
-      flyway.setDataSource(dataSource)
+      flyway.setDataSource(ds)
       flyway.setValidateOnMigrate(false) //(RunMode.isProduction || RunMode.isStaging)
       flyway.migrate()
     }
 
-  lazy val dataSource: DataSource = createDataSource()
+  def commit(): Unit = Database.connection.commit()
 
-  def commit(): Unit = SlickDatabase.dynamicSession.conn.commit()
-
-  def rollback(): Unit = SlickDatabase.dynamicSession.rollback()
-
-  def init(): Unit = database
+  def rollback(): Unit = Database.connection.rollback()
 
   def close(): Unit = {
     dataSource.asInstanceOf[TomcatDataSource].close()
@@ -95,7 +108,11 @@ trait Database {
 object Database extends DynamicVariableWithDynamicDefault[Database] {
   override def createFallback: Database = null
 
-  implicit def implicitConnection: Connection = SlickDatabase.dynamicSession.conn
+  private val connectionVar = new DynamicVariableWithDefault[Connection] {
+    override def default: Connection = throw new SQLException("No active connection")
+  }
 
-  def connection: Connection = SlickDatabase.dynamicSession.conn
+  def useConnection[R](c: Connection)(func: => R): R = connectionVar.use(c)(func)
+
+  def connection: Connection = connectionVar.current
 }

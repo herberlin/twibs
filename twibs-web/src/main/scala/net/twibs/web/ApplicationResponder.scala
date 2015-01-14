@@ -7,13 +7,12 @@ package net.twibs.web
 import net.twibs.util._
 
 class ApplicationResponder(delegate: Responder) extends Responder {
-  val defaultUserSettings: UserSettings = new UserSettings {
-    val name = "anonymous"
+  override def respond(request: Request): Option[Response] =
+    ApplicationResponder.modify(request).useIt(delegate.respond)
+}
 
-    val locale = SystemSettings.locale
-  }
-
-  override def respond(request: Request): Option[Response] = {
+object ApplicationResponder {
+  def modify(request: Request): Request = {
     val systemSettings = SystemSettings.default
 
     def applicationSettingsFromParameterOption = request.parameters.getStringOption(ApplicationSettings.PN_NAME).flatMap(systemSettings.applicationSettings.get)
@@ -22,6 +21,6 @@ class ApplicationResponder(delegate: Responder) extends Responder {
 
     val applicationSettings = applicationSettingsFromParameterOption getOrElse applicationSettingsForPath
 
-    request.copy(applicationSettings).useIt(delegate.respond)
+    request.copy(applicationSettings)
   }
 }

@@ -17,7 +17,6 @@ import org.apache.commons.io.FileUtils
 import org.threeten.bp.LocalDateTime
 
 import scala.collection.JavaConverters._
-import scala.util.DynamicVariable
 
 class Filter extends javax.servlet.Filter {
   private var servletContextVar: ServletContext = null
@@ -56,21 +55,20 @@ class Filter extends javax.servlet.Filter {
         httpResponse.setHeader("X-Twibs", if (RunMode.isProduction) SystemSettings.version else SystemSettings.version + " - " + RunMode.name)
         val request = createRequest(httpRequest, httpResponse)
         request.use {
-          combiningResponderVar.respond(request) match {
+          combiningResponder.respond(request) match {
             case Some(response) =>
               new HttpResponseRenderer(request, response, httpRequest, httpResponse).render()
             case None =>
-              new ApplicationResponder(new Responder() {
-                override def respond(request: Request): Option[Response] = {
-                  filterChain.doFilter(httpRequest, httpResponse)
-                  None
-                }
-              }).respond(request)
+              combiningResponder.modifyForChaining(request).use {
+                filterChain.doFilter(httpRequest, httpResponse)
+                None
+              }
           }
         }
       }
     }
   }
+
 
   def createRequest(httpServletRequest: HttpServletRequest, httpServletResponse: HttpServletResponse): Request =
     HttpServletRequestWithCommonsFileUpload(httpServletRequest, httpServletResponse)
@@ -93,7 +91,11 @@ object HttpServletRequestBase extends HttpServletUtils {
         case _ => UnknownMethod
       },
 
+      protocol = httpServletRequest.getProtocol,
+
       domain = httpServletRequest.getServerName,
+
+      port = httpServletRequest.getServerPort,
 
       path = httpServletRequest.getServletPath + (Option(httpServletRequest.getPathInfo) getOrElse ""),
 
@@ -195,18 +197,10 @@ object HttpServletRequestWithCommonsFileUpload extends HttpServletUtils {
   }
 }
 
-object CurrentServletRequest extends DynamicVariable[ServletRequest](null) {
-  implicit def unwrap(companion: CurrentServletRequest.type): ServletRequest = value
-}
+object CurrentServletRequest extends UnwrapableDynamicVariable[ServletRequest](null)
 
-object CurrentServletResponse extends DynamicVariable[ServletResponse](null) {
-  implicit def unwrap(companion: CurrentServletResponse.type): ServletResponse = value
-}
+object CurrentServletResponse extends UnwrapableDynamicVariable[ServletResponse](null)
 
-object CurrentHttpServletRequest extends DynamicVariable[HttpServletRequest](null) {
-  implicit def unwrap(companion: CurrentHttpServletRequest.type): HttpServletRequest = value
-}
+object CurrentHttpServletRequest extends UnwrapableDynamicVariable[HttpServletRequest](null)
 
-object CurrentHttpServletResponse extends DynamicVariable[HttpServletResponse](null) {
-  implicit def unwrap(companion: CurrentHttpServletResponse.type): HttpServletResponse = value
-}
+object CurrentHttpServletResponse extends UnwrapableDynamicVariable[HttpServletResponse](null)

@@ -2,7 +2,7 @@
  * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
  */
 
-package net.twibs.db
+package net.twibs.util
 
 trait TableData[T] {
   def pageSize: Int

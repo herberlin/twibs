@@ -77,7 +77,7 @@ trait Input extends TranslationSupport {
   protected def valueToEntry(value: ValueType) = {
     val string = convertToString(value)
     val title = titleFor(string)
-    Entry(convertToString(value), Some(value), title, None)
+    Entry(string, Some(value), title, None)
   }
 
   protected def titleFor(string: String) = string

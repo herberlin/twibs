@@ -5,18 +5,32 @@
 package net.twibs.util
 
 case class Parameters(parameterMap: Map[String, Seq[String]] = Map()) extends Serializable {
+  def getBoolean(key: String, default: Boolean) = getBooleanOption(key) getOrElse default
+
+  def getBooleanOption(key: String) = getFormatted(key, _.equals("true"))
+
   def getInt(key: String, default: Int) = getIntOption(key) getOrElse default
 
-  def getIntOption(key: String) =
+  def getIntOption(key: String) = getFormatted(key, _.toInt)
+
+  def getLong(key: String, default: Long) = getLongOption(key) getOrElse default
+
+  def getLongOption(key: String)  = getFormatted(key, _.toLong)
+
+  def getFloat(key: String, default: Double) = getFloatOption(key) getOrElse default
+
+  def getFloatOption(key: String) = getFormatted(key, _.toFloat)
+
+  def getDouble(key: String, default: Double) = getDoubleOption(key) getOrElse default
+
+  def getDoubleOption(key: String) = getFormatted(key, _.toDouble)
+
+  def getFormatted[T](key: String, f: String => T) =
     getStringOption(key).flatMap(string => try {
-      Some(string.toInt)
+      Some(f(string))
     } catch {
       case e: NumberFormatException => None
     })
-
-  def getBoolean(key: String, default: Boolean) = getBooleanOption(key) getOrElse default
-
-  def getBooleanOption(key: String) = getStringOption(key).flatMap(string => Some("true".equals(string)))
 
   def getString(key: String, default: String) = getStringOption(key) getOrElse default
 

@@ -29,6 +29,11 @@ class QueryDslTest extends TwibsTest {
     query(userTable.firstName, userTable.lastName).toSelectSql should be("SELECT users.first_name,users.last_name FROM users")
   }
 
+  test("Test query with none") {
+    query(userTable.firstName, userTable.lastName).where(userTable.email === None).toSelectSql should be("SELECT users.first_name,users.last_name FROM users WHERE users.email IS NULL")
+    query(userTable.firstName, userTable.lastName).where(userTable.email === Some("a@example.com")).toSelectSql should be("SELECT users.first_name,users.last_name FROM users WHERE users.email = ?")
+  }
+
   test("Query is not null") {
     query(userTable.firstName).also(query(userTable.lastName)).where(userTable.email.isNotNull).where(userTable.firstName =!= "Zappa").toSelectSql should be("SELECT users.first_name,users.last_name FROM users WHERE users.email IS NOT NULL AND users.first_name <> ?")
   }
@@ -96,7 +101,8 @@ class QueryDslTest extends TwibsTest {
 
   test("Modifiy database") {
     Database.use(new MemoryDatabase()) {
-      Database.withStaticTransaction { implicit connection =>
+      Database.withTransaction {
+        implicit def connection = Database.connection
         userTable.size should be(3)
         query(userTable.lastName).where(userTable.firstName like "Frank").size should be(0)
         query(userTable.lastName).where(userTable.firstName like "frank").size should be(1)

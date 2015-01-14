@@ -27,6 +27,11 @@ class ThreeTenTransitionTest extends TwibsTest {
     cal.getTime should be(cal.toLocalDateTime.toCalendar.getTime)
   }
 
+  test("Time in millis") {
+    val now = LocalDateTime.now()
+    now.toCalendar.getTimeInMillis shouldBe now.toSystemEpochMillis
+  }
+
   test("From LocalDateTime to Calendar and back") {
     val ldt = LocalDateTime.of(2012, 12, 21, 12, 13)
     ldt should be(ldt.toCalendar.toLocalDateTime)

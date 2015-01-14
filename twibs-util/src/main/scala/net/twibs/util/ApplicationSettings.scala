@@ -4,13 +4,11 @@
 
 package net.twibs.util
 
-import java.io.{PrintStream, FileOutputStream, File}
+import java.io.File
 import java.net.{InetAddress, URI, UnknownHostException}
-import java.util.Properties
 
 import com.ibm.icu.util.{Currency, ULocale}
 import com.typesafe.config.{Config, ConfigFactory, ConfigParseOptions}
-import org.apache.commons.io.FileUtils
 import org.apache.tika.Tika
 import org.threeten.bp.{LocalDateTime, ZoneId}
 
@@ -36,8 +34,7 @@ case class SystemSettings(startedAt: Long,
                           fullVersion: String,
                           runMode: RunMode,
                           os: OperatingSystem,
-                          zoneId: ZoneId,
-                          mailSession: javax.mail.Session) {
+                          zoneId: ZoneId) {
   private[util] val configUnresolved = {
     ConfigFactory.invalidateCaches()
 
@@ -56,11 +53,6 @@ case class SystemSettings(startedAt: Long,
     userConfigWithOsgiFallback.withFallback(baseConfig)
   }
 
-  if (runMode.isTest || runMode.isDevelopment) {
-    mailSession.setDebugOut(new PrintStream(new FileOutputStream(new File(FileUtils.getTempDirectory, "twibs-mail.log"))))
-    mailSession.setDebug(true)
-  }
-
   val applicationSettings = configUnresolved.getObject("APPLICATIONS").unwrapped().keySet().asScala.map(name => name -> new ApplicationSettings(name, this)).toMap
 
   val defaultApplicationSettings = applicationSettings(ApplicationSettings.DEFAULT_NAME)
@@ -72,14 +64,10 @@ case class SystemSettings(startedAt: Long,
   val version = if (runMode.isProduction) majorVersion else fullVersion
 
   def use[T](f: => T) = Request.applicationSettings.copy(systemSettings = this).use(f)
-
-  def activate() = use {Request.activate()}
 }
 
-object SystemSettings extends Loggable {
+object SystemSettings extends UnwrapCurrent[SystemSettings] with Loggable {
   Logger.init()
-
-  @inline implicit def unwrap(companion: SystemSettings.type) = current
 
   @inline def current = ApplicationSettings.current.systemSettings
 
@@ -110,8 +98,7 @@ object SystemSettings extends Loggable {
       case _ => RunMode.PRODUCTION
     },
     os = OperatingSystem(System.getProperty("os.name").toLowerCase),
-    zoneId = ZoneId.systemDefault(),
-    mailSession = javax.mail.Session.getInstance(new Properties())
+    zoneId = ZoneId.systemDefault()
   )
 
   logger.info(s"Run mode is '${default.runMode.name}'")
@@ -127,7 +114,7 @@ case class RunMode(name: String) {
   lazy val isProduction = this == RunMode.PRODUCTION
 }
 
-object RunMode {
+object RunMode extends UnwrapCurrent[RunMode] {
   val SYSTEM_PROPERTY_NAME = "run.mode"
 
   val PRODUCTION = new RunMode("production")
@@ -137,8 +124,6 @@ object RunMode {
   val TEST = new RunMode("test")
 
   val DEVELOPMENT = new RunMode("development")
-
-  @inline implicit def unwrap(companion: RunMode.type): RunMode = current
 
   @inline def current = SystemSettings.runMode
 }
@@ -153,9 +138,7 @@ case class OperatingSystem(os: String) {
   val isSolaris = os.indexOf("sunos") >= 0
 }
 
-object OperatingSystem {
-  @inline implicit def unwrap(companion: OperatingSystem.type): OperatingSystem = current
-
+object OperatingSystem extends UnwrapCurrent[OperatingSystem] {
   @inline def current = SystemSettings.os
 }
 
@@ -185,12 +168,10 @@ case class ApplicationSettings(name: String, systemSettings: SystemSettings) {
   def lookupLocale(desiredLocale: ULocale) = LocaleUtils.lookupLocale(locales, desiredLocale)
 }
 
-object ApplicationSettings {
+object ApplicationSettings extends UnwrapCurrent[ApplicationSettings] {
   val PN_NAME = "application-name"
 
   val DEFAULT_NAME = "default"
-
-  @inline implicit def unwrap(companion: ApplicationSettings.type): ApplicationSettings = current
 
   @inline def current = Request.applicationSettings
 }
@@ -217,12 +198,22 @@ class SimpleSession extends SimpleAttributeContainer with Session {
   def invalidate(): Unit = ()
 }
 
-object Session {
+object Session extends UnwrapCurrent[Session] {
   private val NOTIFICATIONS_PARAMETER_NAME: String = "NOTIFICATIONS"
 
-  implicit def unwrap(companion: Session.type): Session = current
-
   def current = Request.session
+}
+
+case class User(userName: String, roles: Seq[String])
+
+object User extends UnwrapCurrent[User] {
+  def current = Request.user
+
+  def anonymous = User("anonymous", Seq(Roles.EVERYONE))
+}
+
+object Roles {
+  val EVERYONE = "everyone"
 }
 
 trait CurrentRequest {
@@ -241,7 +232,9 @@ case class Request private(applicationSettings: ApplicationSettings,
                            contextPath: String = "",
                            timestamp: LocalDateTime = LocalDateTime.now(),
                            method: RequestMethod = GetMethod,
+                           protocol: String = "http",
                            domain: String = "localhost",
+                           port: Int = 80,
                            path: String = "/",
                            accept: List[String] = Nil,
                            remoteAddress: String = "::1",
@@ -252,7 +245,8 @@ case class Request private(applicationSettings: ApplicationSettings,
                            uploads: Map[String, Seq[Upload]] = Map(),
                            attributes: AttributeContainer = new SimpleAttributeContainer(),
                            cookies: CookieContainer = new SimpleCookieContainer(),
-                           session: Session = new SimpleSession()) {
+                           session: Session = new SimpleSession(),
+                           user: User = User.anonymous) {
   val locale = applicationSettings.lookupLocale(desiredLocale)
 
   lazy val cacheKey = new RequestCacheKey(path, method, domain, parameters)
