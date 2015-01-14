@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2013-2015 by Michael Hombre Brinkmann
+ */
+
 package net.twibs.demo
 
 import java.io.{File, FileFilter}
