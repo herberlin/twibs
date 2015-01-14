@@ -3,7 +3,7 @@
     <parent>
         <groupId>net.twibs</groupId>
         <artifactId>twibs-parent</artifactId>
-        <version>0.13-SNAPSHOT</version>
+        <version>0.13</version>
     </parent>
     <artifactId>twibs-db</artifactId>
     <name>Twibs: Database</name>
