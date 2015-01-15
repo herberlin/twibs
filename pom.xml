@@ -40,9 +40,9 @@
         </developer>
     </developers>
     <properties>
-        <twibs.version>0.13-SNAPSHOT</twibs.version>
+        <twibs.version>0.14-SNAPSHOT</twibs.version>
         <scala.main.version>2.11</scala.main.version>
-        <scala.version>${scala.main.version}.4</scala.version>
+        <scala.version>${scala.main.version}.5</scala.version>
         <scala.module.version>1.0.2</scala.module.version>
         <maven.test.skip>false</maven.test.skip>
     </properties>
@@ -291,6 +291,11 @@
             <dependency>
                 <groupId>org.scala-lang</groupId>
                 <artifactId>scala-actors</artifactId>
+                <version>${scala.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.scala-lang</groupId>
+                <artifactId>scala-compiler</artifactId>
                 <version>${scala.version}</version>
             </dependency>
             <dependency>
