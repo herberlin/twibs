@@ -58,4 +58,5 @@ private[util] class ConfigurationForTypesafeConfig(config: Config) extends Confi
   def getIntList(key: String) = store(key, config.getIntList(key).toList.map(Int.unbox))
 
   def getInt(key: String) = store(key, config.getInt(key))
+//  def get(key: String) = config.getConfig().atPath()getObject("")
 }
