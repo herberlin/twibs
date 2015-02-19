@@ -22,34 +22,34 @@ class InputTest extends TwibsTest {
   test("Default entries") {
     val input = createInput
     input.entries should have size 1
-    input.valid should beFalse
+    input.valid shouldBe false
   }
 
   test("Set values is always valid") {
     val input = createInput
     input.values = 1L :: 2L :: Nil
-    input.valid should beTrue
+    input.valid shouldBe true
   }
 
   test("Set strings is always validating") {
     val input = createInput
     input.strings = "1" :: "2" :: "3" :: Nil
-    input.valid should beFalse
-    input.entries.forall(_.valid) should beTrue
+    input.valid shouldBe false
+    input.entries.forall(_.valid) shouldBe true
     input.messageOption should not be 'empty
   }
 
   test("Test minimum number of entries") {
     val input = createInput
     input.strings = Nil
-    input.valid should beFalse
+    input.valid shouldBe false
     input.messageOption.get.toString should be("warning: Please enter at least one value")
   }
 
   test("Test maximum number of entries") {
     val input = createInput
     input.strings = "1" :: "2" :: "3" :: Nil
-    input.valid should beFalse
+    input.valid shouldBe false
     input.messageOption.get.toString should be("warning: Please enter no more than 2 values")
   }
 
@@ -61,30 +61,30 @@ class InputTest extends TwibsTest {
 
   test("Changed") {
     val input = new TestLongInput {}
-    input.isChanged should beFalse
+    input.isChanged shouldBe false
 
     input.values = 1L :: Nil
-    input.isChanged should beTrue
+    input.isChanged shouldBe true
 
     input.values = input.defaults
-    input.isChanged should beFalse
+    input.isChanged shouldBe false
 
     input.strings = Nil
-    input.isChanged should beFalse
+    input.isChanged shouldBe false
   }
 
   test("Modified by values") {
     val input = new TestLongInput {}
-    input.isModified should beFalse
+    input.isModified shouldBe false
 
     input.values = 1L :: Nil
-    input.isModified should beTrue
+    input.isModified shouldBe true
   }
 
   test("Modified by strings") {
     val input = new TestLongInput {}
     input.strings = "1" :: Nil
-    input.isModified should beTrue
+    input.isModified shouldBe true
   }
 
   test("Options") {
@@ -96,10 +96,10 @@ class InputTest extends TwibsTest {
     input.value = 2L
 
     input.string = "2"
-    input.valid should beTrue
+    input.valid shouldBe true
 
     input.string = "failure"
-    input.valid should beFalse
+    input.valid shouldBe false
     input.entries.head.messageOption.get.toString should be("warning: 'failure' is not an option")
   }
 
@@ -107,11 +107,11 @@ class InputTest extends TwibsTest {
     val input = new TestLongInput {}
 
     input.string = ""
-    input.entries(0).valid should beFalse
+    input.entries(0).valid shouldBe false
     input.entries(0).messageOption.get.toString should be("warning: Please enter a value")
 
     input.string = "x"
-    input.valid should beFalse
+    input.valid shouldBe false
     input.entries(0).messageOption.get.toString should be("warning: Invalid format for string 'x'")
   }
 
@@ -120,10 +120,10 @@ class InputTest extends TwibsTest {
 
     input.string = ""
     input.entries(0).messageOption should be(None)
-    input.entries(0).valid should beTrue
+    input.entries(0).valid shouldBe true
 
     input.string = "x"
-    input.valid should beFalse
+    input.valid shouldBe false
     input.entries(0).messageOption.get.toString should be("warning: Invalid format for string 'x'")
   }
 
@@ -131,12 +131,12 @@ class InputTest extends TwibsTest {
     val input = new TestLongInput {}
 
     input.string = " 1 "
-    input.valid should beTrue
+    input.valid shouldBe true
     input.value should be(1L)
     input.string should be("1")
 
     input.string = " x "
-    input.valid should beFalse
+    input.valid shouldBe false
     input.string should be("x")
   }
 
@@ -150,21 +150,21 @@ class InputTest extends TwibsTest {
   test("Single line input does not contain line breaks") {
     val input = new SingleLineInput() with CleanTranslator
     input.string = "ab \n\r "
-    input.valid should beTrue
+    input.valid shouldBe true
     input.value should be("ab")
 
     input.string = "a\nb"
-    input.valid should beFalse
+    input.valid shouldBe false
   }
 
   test("Untrimmed Single line input does not remove trailing line breaks") {
     val input = new SingleLineInput() with Untrimmed with CleanTranslator
     input.string = " ab \n\r "
-    input.valid should beFalse
+    input.valid shouldBe false
     input.string should be(" ab \n\r ")
 
     input.string = "ab\n\r"
-    input.valid should beFalse
+    input.valid shouldBe false
     input.string should be("ab\n\r")
   }
 

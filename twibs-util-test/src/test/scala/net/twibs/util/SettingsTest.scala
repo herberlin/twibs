@@ -13,13 +13,13 @@ class SettingsTest extends TwibsTest {
     sys.version should be(sys.majorVersion)
     SystemSettings.version should be(sys.fullVersion)
   }
-  SystemSettings.runMode.isTest should beTrue
+  SystemSettings.runMode.isTest shouldBe true
 
   test("Default Mode") {
-    RunMode.isProduction should beFalse
-    RunMode.isStaging should beFalse
-    RunMode.isDevelopment should beFalse
-    RunMode.isTest should beTrue
+    RunMode.isProduction shouldBe false
+    RunMode.isStaging shouldBe false
+    RunMode.isDevelopment shouldBe false
+    RunMode.isTest shouldBe true
   }
 
   test("Default loaded configuration is Default application") {

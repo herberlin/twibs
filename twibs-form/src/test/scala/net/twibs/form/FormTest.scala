@@ -44,7 +44,7 @@ class FormTest extends TwibsTest {
 
   test("Form is not a child of itself") {
     val form = new Form("test")
-    form.children.contains(form) should beFalse
+    form.children.contains(form) shouldBe false
   }
 
   test("Test unique names") {
@@ -90,10 +90,10 @@ class FormTest extends TwibsTest {
       val submit = new Button("submit") with StringInput with DefaultDisplayType with ExecuteValidated
     }
 
-    f.enabled.isValid should beTrue
-    f.disabled.isValid should beTrue
-    f.hidden.isValid should beTrue
-    f.ignored.isValid should beTrue
+    f.enabled.isValid shouldBe true
+    f.disabled.isValid shouldBe true
+    f.hidden.isValid shouldBe true
+    f.ignored.isValid shouldBe true
 
     f.process(
       Map(
@@ -104,10 +104,10 @@ class FormTest extends TwibsTest {
         "submit" -> Seq("")
       ))
 
-    f.enabled.isValid should beFalse
-    f.disabled.isValid should beTrue
-    f.hidden.isValid should beTrue
-    f.ignored.isValid should beTrue
+    f.enabled.isValid shouldBe false
+    f.disabled.isValid shouldBe true
+    f.hidden.isValid shouldBe true
+    f.ignored.isValid shouldBe true
   }
 
   test("Dynamic values validation") {
@@ -130,19 +130,19 @@ class FormTest extends TwibsTest {
       }
     }
 
-    form.dynamics.isValid should beTrue
+    form.dynamics.isValid shouldBe true
     form.dynamics.messages should be('empty)
 
     form.process(Map("uploads" -> Seq("e", "b", "c")))
-    form.dynamics.validate() should beFalse
+    form.dynamics.validate() shouldBe false
     form.dynamics.messages(0).toString should be("warning: Please provide no more than 2 children")
 
     form.process(Map("uploads" -> Seq()))
-    form.dynamics.validate() should beFalse
+    form.dynamics.validate() shouldBe false
     form.dynamics.messages(0).toString should be("warning: Please provide at least one child")
 
     form.reset()
-    form.dynamics.isValid should beTrue
+    form.dynamics.isValid shouldBe true
   }
 
   test("Execution called") {
@@ -155,10 +155,10 @@ class FormTest extends TwibsTest {
     }
 
     form.process(Map("any" -> Seq("1")))
-    submitted should beFalse
+    submitted shouldBe false
 
     form.process(Map("exec" -> Seq("1")))
-    submitted should beTrue
+    submitted shouldBe true
   }
 
   test("Demonstrate implicit hierarchy") {
@@ -280,13 +280,13 @@ class FormTest extends TwibsTest {
 
     f.hl.f.strings = "a" :: "" :: Nil
     f.validate()
-    f.hl.f.needsFocus should beTrue
+    f.hl.f.needsFocus shouldBe true
     f.focusJs.toString should be("$('#a_hl_field_1').focus()")
 
     // Entries are valid but field must only contain one value!
     f.hl.f.strings = "a" :: "b" :: Nil
     f.validate()
-    f.hl.f.needsFocus should beTrue
+    f.hl.f.needsFocus shouldBe true
     f.focusJs.toString should be("$('#a_hl_field').focus()")
   }
 
@@ -395,7 +395,7 @@ class FormTest extends TwibsTest {
     }
     f.parse(Map("s" -> Seq("s"), "b" -> Seq("")))
 
-    f.validate() should beTrue
+    f.validate() shouldBe true
   }
 
   test("No strings are also allowed") {

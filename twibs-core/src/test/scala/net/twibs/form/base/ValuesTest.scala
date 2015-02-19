@@ -23,7 +23,7 @@ class ValuesTest extends TwibsTest {
 
     field.validateString("") should be(field.Input("", "", None, None, continue = false))
     field.strings = "" :: Nil
-    field.validate() should beTrue
+    field.validate() shouldBe true
   }
 
   test("Required string validation") {
@@ -122,8 +122,8 @@ class ValuesTest extends TwibsTest {
     field.values should be(1L :: 2L :: 3L :: Nil)
     field.validValues should be(1L :: 3L :: Nil)
 
-    field.useEmptyOption("2") should beTrue
-    field.useEmptyOption("1") should beFalse
+    field.useEmptyOption("2") shouldBe true
+    field.useEmptyOption("1") shouldBe false
   }
 
   test("Options with titles") {
@@ -200,32 +200,32 @@ class ValuesTest extends TwibsTest {
   test("Single input value") {
     val field = new TestField with LongValues
     field.values = 3L :: 2L :: 1L :: Nil
-    field.computeIsValid should beFalse
+    field.computeIsValid shouldBe false
     field.values should be(3L :: 2L :: 1L :: Nil)
 
     field.values = 3L :: Nil
-    field.computeIsValid should beTrue
+    field.computeIsValid shouldBe true
     field.values should be(3L :: Nil)
 
     field.strings = "x" :: Nil
-    field.computeIsValid should beFalse
+    field.computeIsValid shouldBe false
     field.values should be('empty)
   }
 
   test("Modified input") {
     val field = new TestField with LongValues
-    field.isModified should beFalse
+    field.isModified shouldBe false
     field.values should be('empty)
-    field.isModified should beFalse
+    field.isModified shouldBe false
 
     field.strings = "" :: Nil
-    field.isModified should beTrue
+    field.isModified shouldBe true
 
     field.values should be('empty)
-    field.isModified should beTrue
+    field.isModified shouldBe true
     field.resetInputs()
     field.values should be('empty)
-    field.isModified should beFalse
+    field.isModified shouldBe false
   }
 
   test("Value option") {
