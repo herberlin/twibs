@@ -245,7 +245,7 @@ trait StringValues extends Values {
 
   override def valueToString(value: ValueType) = value
 
-  override def stringToValueOption(string: String) = Some(string)
+  override def stringToValueOption(string: String): Option[ValueType] = Some(string)
 
   abstract override def translator: Translator = super.translator.kind("STRING")
 }
