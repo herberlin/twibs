@@ -5,7 +5,7 @@
 package net.twibs.util
 
 import java.sql.Timestamp
-import java.util.{Date, Calendar}
+import java.util.{Calendar, Date}
 
 import org.threeten.bp._
 
@@ -51,6 +51,11 @@ trait ThreeTenTransition {
 
     def toSystemEpochMillis = date.atStartOfDay.atZone(zoneId).toInstant.toEpochMilli
   }
+
+  implicit object ZonedDateTimeOrdering extends Ordering[ZonedDateTime] {
+    override def compare(x: ZonedDateTime, y: ZonedDateTime): Int = x.compareTo(y)
+  }
+
 }
 
 object ThreeTenTransition extends ThreeTenTransition

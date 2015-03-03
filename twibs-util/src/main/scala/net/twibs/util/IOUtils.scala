@@ -12,7 +12,9 @@ import org.apache.commons.io.FileUtils
 
 import scala.util.DynamicVariable
 
-object Predef extends ThreeTenTransition {
+object Predef extends ThreeTenTransition with IOUtils
+
+trait IOUtils {
   type WithCloseMethod = {def close(): Unit}
 
   class RichClosable[C](closable: C, close: () => Unit) {
@@ -31,19 +33,19 @@ object Predef extends ThreeTenTransition {
   implicit def toRichClosable[C <: AutoCloseable](closable: C) =
     new RichClosable(closable, () => closable.close())
 
+  import scala.language.reflectiveCalls
+
   implicit def toRichClosableReflected[C <: WithCloseMethod](closable: C) =
     new RichClosable(closable, () => closable.close())
 }
 
-object IOUtils {
+object IOUtils extends IOUtils {
   def isDirectory(url: URL) = Option(FileUtils.toFile(url)) match {
     case Some(file) => file.isDirectory
     case None => url.getFile.endsWith("/")
   }
 
   def downloadIfDoesNotExist(file: File, url: URL) = if (!file.exists()) copy(url, file) else file
-
-  import net.twibs.util.Predef._
 
   def copy(url: URL, file: File) = {
     new FileOutputStream(file) useAndClose {

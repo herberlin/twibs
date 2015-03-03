@@ -5,7 +5,7 @@
 package net.twibs.util
 
 import java.io.File
-import java.net.{InetAddress, URI, UnknownHostException}
+import java.net.{InetAddress, UnknownHostException}
 
 import com.ibm.icu.util.{Currency, ULocale}
 import com.typesafe.config.{Config, ConfigFactory, ConfigParseOptions}
@@ -14,6 +14,7 @@ import org.threeten.bp.{LocalDateTime, ZoneId}
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
+import scala.language.postfixOps
 import scala.xml.{NodeSeq, Unparsed}
 
 private object ConfigHelper {
@@ -57,7 +58,7 @@ case class SystemSettings(startedAt: Long,
 
   val defaultApplicationSettings = applicationSettings(ApplicationSettings.DEFAULT_NAME)
 
-  def applicationSettingsForPath(path: String) = applicationSettings.values.collectFirst { case x if x.matches(path) => x} getOrElse defaultApplicationSettings
+  def applicationSettingsForPath(path: Path) = applicationSettings.values.collectFirst { case x if x.matches(path) => x} getOrElse defaultApplicationSettings
 
   val majorVersion = fullVersion.split("\\.")(0)
 
@@ -163,7 +164,7 @@ case class ApplicationSettings(name: String, systemSettings: SystemSettings) {
 
   def use[T](f: => T) = Request.copy(applicationSettings = this).use(f)
 
-  def matches(path: String) = configuration.getStringList("pathes", Nil).exists(path.startsWith)
+  def matches(path: Path) = configuration.getStringList("pathes", Nil).exists(path.string.startsWith)
 
   def lookupLocale(desiredLocale: ULocale) = LocaleUtils.lookupLocale(locales, desiredLocale)
 }
@@ -235,7 +236,7 @@ case class Request private(applicationSettings: ApplicationSettings,
                            protocol: String = "http",
                            domain: String = "localhost",
                            port: Int = 80,
-                           path: String = "/",
+                           path: Path = "/",
                            accept: List[String] = Nil,
                            remoteAddress: String = "::1",
                            remoteHost: String = "localhost",
@@ -249,7 +250,7 @@ case class Request private(applicationSettings: ApplicationSettings,
                            user: User = User.anonymous) {
   val locale = applicationSettings.lookupLocale(desiredLocale)
 
-  lazy val cacheKey = new RequestCacheKey(path, method, domain, parameters)
+  lazy val cacheKey = new RequestCacheKey(path.string, method, domain, parameters)
 
   lazy val translator: Translator = applicationSettings.translators(locale)
 
@@ -259,7 +260,9 @@ case class Request private(applicationSettings: ApplicationSettings,
 
   def useIt[R](f: (Request) => R): R = Request.use(this)(f(this))
 
-  def relative(relativePath: String) = this.copy(path = new URI(path).resolve(relativePath).normalize().toString)
+  def relative(relativePath: String) = this.copy(path = path.resolve(relativePath))
+
+  def dropFirstPathPart = this.copy(path = path.dropFirstPart)
 
   def activate() = Request.activate(this)
 

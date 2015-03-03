@@ -8,7 +8,7 @@ import net.twibs.util.{Request, ClassUtils}
 
 class LessVarsResponder extends Responder {
   def respond(request: Request): Option[Response] =
-    if (request.path == "/inc/_foreign/twibs-vars.less") Some(
+    if (request.path.string == "/inc/_foreign/twibs-vars.less") Some(
       new StringResponse with CacheableResponse with CssMimeType with CompilationTimeResponse {
         def asString: String = s"""@context-path: "${request.contextPath}";"""
 

@@ -4,7 +4,7 @@
 
 package net.twibs.web
 
-import net.twibs.util.Request
+import net.twibs.util.{Path, Request}
 
 abstract class RecursiveFilenameResolverResponder(contentResponder: Responder, filename: String) extends Responder {
   def respondWithFilename(request: Request) = respondRecursive(request.relative(filename))
@@ -12,7 +12,7 @@ abstract class RecursiveFilenameResolverResponder(contentResponder: Responder, f
   private def respondRecursive(request: Request): Option[Response] = {
     contentResponder.respond(request) match {
       case None =>
-        if (request.path == "/" + filename) None
+        if (request.path == Path("/" + filename)) None
         else respondRecursive(request.relative("../" + filename))
       case responseOption => responseOption
     }

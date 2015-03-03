@@ -12,7 +12,7 @@ class FileResponder(baseDir: File) extends Responder {
   def respond(request: Request): Option[Response] = {
     if (request.method != GetMethod) None
     else {
-      val fileArg = new File(baseDir, request.path)
+      val fileArg = new File(baseDir, request.path.string)
 
       if (fileArg.exists() && fileArg.isFile && fileArg.canRead)
         Some(new FileResponse() with CacheableResponse {

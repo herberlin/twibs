@@ -8,6 +8,6 @@ import net.twibs.util.Request
 
 class HideResponder(contentResponder: Responder) extends Responder {
   def respond(request: Request): Option[Response] =
-    if (request.path.matches(".*/_.*")) None
+    if (request.path.parts.exists(_.startsWith("_"))) None
     else contentResponder.respond(request)
 }

@@ -35,7 +35,7 @@ class LoggingResponder(delegate: Responder) extends Responder with Loggable {
       case _ => "Ok"
     }
 
-    def uri = request.domain + request.contextPath + request.path
+    def uri = request.domain + request.contextPath + request.path.string
 
     //    def remoteAddress = request.remoteAddress
     //

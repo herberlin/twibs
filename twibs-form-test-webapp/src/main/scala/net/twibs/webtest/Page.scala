@@ -12,7 +12,7 @@ import org.threeten.bp.Instant
 
 class Page extends Responder {
   def respond(request: Request): Option[Response] =
-    if (request.path == "/index.html" && request.method == GetMethod) Some(indexResponse)
+    if (request.path.string == "/index.html" && request.method == GetMethod) Some(indexResponse)
     else None
 
   def indexResponse = new StringResponse with VolatileResponse with HtmlMimeType {

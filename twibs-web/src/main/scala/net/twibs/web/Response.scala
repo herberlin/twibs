@@ -12,6 +12,8 @@ import java.util.zip.GZIPOutputStream
 import net.twibs.util.Predef._
 import net.twibs.util.{ApplicationSettings, RunMode}
 
+import scala.language.postfixOps
+
 trait Response extends Serializable {
   def asInputStream: InputStream
 
@@ -105,7 +107,7 @@ class RedirectResponse(val asString: String) extends StringResponse {
 
   def isCacheable: Boolean = false
 
-  def expiresOnClientAfter: Duration = 8 hours
+  def expiresOnClientAfter = if (RunMode.isDevelopment) 1 seconds else 8 hours
 
   override def isContentFinal: Boolean = true
 }

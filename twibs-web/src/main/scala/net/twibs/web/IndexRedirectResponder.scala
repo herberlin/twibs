@@ -12,5 +12,5 @@ class IndexRedirectResponder extends Responder {
     else None
 
   private def needsRedirectToIndex(request: Request): Boolean =
-    request.path == "/" || request.path == "/_RedirectToIndex"
+    request.path.string == "/" || request.path.string == "/_RedirectToIndex"
 }

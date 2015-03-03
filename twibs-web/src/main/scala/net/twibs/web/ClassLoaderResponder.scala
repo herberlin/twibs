@@ -6,12 +6,10 @@ package net.twibs.web
 
 import java.net.URL
 
-import net.twibs.util.Request
+import net.twibs.util.{Path, Request}
 
-class ClassLoaderResponder(classLoader: ClassLoader, prefixPath: String) extends ResourceResponder {
-  def getResourceOption(request: Request): Option[URL] = Option(classLoader.getResource(withPrefixPath(request.path)))
+class ClassLoaderResponder(classLoader: ClassLoader, prefixPath: Path) extends ResourceResponder {
+  def getResourceOption(request: Request): Option[URL] = Option(classLoader.getResource(withPrefixPath(request.path).string))
 
-  private def withPrefixPath(path: String) = removeTrailingSlash(prefixPath + path)
-
-  private def removeTrailingSlash(path: String) = if (path.startsWith("/")) path.substring(1) else path
+  private def withPrefixPath(path: Path) = Path(prefixPath.parts ++ path.parts, path.suffix, absolute = false)
 }

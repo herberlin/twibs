@@ -10,5 +10,5 @@ import javax.servlet.ServletContext
 import net.twibs.util.Request
 
 class ServletContextResponder(servletContext: ServletContext) extends ResourceResponder {
-  def getResourceOption(request: Request): Option[URL] = Option(servletContext.getResource(request.path))
+  def getResourceOption(request: Request): Option[URL] = Option(servletContext.getResource(request.path.string))
 }

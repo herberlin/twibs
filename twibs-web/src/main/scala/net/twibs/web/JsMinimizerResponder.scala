@@ -8,14 +8,14 @@ import net.twibs.util._
 
 class JsMinimizerResponder(contentResponder: Responder) extends JsMinimizer with Responder with Loggable {
   def respond(request: Request): Option[Response] =
-    (if (request.path.toLowerCase.endsWith(".js")) contentResponder.respond(request) else None) match {
+    (if (request.path.suffix == "js") contentResponder.respond(request) else None) match {
       case Some(response) if !response.isContentFinal => Some(minimize(request, response))
       case any => any
     }
 
   def minimize(request: Request, response: Response): Response = {
     val minimized = try {
-      minimize(request.path, response.asString)
+      minimize(request.path.string, response.asString)
     } catch {
       case e: JsMinimizerException =>
         logger.warn(e.getMessage)
