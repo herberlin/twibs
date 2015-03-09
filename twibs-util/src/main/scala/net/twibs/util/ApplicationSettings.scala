@@ -36,7 +36,8 @@ case class SystemSettings(startedAt: Long,
                           runMode: RunMode,
                           os: OperatingSystem,
                           zoneId: ZoneId) {
-  private[util] val configUnresolved = {
+  @transient
+  private[util] lazy val configUnresolved = {
     ConfigFactory.invalidateCaches()
 
     def loadAndDecorate(loader: ClassLoader, name: String) =
@@ -54,9 +55,11 @@ case class SystemSettings(startedAt: Long,
     userConfigWithOsgiFallback.withFallback(baseConfig)
   }
 
-  val applicationSettings = configUnresolved.getObject("APPLICATIONS").unwrapped().keySet().asScala.map(name => name -> new ApplicationSettings(name, this)).toMap
+  @transient
+  lazy val applicationSettings = configUnresolved.getObject("APPLICATIONS").unwrapped().keySet().asScala.map(name => name -> new ApplicationSettings(name, this)).toMap
 
-  val defaultApplicationSettings = applicationSettings(ApplicationSettings.DEFAULT_NAME)
+  @transient
+  lazy val defaultApplicationSettings = applicationSettings(ApplicationSettings.DEFAULT_NAME)
 
   def applicationSettingsForPath(path: Path) = applicationSettings.values.collectFirst { case x if x.matches(path) => x} getOrElse defaultApplicationSettings
 
@@ -154,16 +157,22 @@ trait UserSettings {
 }
 
 case class ApplicationSettings(name: String, systemSettings: SystemSettings) {
-  private val configUnresolved = systemSettings.configUnresolved.childConfig("APPLICATIONS." + name)
+  @transient
+  private lazy val configUnresolved = systemSettings.configUnresolved.childConfig("APPLICATIONS." + name)
 
-  val configuration: Configuration = new ConfigurationForTypesafeConfig(configUnresolved.resolve())
+  @transient
+  lazy val configuration: Configuration = new ConfigurationForTypesafeConfig(configUnresolved.resolve())
 
-  val locales = configuration.getStringList("locales").fold(List(systemSettings.locale))(_.map(localeId => new ULocale(localeId)))
+  @transient
+  lazy val locales = configuration.getStringList("locales").fold(List(systemSettings.locale))(_.map(localeId => new ULocale(localeId)))
 
-  val translators: Map[ULocale, Translator] = locales.map(locale => locale -> new TranslatorResolver(locale, new ConfigurationForTypesafeConfig(configUnresolved.childConfig("LOCALES." + locale.toString).resolve())).root.usage(name)).toMap
+  @transient
+  lazy val translators: Map[ULocale, Translator] = locales.map(locale => locale -> new TranslatorResolver(locale, new ConfigurationForTypesafeConfig(configUnresolved.childConfig("LOCALES." + locale.toString).resolve())).root.usage(name)).toMap
 
-  val defaultRequest = Request(this)
+  @transient
+  lazy val defaultRequest = Request(this)
 
+  @transient
   lazy val tika = new Tika()
 
   def use[T](f: => T) = Request.copy(applicationSettings = this).use(f)
@@ -252,12 +261,16 @@ case class Request private(applicationSettings: ApplicationSettings,
                            cookies: CookieContainer = new SimpleCookieContainer(),
                            session: Session = new SimpleSession(),
                            user: User = User.anonymous) {
-  val locale = applicationSettings.lookupLocale(desiredLocale)
+  @transient
+  lazy val locale = applicationSettings.lookupLocale(desiredLocale)
 
+  @transient
   lazy val cacheKey = new RequestCacheKey(path.string, method, domain, parameters)
 
+  @transient
   lazy val translator: Translator = applicationSettings.translators(locale)
 
+  @transient
   lazy val formatters = new Formatters(translator, locale, Currency.getInstance("EUR"), applicationSettings.systemSettings.zoneId)
 
   def use[T](f: => T) = Request.use(this)(f)

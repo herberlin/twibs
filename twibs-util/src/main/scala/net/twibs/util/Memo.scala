@@ -4,10 +4,12 @@
 
 package net.twibs.util
 
-import concurrent.duration._
+import java.io.{IOException, ObjectInputStream}
+
+import scala.concurrent.duration._
 import scala.ref.WeakReference
 
-trait Memo[T] {
+trait Memo[T] extends Serializable {
   def apply(): T
 
   def asOption: Option[T]
@@ -34,6 +36,7 @@ private trait CachedMemo[T] extends Memo[T] {
 }
 
 private class ConcreteMemo[T](compute: => T) extends CachedMemo[T] {
+  @transient
   var cache: Option[T] = None
 
   def reset(): Unit = synchronized {cache = None}
@@ -50,6 +53,13 @@ private class ConcreteMemo[T](compute: => T) extends CachedMemo[T] {
     new ConcreteMemo(compute) with RecomputingMemo[T] {
       override def recomputeAfter: Duration = duration
     }
+
+  @throws(classOf[IOException])
+  @throws(classOf[ClassNotFoundException])
+  def readObject(in: ObjectInputStream): Unit = {
+    in.defaultReadObject()
+    cache = None
+  }
 }
 
 private trait RecomputingMemo[T] extends CachedMemo[T] {
@@ -66,6 +76,7 @@ private trait RecomputingMemo[T] extends CachedMemo[T] {
 }
 
 private class WeakMemo[T <: AnyRef](compute: => T) extends CachedMemo[T] {
+  @transient
   var cache: Option[WeakReference[T]] = None
 
   def reset(): Unit = synchronized {cache = None}
@@ -82,4 +93,11 @@ private class WeakMemo[T <: AnyRef](compute: => T) extends CachedMemo[T] {
     new WeakMemo(compute) with RecomputingMemo[T] {
       override def recomputeAfter: Duration = duration
     }
+
+  @throws(classOf[IOException])
+  @throws(classOf[ClassNotFoundException])
+  def readObject(in: ObjectInputStream): Unit = {
+    in.defaultReadObject()
+    cache = None
+  }
 }
