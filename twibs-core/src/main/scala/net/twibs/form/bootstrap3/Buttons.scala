@@ -90,7 +90,7 @@ trait BootstrapButton extends InteractiveComponent with Values with DisplayType 
 
   override def asHtml: NodeSeq =
     if (state.isIgnored) NodeSeq.Empty
-    else if (state.isHidden) inputs.map(input => form.renderer.hiddenInput(name, input.string)).flatten
+    else if (state.isHidden) inputs.flatMap(input => form.renderer.hiddenInput(name, input.string))
     else buttonAsDecoratedHtml
 
   def buttonAsDecoratedHtml: NodeSeq =

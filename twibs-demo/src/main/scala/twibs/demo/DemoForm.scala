@@ -31,7 +31,7 @@ class DemoForm extends Form("demo") {
 
       override def maximumNumberOfInputs: Int = defaultStrings.size
 
-      override def defaultValues = defaultStrings.map(stringToValueOption).flatten
+      override def defaultValues = defaultStrings.flatMap(stringToValueOption)
 
       override def state: ComponentState = super.state.merge(_state)
     }

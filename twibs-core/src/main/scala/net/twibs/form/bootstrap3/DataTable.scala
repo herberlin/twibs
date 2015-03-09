@@ -138,7 +138,7 @@ trait DataTable[T] extends StaticContainer {
 
   def visibleColumns = columns.filter(_.visible)
 
-  def tableBody: NodeSeq = tableData.rows.map(tableRow).toList.flatten
+  def tableBody: NodeSeq = tableData.rows.flatMap(tableRow).toList
 
   trait Column {
     def name: String

@@ -130,7 +130,7 @@ object QueryDsl {
     }
 
     override def orderByName(orderBys: List[(String, SortOrder)]): Query[T] =
-      orderBy(orderBys.map { case (name, sort) =>
+      orderBy(orderBys.flatMap { case (name, sort) =>
         columnForName(name).flatMap(column =>
           sort match {
             case SortOrder.Ascending => Some(column.asc)
@@ -138,7 +138,7 @@ object QueryDsl {
             case _ => None
           }
         )
-      }.flatten)
+      })
 
     def columnForName(columnName: String) = columns.find(_.name == columnName)
 
@@ -281,7 +281,7 @@ case class JoinList(joins: Seq[Join]) {
 
   def add(join: Join): JoinList = if (joins.contains(join)) this else copy(join +: joins)
 
-  def tables = joins.map(_.tables).flatten.distinct
+  def tables = joins.flatMap(_.tables).distinct
 
   def toJoinSql = JoinList.render(joins)
 }

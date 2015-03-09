@@ -182,7 +182,7 @@ trait Container extends Component with ValidateInTree {
     children.foreach(_.parse(parameters))
   }
 
-  override def callExecute(): Seq[Result] = children.map(_.callExecute()).flatten
+  override def callExecute(): Seq[Result] = children.flatMap(_.callExecute())
 
   override protected def computeValid = children.forall(_.isValid)
 
@@ -192,7 +192,7 @@ trait Container extends Component with ValidateInTree {
 
   def >>(visible: => Boolean, nodeSeq: => NodeSeq) = new DisplayHtml(visible, nodeSeq)
 
-  override def html = children.map(child => if (child.isFloating) NodeSeq.Empty else renderChild(child)).flatten
+  override def html = children.flatMap(child => if (child.isFloating) NodeSeq.Empty else renderChild(child))
 
   def renderChild(child: Component) = child.html
 
@@ -512,7 +512,7 @@ class Form(val ilk: String) extends Container with CancelStateInheritance {
 
   def addComponentParameters(parameters: Seq[(String, String)]) =  componentParameters ++ parameters
 
-  def componentParameters: Seq[(String, String)] = components.toSeq.map(_.linkParameters).flatten
+  def componentParameters: Seq[(String, String)] = components.toSeq.flatMap(_.linkParameters)
 
   lazy val defaultButtonOption: Option[DefaultButton] = components.collectFirst { case b: DefaultButton if b.isEnabled => b}
 

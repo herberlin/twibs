@@ -119,7 +119,7 @@ trait Input extends TranslationSupport {
 
   final def entries: Seq[Entry] = _entries getOrElse defaultEntries
 
-  final def values: Seq[ValueType] = entries.map(_.valueOption).flatten
+  final def values: Seq[ValueType] = entries.flatMap(_.valueOption)
 
   final def strings: Seq[String] = entries.map(_.string)
 

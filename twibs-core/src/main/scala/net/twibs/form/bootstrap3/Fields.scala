@@ -171,7 +171,7 @@ trait FloatingInfo extends Field {
 }
 
 trait CheckOrRadioField extends FieldWithOptions with FloatingInfo {
-  override def inputsAsHtml: NodeSeq = infoButtonHtml ++ options.map(optionAsHtml).flatten
+  override def inputsAsHtml: NodeSeq = infoButtonHtml ++ options.flatMap(optionAsHtml)
 
   def optionAsHtml(option: OptionI): NodeSeq =
     if (inlineField) {
@@ -196,7 +196,7 @@ trait CheckOrRadioField extends FieldWithOptions with FloatingInfo {
 trait CheckBoxField extends CheckOrRadioField {
   def checkOrRadioType = "checkbox"
 
-  override def messageHtml: NodeSeq = (super.messageHtml ++ inputs.map(messageHtmlFor)).flatten
+  override def messageHtml: NodeSeq = (super.messageHtml ++ inputs.flatMap(messageHtmlFor))
 
   override def minimumNumberOfInputs = if (required) 1 else 0
 

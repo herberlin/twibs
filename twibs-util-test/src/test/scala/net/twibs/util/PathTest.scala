@@ -143,3 +143,4 @@ class PathTest extends TwibsTest {
     Path("/a/b/").relativize("/a/b/c.html").string shouldBe "c.html"
   }
 }
+

@@ -30,7 +30,7 @@ abstract class Translator(id: String, usages: List[String], kinds: List[String])
     case ps => getTranslator(id + ps.mkString, appendPrefixes(usages, ps), appendPrefixes(kinds, ps))
   }
 
-  private def appendPrefixes(from: List[String], ps: List[String]) = from.map(parent => ps.map(prefix => parent + prefix + ".")).flatten ::: from
+  private def appendPrefixes(from: List[String], ps: List[String]) = from.flatMap(parent => ps.map(prefix => parent + prefix + ".")) ::: from
 
   def translate(key: String, default: => String, args: Any*): String =
     translateOrUseDefault(key, callUnresolved(key, default), args: _*)

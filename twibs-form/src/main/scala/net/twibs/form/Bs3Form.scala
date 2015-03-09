@@ -77,7 +77,7 @@ sealed trait Bs3Container extends Container {
   abstract class Button(ilk: String) extends super.Button(ilk) with ButtonRenderer {
     override def html =
       this match {
-        case b: Options => b.optionEntries.map(o => render(o.string, o.index)).flatten
+        case b: Options => b.optionEntries.flatMap(o => render(o.string, o.index))
         case _ => render(string, 0)
       }
 
@@ -144,11 +144,11 @@ sealed trait Bs3Container extends Container {
   abstract class Hidden(ilk: String) extends super.Hidden(ilk) {
     override def html: NodeSeq =
       if (isIgnored) NodeSeq.Empty
-      else entries.map(entry => hidden(name, entry.string)).flatten
+      else entries.flatMap(entry => hidden(name, entry.string))
   }
 
   trait Field extends super.Field {
-    override def html = entries.map(renderEntry).flatten
+    override def html = entries.flatMap(renderEntry)
 
     def fieldCssClasses: Seq[String] = Nil
 
@@ -214,10 +214,10 @@ sealed trait Bs3Container extends Container {
 
     override def html =
       if (isIgnored) NodeSeq.Empty
-      else if (isHidden) entries.map(entry => hidden(name, entry.string)).flatten ++ triggerHtml
+      else if (isHidden) entries.flatMap(entry => hidden(name, entry.string)) ++ triggerHtml
       else renderOptions
 
-    def renderOptions: NodeSeq = optionEntries.map(renderOption).flatten ++ triggerHtml
+    def renderOptions: NodeSeq = optionEntries.flatMap(renderOption) ++ triggerHtml
 
     def renderOption(option: Entry): NodeSeq
   }
@@ -309,7 +309,7 @@ trait Bs3HorizontalLayout extends Bs3Container {
   def ->>(nodeSeq: => NodeSeq) = new DisplayHtml(<div class="form-group"><div class="col-sm-offset-3 col-sm-9">{nodeSeq}</div></div>)
 
   trait Messages extends InputComponent {
-    def labelCssMessageClass = if (validated) max(messages ++ entries.map(_.messageOption).flatten) else ""
+    def labelCssMessageClass = if (validated) max(messages ++ entries.flatMap(_.messageOption)) else ""
 
     def max(messages: Seq[Message]) = messages match {
       case x if x.isEmpty => ""

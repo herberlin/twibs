@@ -37,7 +37,7 @@ class SlingFilter extends Filter {
 object HttpServletRequestWithSlingUpload extends HttpServletUtils {
   def apply(httpServletRequest: SlingHttpServletRequest, httpServletResponse: HttpServletResponse) = {
     lazy val allRequestParameters: Seq[(String, RequestParameter)] =
-      httpServletRequest.getRequestParameterMap.asScala.map(e => e._2.map(e._1 ->).toList).flatten.toSeq
+      httpServletRequest.getRequestParameterMap.asScala.flatMap(e => e._2.map(e._1 ->).toList).toSeq
 
     def parameters: Parameters = removeUnderscoreParameterSetByJQuery(urlParameters ++ multiPartParameters)
 
