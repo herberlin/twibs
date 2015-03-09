@@ -38,19 +38,13 @@ trait Response extends Serializable {
   def isInMemory: Boolean
 
   lazy val gzippedOption: Option[Array[Byte]] = {
-    val bytes = asInputStream useAndClose {
-      is => compressWithGzip(is)
-    }
-    if (bytes.length < length)
-      Some(bytes)
-    else None
+    val bytes = asInputStream useAndClose compressWithGzip
+    if (bytes.length < length) Some(bytes) else None
   }
 
   private def compressWithGzip(uncompressed: InputStream) = {
     val baos = new ByteArrayOutputStream()
-    new GZIPOutputStream(baos) useAndClose {
-      os => ByteStreams.copy(uncompressed, os)
-    }
+    new GZIPOutputStream(baos) useAndClose {ByteStreams.copy(uncompressed, _)}
     baos.toByteArray
   }
 

@@ -74,11 +74,11 @@ object SystemSettings extends UnwrapCurrent[SystemSettings] with Loggable {
 
   private def isCalledFromTestClass = new Exception().getStackTrace.exists(_.getClassName.startsWith("org.scalatest"))
 
-  def default = defaultCached.value
+  def default = defaultCached()
 
   private val internalDefault = computeDefault()
 
-  private val defaultCached = LazyCache(if (internalDefault.runMode.isDevelopment) 15 second else 8 hours)(computeDefault())
+  private val defaultCached = Memo(computeDefault()).recomputeAfter(if (internalDefault.runMode.isDevelopment) 15 second else 8 hours)
 
   private def computeDefault() = new SystemSettings(
     startedAt = System.currentTimeMillis,
@@ -113,6 +113,10 @@ case class RunMode(name: String) {
   lazy val isStaging = this == RunMode.STAGING
 
   lazy val isProduction = this == RunMode.PRODUCTION
+
+  def isPublic = isStaging || isProduction
+
+  def isPrivate = isDevelopment || isTest
 }
 
 object RunMode extends UnwrapCurrent[RunMode] {

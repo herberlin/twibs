@@ -139,7 +139,7 @@ object HttpServletRequestBase extends HttpServletUtils {
 
       session = new HttpSession(httpServletRequest),
 
-      useCache = !((RunMode.isDevelopment || RunMode.isTest) && httpServletRequest.getHeader("Cache-Control") == "no-cache" && httpServletRequest.getHeader("If-Modified-Since") == null)
+      useCache = !(RunMode.isPrivate && httpServletRequest.getHeader("Cache-Control") == "no-cache" && httpServletRequest.getHeader("If-Modified-Since") == null)
 
       //  def uri = httpServletRequest.getRequestURI
 

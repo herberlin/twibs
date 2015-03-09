@@ -33,7 +33,7 @@ class JsMinimizer {
 
   private def externs = CommandLineRunner.getDefaultExterns
 
-  def prettyPrint: Boolean = RunMode.isDevelopment || RunMode.isTest
+  def prettyPrint: Boolean = RunMode.isPrivate
 }
 
 class JsMinimizerException(message: String) extends Exception(message)

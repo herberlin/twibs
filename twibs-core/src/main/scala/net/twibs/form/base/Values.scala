@@ -43,23 +43,21 @@ trait Values extends TranslationSupport {
 
   private var bufferedValues: Option[Seq[ValueType]] = None
 
-  private val cachedInputs = LazyCache {
-    {
-      (bufferedStrings match {
-        case Some(strings) =>
-          bufferedStrings = None
-          if (isStringProcessingEnabled)
-            strings.map(validateString)
-          else
-            defaultInputs
-        case None => bufferedValues match {
-          case Some(values) =>
-            bufferedValues = None
-            values.map(validateValue)
-          case None => defaultInputs
-        }
-      }).zipWithIndex.map { case (i, index) => i.withIndex(index)}
-    }
+  private val cachedInputs = Memo {
+    (bufferedStrings match {
+      case Some(strings) =>
+        bufferedStrings = None
+        if (isStringProcessingEnabled)
+          strings.map(validateString)
+        else
+          defaultInputs
+      case None => bufferedValues match {
+        case Some(values) =>
+          bufferedValues = None
+          values.map(validateValue)
+        case None => defaultInputs
+      }
+    }).zipWithIndex.map { case (i, index) => i.withIndex(index)}
   }
 
   def defaultInputs = {
@@ -97,7 +95,7 @@ trait Values extends TranslationSupport {
 
   def defaultValues: Seq[ValueType] = Nil
 
-  def inputs: Seq[Input] = cachedInputs.value
+  def inputs: Seq[Input] = cachedInputs()
 
   def inputsMessageOption =
     if (validated && areInputsValid) {
@@ -521,13 +519,13 @@ trait Options extends Values {
 
   def toOption(value: ValueType, title: String, enabled: Boolean = true) = OptionI(valueToString(value), title, value, enabled)
 
-  final def options: List[OptionI] = _options.value
+  final def options: List[OptionI] = _options()
 
   final def optionValues: List[ValueType] = options.map(_.value)
 
   final def optionStrings: List[String] = options.map(_.string)
 
-  private val _options = LazyCache(computeOptions.zipWithIndex.map { case (o, index) => o.withIndex(index)})
+  private val _options = Memo(computeOptions.zipWithIndex.map { case (o, index) => o.withIndex(index)})
 
   def computeOptions: List[OptionI]
 

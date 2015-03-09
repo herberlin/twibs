@@ -25,7 +25,7 @@ trait Input extends TranslationSupport {
 
   private[this] var _messageOption: Option[Message] = None
 
-  private[this] final val cachedDefaultEntries = LazyCache(computeDefaultEntries)
+  private[this] final val cachedDefaultEntries = Memo(computeDefaultEntries)
 
   final def values_=(values: Seq[ValueType]): Unit = {
     setEntries(values.map(valueToEntry))
@@ -109,7 +109,7 @@ trait Input extends TranslationSupport {
   }
 
   // Accessors
-  final def defaultEntries = cachedDefaultEntries.value
+  final def defaultEntries = cachedDefaultEntries()
 
   final def isModified = _entries.isDefined
 

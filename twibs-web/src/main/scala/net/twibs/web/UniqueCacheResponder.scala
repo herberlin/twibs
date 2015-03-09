@@ -17,7 +17,7 @@ class UniqueCacheResponder(delegate: Responder, fileOption: Option[File] = None)
     def load(requestCacheKey: RequestCacheKey): Option[Response] = delegate.respond(Request)
   }
 
-  def useStorage: Boolean = RunMode.isDevelopment || RunMode.isTest
+  def useStorage: Boolean = RunMode.isPrivate
 
   def store(): Unit =
     fileOption.filter(file => useStorage).foreach(save)

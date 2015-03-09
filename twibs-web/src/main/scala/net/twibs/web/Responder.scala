@@ -10,10 +10,10 @@ trait Responder {
   def respond(request: Request): Option[Response]
 }
 
-class ResponderChain(list: List[Responder]) extends Responder {
+class ResponderChain(list: Seq[Responder]) extends Responder {
   def respond(request: Request): Option[Response] = list.view.flatMap(_.respond(request)).headOption
 }
 
 object Responder {
-  implicit def apply(list: List[Responder]) = new ResponderChain(list)
+  implicit def apply(list: Seq[Responder]) = new ResponderChain(list)
 }

@@ -50,7 +50,7 @@ class LessCssParserResponder(contentResponder: Responder, compress: Boolean = tr
       case e: LessCssParserException =>
         logger.error(e.getMessage, e)
 
-        val string = if (RunMode.isDevelopment || RunMode.isTest) "// " + e.getMessage.replace("\n", "\n// ") else "// Internal Server Error"
+        val string = if (RunMode.isPrivate) "// " + e.getMessage.replace("\n", "\n// ") else "// Internal Server Error"
 
         new StringResponse with MultiResponseWrapper with CssMimeType with ErrorResponse {
           protected val delegatees: List[Response] = responsesBuffer.toList

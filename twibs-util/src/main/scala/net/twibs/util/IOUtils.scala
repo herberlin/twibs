@@ -4,10 +4,11 @@
 
 package net.twibs.util
 
-import java.io.{File, FileOutputStream}
+import java.io.{InputStream, InputStreamReader, File, FileOutputStream}
 import java.net.URL
+import java.nio.charset.StandardCharsets
 
-import com.google.common.io.ByteStreams
+import com.google.common.io.{CharStreams, ByteStreams}
 import org.apache.commons.io.FileUtils
 
 import scala.util.DynamicVariable
@@ -37,6 +38,12 @@ trait IOUtils {
 
   implicit def toRichClosableReflected[C <: WithCloseMethod](closable: C) =
     new RichClosable(closable, () => closable.close())
+
+  implicit def toRichInputStream(is: InputStream) = new {
+    def readAsString = is.useAndClose { is => CharStreams.toString(new InputStreamReader(is, StandardCharsets.UTF_8))}
+
+    def readAsBytes = is.useAndClose { is => ByteStreams.toByteArray(is)}
+  }
 }
 
 object IOUtils extends IOUtils {

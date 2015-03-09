@@ -49,13 +49,13 @@ trait Component extends TranslationSupport {
 
   private var _parsed = false
 
-  private val disabledCache = LazyCache {isHidden || computeDisabled}
+  private val disabledCache = Memo {isHidden || computeDisabled}
 
-  private val hiddenCache = LazyCache {isIgnored || computeHidden}
+  private val hiddenCache = Memo {isIgnored || computeHidden}
 
-  private val ignoredCache = LazyCache {computeIgnored}
+  private val ignoredCache = Memo {computeIgnored}
 
-  private val validCache = LazyCache {isDisabled || !validated || computeValid}
+  private val validCache = Memo {isDisabled || !validated || computeValid}
 
   def validated = isEnabled && _validated
 
@@ -130,13 +130,13 @@ trait Component extends TranslationSupport {
   // Accessors
   final def isEnabled: Boolean = !isDisabled
 
-  final def isDisabled: Boolean = disabledCache.value
+  final def isDisabled: Boolean = disabledCache()
 
-  final def isHidden: Boolean = hiddenCache.value
+  final def isHidden: Boolean = hiddenCache()
 
-  final def isIgnored: Boolean = ignoredCache.value
+  final def isIgnored: Boolean = ignoredCache()
 
-  final def isValid: Boolean = validCache.value
+  final def isValid: Boolean = validCache()
 
   final def isFloating = this.isInstanceOf[Floating]
 

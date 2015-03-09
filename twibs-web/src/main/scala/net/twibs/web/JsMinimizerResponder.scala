@@ -19,7 +19,7 @@ class JsMinimizerResponder(contentResponder: Responder) extends JsMinimizer with
     } catch {
       case e: JsMinimizerException =>
         logger.warn(e.getMessage)
-        if (RunMode.isDevelopment || RunMode.isTest) "// " + e.getMessage.replace("\n", "\n// ") else "// Internal Server Error"
+        if (RunMode.isPrivate) "// " + e.getMessage.replace("\n", "\n// ") else "// Internal Server Error"
     }
 
     new StringResponse with SingleResponseWrapper with JavaScriptMimeType {

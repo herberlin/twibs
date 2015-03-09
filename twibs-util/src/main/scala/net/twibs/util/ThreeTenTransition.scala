@@ -56,6 +56,10 @@ trait ThreeTenTransition {
     override def compare(x: ZonedDateTime, y: ZonedDateTime): Int = x.compareTo(y)
   }
 
+  implicit object LocalDateTimeOrdering extends Ordering[LocalDateTime] {
+    override def compare(x: LocalDateTime, y: LocalDateTime): Int = x.compareTo(y)
+  }
+
 }
 
 object ThreeTenTransition extends ThreeTenTransition
