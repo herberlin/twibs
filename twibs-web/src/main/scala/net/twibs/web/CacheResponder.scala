@@ -5,12 +5,12 @@
 package net.twibs.web
 
 import com.google.common.cache.LoadingCache
-import net.twibs.util.RequestCacheKey
+import net.twibs.util.ContentRequest
 
 trait CacheResponder extends Responder {
-  protected def cache: LoadingCache[RequestCacheKey, Option[Response]]
+  protected def cache: LoadingCache[ContentRequest, Option[Response]]
 
-  def respond(requestCacheKey: RequestCacheKey) =
+  def respond(requestCacheKey: ContentRequest) =
     cache.get(requestCacheKey) match {
       case Some(response) =>
         if (!response.isCacheable)

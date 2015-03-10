@@ -64,5 +64,3 @@ class SimpleCookieContainer extends CookieContainer {
 
   def setCookie(name: String, value: String) = ()
 }
-
-case class RequestCacheKey(path: String, method: RequestMethod, domain: String, parameters: Parameters)

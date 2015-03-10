@@ -81,6 +81,14 @@ class Formatters(translator: Translator, locale: ULocale, currency: Currency, zo
     def withZoneId = ZonedDateTime.of(dateTime, zoneId)
   }
 
+  implicit def dateTimeToFormattable(dateTime: ZonedDateTime) = new {
+    def formatAsMediumDateTime = mediumDateTimeFormatter.format(dateTime)
+
+    def formatAsIso = DateTimeFormatter.ISO_DATE_TIME.format(dateTime)
+
+    def formatAsIsoWithOffset = DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(dateTime)
+  }
+
   implicit def dateToFormattable(date: LocalDate) = new {
     def formatAsMediumDate = mediumDateFormatter.format(date)
 
@@ -112,6 +120,8 @@ object Formatters extends UnwrapCurrent[Formatters] {
   implicit def intToFormattable(value: Int) = current.intToFormattable(value)
 
   implicit def dateTimeToFormattable(dateTime: LocalDateTime) = current.dateTimeToFormattable(dateTime)
+
+  implicit def dateTimeToFormattable(dateTime: ZonedDateTime) = current.dateTimeToFormattable(dateTime)
 
   implicit def dateToFormattable(date: LocalDate) = current.dateToFormattable(date)
 }

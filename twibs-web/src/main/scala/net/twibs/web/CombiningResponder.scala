@@ -59,6 +59,4 @@ trait CombiningResponder extends Responder {
   def staticContentResponders(): List[Responder] = classLoaderResponder :: new LessVarsResponder() :: Nil
 
   def classLoaderResponder: ClassLoaderResponder = new ClassLoaderResponder(getClass.getClassLoader, "/META-INF/resources")
-
-  def modifyForChaining(request: Request): Request = ApplicationResponder.modify(request)
 }

@@ -8,13 +8,13 @@ import com.google.common.cache.{CacheLoader, CacheBuilder, LoadingCache}
 import java.io._
 import scala.collection.JavaConverters._
 import net.twibs.util.Predef._
-import net.twibs.util.{Request, RequestCacheKey, RunMode, Loggable}
+import net.twibs.util.{Request, ContentRequest, RunMode, Loggable}
 
 class UniqueCacheResponder(delegate: Responder, fileOption: Option[File] = None) extends LoadingCacheResponder(delegate) with Loggable {
-  protected val cache: LoadingCache[RequestCacheKey, Option[Response]] = CacheBuilder.newBuilder().build(loader)
+  protected val cache: LoadingCache[ContentRequest, Option[Response]] = CacheBuilder.newBuilder().build(loader)
 
-  private def loader = new CacheLoader[RequestCacheKey, Option[Response]]() {
-    def load(requestCacheKey: RequestCacheKey): Option[Response] = delegate.respond(Request)
+  private def loader = new CacheLoader[ContentRequest, Option[Response]]() {
+    def load(requestCacheKey: ContentRequest): Option[Response] = delegate.respond(Request)
   }
 
   def useStorage: Boolean = RunMode.isPrivate
@@ -41,7 +41,7 @@ class UniqueCacheResponder(delegate: Responder, fileOption: Option[File] = None)
     oos.flush()
   }
 
-  private def asSerializableMap(): Map[RequestCacheKey, Response] =
+  private def asSerializableMap(): Map[ContentRequest, Response] =
     cache.asMap.asScala.filterNot(_._2.isEmpty).map(e => (e._1, e._2.get)).toMap
 
   def load(): Unit =
@@ -61,8 +61,8 @@ class UniqueCacheResponder(delegate: Responder, fileOption: Option[File] = None)
   }
 
   private[web] def load(inputStream: InputStream): Unit =
-    setSerializableMap(new ObjectInputStream(inputStream).readObject.asInstanceOf[Map[RequestCacheKey, Response]])
+    setSerializableMap(new ObjectInputStream(inputStream).readObject.asInstanceOf[Map[ContentRequest, Response]])
 
-  private def setSerializableMap(map: Map[RequestCacheKey, Response]): Unit =
+  private def setSerializableMap(map: Map[ContentRequest, Response]): Unit =
     map.foreach(x => cache.put(x._1, Some(x._2)))
 }

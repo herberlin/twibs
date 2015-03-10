@@ -240,6 +240,17 @@ trait CurrentRequest {
   def formatters = request.formatters
 }
 
+case class ContentRequest(method: RequestMethod = GetMethod,
+                          protocol: String = "http",
+                          domain: String = "localhost",
+                          port: Int = 80,
+                          contextPath: String = "",
+                          path: Path = "/",
+                          parameters: Parameters = Parameters())
+
+/**
+ * '''Note:''' Use [[ContentRequest]] as cache key and for serialisation.
+ */
 case class Request private(applicationSettings: ApplicationSettings,
                            desiredLocale: ULocale,
                            parameters: Parameters,
@@ -265,7 +276,7 @@ case class Request private(applicationSettings: ApplicationSettings,
   lazy val locale = applicationSettings.lookupLocale(desiredLocale)
 
   @transient
-  lazy val cacheKey = new RequestCacheKey(path.string, method, domain, parameters)
+  lazy val contentRequest = ContentRequest(method, protocol, domain, port, contextPath, path, parameters)
 
   @transient
   lazy val translator: Translator = applicationSettings.translators(locale)
@@ -283,7 +294,7 @@ case class Request private(applicationSettings: ApplicationSettings,
 
   def activate() = Request.activate(this)
 
-  Request.assertThatContextPathIsValid(contextPath)
+  Request.requireValidContextPath(contextPath)
 }
 
 object Request extends DynamicVariableWithDynamicDefault[Request] {
@@ -291,12 +302,9 @@ object Request extends DynamicVariableWithDynamicDefault[Request] {
 
   def apply(applicationSettings: ApplicationSettings): Request = Request(applicationSettings, applicationSettings.locales.head, Parameters())
 
-  def assertThatContextPathIsValid(contextPath: String) = {
-    if (!contextPath.isEmpty) {
-      assert(contextPath != "/", "contextPath must not be /")
-      assert(contextPath.startsWith("/"), s"contextPath '$contextPath' must start with /")
-      assert("/" + UrlUtils.encodeUrl(UrlUtils.decodeUrl(contextPath.substring(1))) == contextPath, s"contextPath '$contextPath' is invalid")
-    }
-    contextPath
+  @inline def requireValidContextPath(contextPath: String) = {
+    require(contextPath != "/", "contextPath must not be /")
+    require(contextPath.isEmpty || contextPath.startsWith("/"), s"contextPath '$contextPath' must start with /")
+    require(contextPath.isEmpty || "/" + UrlUtils.encodeUrl(UrlUtils.decodeUrl(contextPath.substring(1))) == contextPath, s"contextPath '$contextPath' is invalid")
   }
 }

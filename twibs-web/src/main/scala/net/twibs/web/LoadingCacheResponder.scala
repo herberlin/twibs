@@ -4,19 +4,19 @@
 
 package net.twibs.web
 
-import net.twibs.util.{Request, RequestCacheKey}
+import net.twibs.util.{Request, ContentRequest}
 
 abstract class LoadingCacheResponder(delegate: Responder) extends CacheResponder {
   def respond(request: Request): Option[Response] =
     request.use {
-      val requestCacheKey = request.cacheKey
+      val requestCacheKey = request.contentRequest
       if (!request.useCache) {
         cache.invalidate(requestCacheKey)
       }
       getIfPresentAndNotModified(requestCacheKey) getOrElse respond(requestCacheKey)
     }
 
-  def getIfPresentAndNotModified(requestCacheKey: RequestCacheKey) =
+  def getIfPresentAndNotModified(requestCacheKey: ContentRequest) =
     Option(cache.getIfPresent(requestCacheKey)).flatMap {
       case Some(response) if !response.isModified =>
         Some(Some(response))

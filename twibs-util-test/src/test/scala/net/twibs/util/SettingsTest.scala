@@ -59,27 +59,18 @@ class SettingsTest extends TwibsTest {
     }
   }
 
-  test("Loading configuration") {
-
-    //    b.getString("mode") should be("unknown")
-    //    b.getString("message") should be("Runmode unknown Host unknown User unknown")
-    //    cfg.getString("mode") should be("test")
-    //    cfg.getString("message") should be("Runmode test Host unknown User unknown")
-  }
-
   test("Validate context path") {
     intercept[NullPointerException] {
-      Request.assertThatContextPathIsValid(null)
+      Request.requireValidContextPath(null)
     }
-    intercept[AssertionError] {
-      Request.assertThatContextPathIsValid("/")
+    intercept[IllegalArgumentException] {
+      Request.requireValidContextPath("/")
     }.getMessage should include("not be /")
-    intercept[AssertionError] {
-      Request.assertThatContextPathIsValid("nix")
+    intercept[IllegalArgumentException] {
+      Request.requireValidContextPath("nix")
     }.getMessage should include("start with /")
-    intercept[AssertionError] {
-      Request.assertThatContextPathIsValid("/x x")
+    intercept[IllegalArgumentException] {
+      Request.requireValidContextPath("/x x")
     }.getMessage should include("invalid")
-    Request.assertThatContextPathIsValid("") should equal("")
   }
 }

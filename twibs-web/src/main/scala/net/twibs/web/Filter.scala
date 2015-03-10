@@ -18,23 +18,16 @@ import org.threeten.bp.LocalDateTime
 
 import scala.collection.JavaConverters._
 
-class Filter extends javax.servlet.Filter {
+abstract class AbstractFilter extends javax.servlet.Filter {
   private var servletContextVar: ServletContext = null
 
   def servletContext = servletContextVar
 
-  private var combiningResponderVar: CombiningResponder = null
-
-  def combiningResponder = combiningResponderVar
-
-  def createCombiningResponder(): CombiningResponder = new FilterResponder(this)
-
   override def init(filterConfig: FilterConfig): Unit = {
     servletContextVar = filterConfig.getServletContext
-    combiningResponderVar = createCombiningResponder()
   }
 
-  override def destroy(): Unit = combiningResponderVar.destroy()
+  override def destroy(): Unit = ()
 
   override def doFilter(request: ServletRequest, response: ServletResponse, filterChain: FilterChain): Unit =
     CurrentServletRequest.withValue(request) {
@@ -52,26 +45,43 @@ class Filter extends javax.servlet.Filter {
       CurrentHttpServletResponse.withValue(httpResponse) {
         httpRequest.setCharacterEncoding(Charsets.UTF_8.name)
         httpResponse.setCharacterEncoding(Charsets.UTF_8.name)
-        httpResponse.setHeader("X-Twibs", if (RunMode.isProduction) SystemSettings.version else SystemSettings.version + " - " + RunMode.name)
+        httpResponse.setHeader("X-Twibs", if (RunMode.isPublic) SystemSettings.version else SystemSettings.version + " - " + RunMode.name)
         val request = createRequest(httpRequest, httpResponse)
-        request.use {
-          combiningResponder.respond(request) match {
-            case Some(response) =>
-              new HttpResponseRenderer(request, response, httpRequest, httpResponse).render()
-            case None =>
-              combiningResponder.modifyForChaining(request).use {
-                filterChain.doFilter(httpRequest, httpResponse)
-                None
-              }
-          }
-        }
+        request.use {doFilter(request, httpRequest, httpResponse, filterChain)}
       }
     }
   }
 
+  def doFilter(request: Request, httpRequest: HttpServletRequest, httpResponse: HttpServletResponse, filterChain: FilterChain): Unit
 
   def createRequest(httpServletRequest: HttpServletRequest, httpServletResponse: HttpServletResponse): Request =
     HttpServletRequestWithCommonsFileUpload(httpServletRequest, httpServletResponse)
+}
+
+class Filter extends AbstractFilter {
+  private var combiningResponderVar: CombiningResponder = null
+
+  def combiningResponder = combiningResponderVar
+
+  def createCombiningResponder(): CombiningResponder = new FilterResponder(this)
+
+  override def init(filterConfig: FilterConfig): Unit = {
+    super.init(filterConfig)
+    combiningResponderVar = createCombiningResponder()
+  }
+
+  override def destroy(): Unit = combiningResponderVar.destroy()
+
+  override def doFilter(request: Request, httpRequest: HttpServletRequest, httpResponse: HttpServletResponse, filterChain: FilterChain): Unit = {
+    combiningResponder.respond(request) match {
+      case Some(response) =>
+        new HttpResponseRenderer(request, response, httpRequest, httpResponse).render()
+      case None =>
+        ApplicationResponder.modify(request).use {
+          filterChain.doFilter(httpRequest, httpResponse)
+        }
+    }
+  }
 }
 
 trait HttpServletUtils {
@@ -91,7 +101,7 @@ object HttpServletRequestBase extends HttpServletUtils {
         case _ => UnknownMethod
       },
 
-      protocol = httpServletRequest.getProtocol,
+      protocol = if(httpServletRequest.isSecure) "https" else "http",
 
       domain = httpServletRequest.getServerName,
 

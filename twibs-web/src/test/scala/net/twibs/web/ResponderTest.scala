@@ -173,13 +173,13 @@ class ResponderTest extends TwibsTest with Loggable {
   }
 
   test("Request key equality") {
-    toRequest("/test.html").relative("x.html").cacheKey should equal(toRequest("/x.html").cacheKey)
-    toRequest("/test.html").relative("x.html").cacheKey should not equal toRequest("/y.html").cacheKey
-    toRequest("/a/b/c/test.html").relative("./../c/d/x.html").cacheKey should equal(toRequest("/a/b/c/d/x.html").cacheKey)
-    toRequest("/a/b/c/test.html").relative("/d/x.html").cacheKey should equal(toRequest("/d/x.html").cacheKey)
-    toRequest("/test.html", "localhost", Map("sEcho" -> List("1"))).relative("x.html").cacheKey should equal(toRequest("/x.html", "localhost", Map("sEcho" -> List("1"))).cacheKey)
-    toRequest("/test.html", "localhost", Map("sEcho" -> List("2"))).relative("x.html").cacheKey should not equal toRequest("/x.html", "localhost", Map("sEcho" -> List("1"))).cacheKey
-    toRequest("/test.html", "localhost", Map("sEcho" -> List("1"))).relative("x.html").cacheKey should not equal toRequest("/x.html", "otherhost", Map("sEcho" -> List("1"))).cacheKey
+    toRequest("/test.html").relative("x.html").contentRequest should equal(toRequest("/x.html").contentRequest)
+    toRequest("/test.html").relative("x.html").contentRequest should not equal toRequest("/y.html").contentRequest
+    toRequest("/a/b/c/test.html").relative("./../c/d/x.html").contentRequest should equal(toRequest("/a/b/c/d/x.html").contentRequest)
+    toRequest("/a/b/c/test.html").relative("/d/x.html").contentRequest should equal(toRequest("/d/x.html").contentRequest)
+    toRequest("/test.html", "localhost", Map("sEcho" -> List("1"))).relative("x.html").contentRequest should equal(toRequest("/x.html", "localhost", Map("sEcho" -> List("1"))).contentRequest)
+    toRequest("/test.html", "localhost", Map("sEcho" -> List("2"))).relative("x.html").contentRequest should not equal toRequest("/x.html", "localhost", Map("sEcho" -> List("1"))).contentRequest
+    toRequest("/test.html", "localhost", Map("sEcho" -> List("1"))).relative("x.html").contentRequest should not equal toRequest("/x.html", "otherhost", Map("sEcho" -> List("1"))).contentRequest
   }
 
   test("unique cache") {
