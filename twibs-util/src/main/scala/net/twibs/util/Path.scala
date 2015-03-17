@@ -21,13 +21,23 @@ case class Path(parts: Seq[String], suffix: String, absolute: Boolean) {
 
   def isDir = suffix == "/"
 
+  def isEmpty = parts.isEmpty
+
+  def asRelative = copy(absolute = false)
+
+  def asAbsolute = copy(absolute = true)
+
   def parentDir = copy(parts.dropRight(1), "/")
 
   def resolve(relativePath: Path) = Path(toURI.resolve(relativePath.toURI))
 
-  def relativize(path: Path) = if( !absolute && path.absolute ) path else Path(currentDir.toURI.relativize(path.toURI))
+  def relativize(path: Path) = if (!absolute && path.absolute) path else Path(currentDir.toURI.relativize(path.toURI))
+
+  def startsWith(path: Path) = path.isDir && path.absolute == absolute && parts.startsWith(path.parts)
 
   def toURI = new URI(string)
+
+  def ++(path: Path) = path.copy(currentDir.parts ++ path.parts, absolute = absolute)
 }
 
 object Path {

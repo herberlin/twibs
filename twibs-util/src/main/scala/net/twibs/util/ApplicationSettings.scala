@@ -12,7 +12,7 @@ import com.typesafe.config.{Config, ConfigFactory, ConfigParseOptions}
 import org.apache.tika.Tika
 import org.threeten.bp.{LocalDateTime, ZoneId}
 
-import scala.collection.JavaConverters._
+import scala.collection.convert.wrapAsScala._
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.xml.{NodeSeq, Unparsed}
@@ -56,7 +56,7 @@ case class SystemSettings(startedAt: Long,
   }
 
   @transient
-  lazy val applicationSettings = configUnresolved.getObject("APPLICATIONS").unwrapped().keySet().asScala.map(name => name -> new ApplicationSettings(name, this)).toMap
+  lazy val applicationSettings = configUnresolved.getObject("APPLICATIONS").unwrapped().keySet().map(name => name -> new ApplicationSettings(name, this)).toMap
 
   @transient
   lazy val defaultApplicationSettings = applicationSettings(ApplicationSettings.DEFAULT_NAME)
@@ -252,26 +252,26 @@ case class ContentRequest(method: RequestMethod = GetMethod,
  * '''Note:''' Use [[ContentRequest]] as cache key and for serialisation.
  */
 case class Request private(applicationSettings: ApplicationSettings,
-                           desiredLocale: ULocale,
-                           parameters: Parameters,
-                           contextPath: String = "",
+                           session: Session = new SimpleSession(),
+                           cookies: CookieContainer = new SimpleCookieContainer(),
+                           attributes: AttributeContainer = new SimpleAttributeContainer(),
                            timestamp: LocalDateTime = LocalDateTime.now(),
                            method: RequestMethod = GetMethod,
                            protocol: String = "http",
                            domain: String = "localhost",
                            port: Int = 80,
+                           contextPath: String = "",
                            path: Path = "/",
-                           accept: List[String] = Nil,
+                           parameters: Parameters,
+                           uploads: Map[String, Seq[Upload]] = Map(),
+                           user: User = User.anonymous,
                            remoteAddress: String = "::1",
                            remoteHost: String = "localhost",
                            userAgent: String = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/34.0.1847.116 Chrome/34.0.1847.116 Safari/537.36",
+                           desiredLocale: ULocale,
                            doesClientSupportGzipEncoding: Boolean = true,
-                           useCache: Boolean = true,
-                           uploads: Map[String, Seq[Upload]] = Map(),
-                           attributes: AttributeContainer = new SimpleAttributeContainer(),
-                           cookies: CookieContainer = new SimpleCookieContainer(),
-                           session: Session = new SimpleSession(),
-                           user: User = User.anonymous) {
+                           accept: List[String] = Nil,
+                           useCache: Boolean = true) {
   @transient
   lazy val locale = applicationSettings.lookupLocale(desiredLocale)
 
@@ -294,13 +294,15 @@ case class Request private(applicationSettings: ApplicationSettings,
 
   def activate() = Request.activate(this)
 
+  def toDomainURL = s"$protocol://$domain${if (port != 80) s":$port" else ""}"
+
   Request.requireValidContextPath(contextPath)
 }
 
 object Request extends DynamicVariableWithDynamicDefault[Request] {
   def createFallback: Request = Request(SystemSettings.default.defaultApplicationSettings)
 
-  def apply(applicationSettings: ApplicationSettings): Request = Request(applicationSettings, applicationSettings.locales.head, Parameters())
+  def apply(applicationSettings: ApplicationSettings): Request = Request(applicationSettings, desiredLocale = applicationSettings.locales.head, parameters = Parameters())
 
   @inline def requireValidContextPath(contextPath: String) = {
     require(contextPath != "/", "contextPath must not be /")

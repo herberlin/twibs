@@ -7,7 +7,7 @@ package net.twibs.util
 import com.ibm.icu.text.MessageFormat
 import com.ibm.icu.util.ULocale
 
-import scala.collection.JavaConverters._
+import scala.collection.convert.decorateAsJava._
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.ArrayBuffer
 import scala.xml.Unparsed

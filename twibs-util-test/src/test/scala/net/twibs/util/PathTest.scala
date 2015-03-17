@@ -142,5 +142,39 @@ class PathTest extends TwibsTest {
     Path("/a/b.html").relativize("/a/b/c.html").string shouldBe "b/c.html"
     Path("/a/b/").relativize("/a/b/c.html").string shouldBe "c.html"
   }
+
+  test("Starts with") {
+    Path("/x/y.html").startsWith(Path.root) shouldBe true
+    Path("/x/y.html").startsWith(Path.current) shouldBe false
+    Path("/x/y.html").startsWith("/x") shouldBe false
+    Path("/x/y.html").startsWith("/x/") shouldBe true
+    Path("/z/y.html").startsWith("/x/") shouldBe false
+    Path("/x/y.html").startsWith("x/") shouldBe false
+
+    Path("/x/").startsWith(Path.root) shouldBe true
+    Path("/x/").startsWith(Path.current) shouldBe false
+    Path("/x/").startsWith("/x") shouldBe false
+    Path("/x/").startsWith("/x/") shouldBe true
+    Path("/z/").startsWith("/x/") shouldBe false
+    Path("/x/").startsWith("x/") shouldBe false
+
+    Path("x/").startsWith(Path.root) shouldBe false
+    Path("x/").startsWith(Path.current) shouldBe true
+    Path("x/").startsWith("/x/") shouldBe false
+    Path("x/").startsWith("x/") shouldBe true
+    Path("x/").startsWith("x") shouldBe false
+    Path("z/").startsWith("x/") shouldBe false
+  }
+
+  test("Appending with ++") {
+    Path.root ++ Path.current shouldBe Path.root
+    Path.current ++ Path.root shouldBe Path.current
+    Path.root ++ Path("/x/y.html") shouldBe Path("/x/y.html")
+    Path.current ++ Path("/x/y.html") shouldBe Path("x/y.html")
+
+    Path("/x/y.html") ++ Path("/a/b.html") shouldBe Path("/x/a/b.html")
+    Path("/x/y.html") ++ Path.root shouldBe Path("/x/")
+    Path("/x/y.html") ++ Path.current shouldBe Path("/x/")
+  }
 }
 

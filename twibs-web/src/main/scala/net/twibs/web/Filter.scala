@@ -15,8 +15,7 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload
 import org.apache.commons.fileupload.{FileItem, FileItemFactory}
 import org.apache.commons.io.FileUtils
 import org.threeten.bp.LocalDateTime
-
-import scala.collection.JavaConverters._
+import scala.collection.convert.wrapAsScala._
 
 abstract class AbstractFilter extends javax.servlet.Filter {
   private var servletContextVar: ServletContext = null
@@ -91,43 +90,7 @@ trait HttpServletUtils {
 object HttpServletRequestBase extends HttpServletUtils {
   def apply(httpServletRequest: HttpServletRequest, httpServletResponse: HttpServletResponse): Request =
     Request.copy(
-      timestamp = LocalDateTime.now(),
-
-      method = httpServletRequest.getMethod match {
-        case "GET" => GetMethod
-        case "POST" => PostMethod
-        case "PUT" => PutMethod
-        case "DELETE" => DeleteMethod
-        case _ => UnknownMethod
-      },
-
-      protocol = if(httpServletRequest.isSecure) "https" else "http",
-
-      domain = httpServletRequest.getServerName,
-
-      port = httpServletRequest.getServerPort,
-
-      path = httpServletRequest.getServletPath + (Option(httpServletRequest.getPathInfo) getOrElse ""),
-
-      doesClientSupportGzipEncoding = Option(httpServletRequest.getHeader("Accept-Encoding")).exists(_ contains "gzip"),
-
-      accept = Option(httpServletRequest.getHeader("Accept")).map(_.split(",").toList) getOrElse Nil,
-
-      remoteAddress = httpServletRequest.getRemoteAddr,
-
-      remoteHost = httpServletRequest.getRemoteHost,
-
-      userAgent = httpServletRequest.getHeader("User-Agent"),
-
-      desiredLocale = ULocale.forLocale(httpServletRequest.getLocale),
-
-      attributes = new AttributeContainer {
-        def setAttribute(name: String, value: Any): Unit = httpServletRequest.setAttribute(name, value)
-
-        def getAttribute(name: String): Option[Any] = Option(httpServletRequest.getAttribute(name))
-
-        def removeAttribute(name: String): Unit = httpServletRequest.removeAttribute(name)
-      },
+      session = new HttpSession(httpServletRequest),
 
       cookies = new CookieContainer {
         def getCookie(name: String) = Option(httpServletRequest.getCookies).flatMap(_.find(_.getName.equalsIgnoreCase(name))).map(_.getValue)
@@ -147,7 +110,43 @@ object HttpServletRequestBase extends HttpServletUtils {
         }
       },
 
-      session = new HttpSession(httpServletRequest),
+      attributes = new AttributeContainer {
+        def setAttribute(name: String, value: Any): Unit = httpServletRequest.setAttribute(name, value)
+
+        def getAttribute(name: String): Option[Any] = Option(httpServletRequest.getAttribute(name))
+
+        def removeAttribute(name: String): Unit = httpServletRequest.removeAttribute(name)
+      },
+
+      timestamp = LocalDateTime.now(),
+
+      method = httpServletRequest.getMethod match {
+        case "GET" => GetMethod
+        case "POST" => PostMethod
+        case "PUT" => PutMethod
+        case "DELETE" => DeleteMethod
+        case _ => UnknownMethod
+      },
+
+      protocol = if (httpServletRequest.isSecure) "https" else "http",
+
+      domain = httpServletRequest.getServerName,
+
+      port = httpServletRequest.getServerPort,
+
+      path = httpServletRequest.getRequestURI.stripPrefix(httpServletRequest.getContextPath),
+
+      remoteAddress = httpServletRequest.getRemoteAddr,
+
+      remoteHost = httpServletRequest.getRemoteHost,
+
+      userAgent = httpServletRequest.getHeader("User-Agent"),
+
+      desiredLocale = ULocale.forLocale(httpServletRequest.getLocale),
+
+      doesClientSupportGzipEncoding = Option(httpServletRequest.getHeader("Accept-Encoding")).exists(_ contains "gzip"),
+
+      accept = Option(httpServletRequest.getHeader("Accept")).map(_.split(",").toList) getOrElse Nil,
 
       useCache = !(RunMode.isPrivate && httpServletRequest.getHeader("Cache-Control") == "no-cache" && httpServletRequest.getHeader("If-Modified-Since") == null)
 
@@ -163,7 +162,7 @@ object HttpServletRequestBase extends HttpServletUtils {
 
 object HttpServletRequestWithCommonsFileUpload extends HttpServletUtils {
   def apply(httpServletRequest: HttpServletRequest, httpServletResponse: HttpServletResponse) = {
-    lazy val allFileItems: Seq[FileItem] = fileUpload.parseRequest(httpServletRequest).asScala
+    lazy val allFileItems: Seq[FileItem] = fileUpload.parseRequest(httpServletRequest)
 
     def fileUpload = new ServletFileUpload(fileItemFactory)
 
@@ -175,7 +174,7 @@ object HttpServletRequestWithCommonsFileUpload extends HttpServletUtils {
 
     def parameters: Parameters = removeUnderscoreParameterSetByJQuery(urlParameters ++ multiPartParameters)
 
-    def urlParameters: Map[String, Seq[String]] = httpServletRequest.getParameterMap.asScala.map(entry => (entry._1, entry._2.toSeq)).toMap
+    def urlParameters: Map[String, Seq[String]] = httpServletRequest.getParameterMap.map(entry => (entry._1, entry._2.toSeq)).toMap
 
     def multiPartParameters: Map[String, Seq[String]] =
       if (isMultiPart) CollectionUtils.zipToMap(formFieldsFromMultipartRequest.map(fileItem => (fileItem.getFieldName, fileItem.getString(Charsets.UTF_8.name))))

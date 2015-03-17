@@ -5,7 +5,7 @@
 package net.twibs.util
 
 import com.google.javascript.jscomp._
-import scala.collection.JavaConverters._
+import scala.collection.convert.decorateAsJava._
 
 class JsMinimizer {
   def minimize(path: String, javascript: String) = {

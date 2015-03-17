@@ -12,7 +12,7 @@ import net.twibs.util._
 import org.apache.sling.api.request.RequestParameter
 import org.apache.sling.api.{SlingHttpServletRequest, SlingHttpServletResponse}
 
-import scala.collection.JavaConverters._
+import scala.collection.convert.wrapAsScala._
 
 class SlingFilter extends Filter {
   override def doFilter(httpRequest: HttpServletRequest, httpResponse: HttpServletResponse, filterChain: FilterChain): Unit =
@@ -37,11 +37,11 @@ class SlingFilter extends Filter {
 object HttpServletRequestWithSlingUpload extends HttpServletUtils {
   def apply(httpServletRequest: SlingHttpServletRequest, httpServletResponse: HttpServletResponse) = {
     lazy val allRequestParameters: Seq[(String, RequestParameter)] =
-      httpServletRequest.getRequestParameterMap.asScala.flatMap(e => e._2.map(e._1 ->).toList).toSeq
+      httpServletRequest.getRequestParameterMap.flatMap(e => e._2.map(e._1 ->).toList).toSeq
 
     def parameters: Parameters = removeUnderscoreParameterSetByJQuery(urlParameters ++ multiPartParameters)
 
-    def urlParameters: Map[String, Seq[String]] = httpServletRequest.asInstanceOf[HttpServletRequest].getParameterMap.asScala.map(entry => (entry._1, entry._2.toSeq)).toMap
+    def urlParameters: Map[String, Seq[String]] = httpServletRequest.asInstanceOf[HttpServletRequest].getParameterMap.map(entry => (entry._1, entry._2.toSeq)).toMap
 
     def multiPartParameters: Map[String, Seq[String]] = CollectionUtils.zipToMap(formFieldsFromMultipartRequest.map(e => (e._1, e._2.getString(Charsets.UTF_8.name))))
 

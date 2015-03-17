@@ -4,11 +4,13 @@
 
 package net.twibs.web
 
-import com.google.common.cache.{CacheLoader, CacheBuilder, LoadingCache}
 import java.io._
-import scala.collection.JavaConverters._
+
+import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
 import net.twibs.util.Predef._
-import net.twibs.util.{Request, ContentRequest, RunMode, Loggable}
+import net.twibs.util.{ContentRequest, Loggable, Request, RunMode}
+
+import scala.collection.convert.wrapAsScala._
 
 class UniqueCacheResponder(delegate: Responder, fileOption: Option[File] = None) extends LoadingCacheResponder(delegate) with Loggable {
   protected val cache: LoadingCache[ContentRequest, Option[Response]] = CacheBuilder.newBuilder().build(loader)
@@ -25,7 +27,7 @@ class UniqueCacheResponder(delegate: Responder, fileOption: Option[File] = None)
   private[web] def save(file: File): Unit = {
     logger.info(s"Saving '${file.getAbsolutePath}'")
     try {
-      new FileOutputStream(file) useAndClose {os => save(os)}
+      new FileOutputStream(file) useAndClose { os => save(os)}
     } catch {
       case e: Exception =>
         if (logger.isDebugEnabled)
@@ -42,7 +44,7 @@ class UniqueCacheResponder(delegate: Responder, fileOption: Option[File] = None)
   }
 
   private def asSerializableMap(): Map[ContentRequest, Response] =
-    cache.asMap.asScala.filterNot(_._2.isEmpty).map(e => (e._1, e._2.get)).toMap
+    cache.asMap.filterNot(_._2.isEmpty).map(e => (e._1, e._2.get)).toMap
 
   def load(): Unit =
     fileOption.filter(file => useStorage && file.exists() && file.canRead && file.length > 0).foreach(load)
@@ -50,7 +52,7 @@ class UniqueCacheResponder(delegate: Responder, fileOption: Option[File] = None)
   private[web] def load(file: File): Unit = {
     logger.info(s"Loading '${file.getAbsolutePath}'")
     try {
-      new FileInputStream(file) useAndClose {is => load(is)}
+      new FileInputStream(file) useAndClose { is => load(is)}
     } catch {
       case e: Exception =>
         if (logger.isDebugEnabled)
