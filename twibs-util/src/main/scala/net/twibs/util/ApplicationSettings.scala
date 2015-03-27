@@ -61,7 +61,7 @@ case class SystemSettings(startedAt: Long,
   @transient
   lazy val defaultApplicationSettings = applicationSettings(ApplicationSettings.DEFAULT_NAME)
 
-  def applicationSettingsForPath(path: Path) = applicationSettings.values.collectFirst { case x if x.matches(path) => x} getOrElse defaultApplicationSettings
+  def applicationSettingsForPath(path: Path) = applicationSettings.values.collectFirst { case x if x.matches(path) => x } getOrElse defaultApplicationSettings
 
   val majorVersion = fullVersion.split("\\.")(0)
 
@@ -179,7 +179,7 @@ case class ApplicationSettings(name: String, systemSettings: SystemSettings) {
 
   def matches(path: Path) = configuration.getStringList("pathes", Nil).exists(path.string.startsWith)
 
-  def lookupLocale(desiredLocale: ULocale) = LocaleUtils.lookupLocale(locales, desiredLocale)
+  def lookupLocale(desiredLocale: ULocale) = if (locales.isEmpty) desiredLocale else LocaleUtils.lookupLocale(locales, desiredLocale)
 }
 
 object ApplicationSettings extends UnwrapCurrent[ApplicationSettings] {
@@ -240,16 +240,16 @@ trait CurrentRequest {
   def formatters = request.formatters
 }
 
-case class ContentRequest(method: RequestMethod = GetMethod,
-                          protocol: String = "http",
-                          domain: String = "localhost",
-                          port: Int = 80,
-                          contextPath: String = "",
-                          path: Path = "/",
-                          parameters: Parameters = Parameters())
+case class ResponseRequest(method: RequestMethod = GetMethod,
+                           protocol: String = "http",
+                           domain: String = "localhost",
+                           port: Int = 80,
+                           contextPath: String = "",
+                           path: Path = "/",
+                           parameters: Parameters = Parameters())
 
 /**
- * '''Note:''' Use [[ContentRequest]] as cache key and for serialisation.
+ * '''Note:''' Use [[ResponseRequest]] as cache key and for serialisation.
  */
 case class Request private(applicationSettings: ApplicationSettings,
                            session: Session = new SimpleSession(),
@@ -276,7 +276,7 @@ case class Request private(applicationSettings: ApplicationSettings,
   lazy val locale = applicationSettings.lookupLocale(desiredLocale)
 
   @transient
-  lazy val contentRequest = ContentRequest(method, protocol, domain, port, contextPath, path, parameters)
+  lazy val responseRequest = ResponseRequest(method, protocol, domain, port, contextPath, path, parameters)
 
   @transient
   lazy val translator: Translator = applicationSettings.translators(locale)
@@ -290,11 +290,13 @@ case class Request private(applicationSettings: ApplicationSettings,
 
   def relative(relativePath: String) = this.copy(path = path.resolve(relativePath))
 
-  def dropFirstPathPart = this.copy(path = path.dropFirstPart)
+  def dropFirstPathPart = this.copy(path = path.tail)
 
   def activate() = Request.activate(this)
 
   def toDomainURL = s"$protocol://$domain${if (port != 80) s":$port" else ""}"
+
+  def toURLString = toDomainURL + path + parameters.toURLString
 
   Request.requireValidContextPath(contextPath)
 }

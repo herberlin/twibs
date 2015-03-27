@@ -196,7 +196,7 @@ trait CheckOrRadioField extends FieldWithOptions with FloatingInfo {
 trait CheckBoxField extends CheckOrRadioField {
   def checkOrRadioType = "checkbox"
 
-  override def messageHtml: NodeSeq = (super.messageHtml ++ inputs.flatMap(messageHtmlFor))
+  override def messageHtml: NodeSeq = super.messageHtml ++ inputs.flatMap(messageHtmlFor)
 
   override def minimumNumberOfInputs = if (required) 1 else 0
 
@@ -279,7 +279,7 @@ trait UploadWithOverwrite extends Container {
     def deleteFileEntry(fileEntry: FileEntry): Unit = UploadWithOverwrite.this.deleteFileEntry(fileEntry)
 
     // Ignore parameters from Request
-    override def strings_=(strings: Seq[String]): Unit = Unit
+    override def strings_=(strings: Seq[String]): Unit = ()
 
     override def defaultValues: Seq[ValueType] = defaultFileEntries
   }

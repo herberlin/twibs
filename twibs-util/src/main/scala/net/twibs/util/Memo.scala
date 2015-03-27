@@ -4,7 +4,7 @@
 
 package net.twibs.util
 
-import java.io.{IOException, ObjectInputStream}
+import java.io.ObjectInputStream
 
 import scala.concurrent.duration._
 import scala.ref.WeakReference
@@ -54,9 +54,7 @@ private class ConcreteMemo[T](compute: => T) extends CachedMemo[T] {
       override def recomputeAfter: Duration = duration
     }
 
-  @throws(classOf[IOException])
-  @throws(classOf[ClassNotFoundException])
-  def readObject(in: ObjectInputStream): Unit = {
+  private def readObject(in: ObjectInputStream): Unit = {
     in.defaultReadObject()
     cache = None
   }
@@ -94,9 +92,7 @@ private class WeakMemo[T <: AnyRef](compute: => T) extends CachedMemo[T] {
       override def recomputeAfter: Duration = duration
     }
 
-  @throws(classOf[IOException])
-  @throws(classOf[ClassNotFoundException])
-  def readObject(in: ObjectInputStream): Unit = {
+  private def readObject(in: ObjectInputStream): Unit = {
     in.defaultReadObject()
     cache = None
   }

@@ -11,8 +11,8 @@ class PathTest extends TwibsTest {
     Path.current.string shouldBe "./"
     Path.root.string shouldBe "/"
 
-    Path.current.dropFirstPart.string shouldBe "./"
-    Path.root.dropFirstPart.string shouldBe "/"
+    Path.current.tail.string shouldBe "./"
+    Path.root.tail.string shouldBe "/"
 
     Path("") shouldBe Path.current
     Path(".") shouldBe Path.current
@@ -52,15 +52,15 @@ class PathTest extends TwibsTest {
   }
 
   test("Drop first part") {
-    Path("/x/").dropFirstPart shouldBe Path.root
-    Path("/x.html").dropFirstPart shouldBe Path.root
-    Path("x/").dropFirstPart shouldBe Path.current
-    Path("x.html").dropFirstPart shouldBe Path.current
+    Path("/x/").tail shouldBe Path.root
+    Path("/x.html").tail shouldBe Path.root
+    Path("x/").tail shouldBe Path.current
+    Path("x.html").tail shouldBe Path.current
 
-    Path("/y/x/").dropFirstPart shouldBe Path("/x/")
-    Path("/y/x.html").dropFirstPart shouldBe Path("/x.html")
-    Path("y/x/").dropFirstPart shouldBe Path("x/")
-    Path("y/x.html").dropFirstPart shouldBe Path("x.html")
+    Path("/y/x/").tail shouldBe Path("/x/")
+    Path("/y/x.html").tail shouldBe Path("/x.html")
+    Path("y/x/").tail shouldBe Path("x/")
+    Path("y/x.html").tail shouldBe Path("x.html")
   }
 
   test("Is dir") {
@@ -164,6 +164,8 @@ class PathTest extends TwibsTest {
     Path("x/").startsWith("x/") shouldBe true
     Path("x/").startsWith("x") shouldBe false
     Path("z/").startsWith("x/") shouldBe false
+
+    Path("/x").startsWith("/x/") shouldBe false
   }
 
   test("Appending with ++") {
@@ -175,6 +177,14 @@ class PathTest extends TwibsTest {
     Path("/x/y.html") ++ Path("/a/b.html") shouldBe Path("/x/a/b.html")
     Path("/x/y.html") ++ Path.root shouldBe Path("/x/")
     Path("/x/y.html") ++ Path.current shouldBe Path("/x/")
+  }
+
+  test("Matching") {
+    val m = Path("/designs/mb/twibs.css") match {
+      case Path("designs" +: name +: _, _, true) if name == "twibs" => true
+      case _ => false
+    }
+    m shouldBe false
   }
 }
 

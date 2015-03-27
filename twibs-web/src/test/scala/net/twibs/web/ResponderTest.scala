@@ -173,13 +173,13 @@ class ResponderTest extends TwibsTest with Loggable {
   }
 
   test("Request key equality") {
-    toRequest("/test.html").relative("x.html").contentRequest should equal(toRequest("/x.html").contentRequest)
-    toRequest("/test.html").relative("x.html").contentRequest should not equal toRequest("/y.html").contentRequest
-    toRequest("/a/b/c/test.html").relative("./../c/d/x.html").contentRequest should equal(toRequest("/a/b/c/d/x.html").contentRequest)
-    toRequest("/a/b/c/test.html").relative("/d/x.html").contentRequest should equal(toRequest("/d/x.html").contentRequest)
-    toRequest("/test.html", "localhost", Map("sEcho" -> List("1"))).relative("x.html").contentRequest should equal(toRequest("/x.html", "localhost", Map("sEcho" -> List("1"))).contentRequest)
-    toRequest("/test.html", "localhost", Map("sEcho" -> List("2"))).relative("x.html").contentRequest should not equal toRequest("/x.html", "localhost", Map("sEcho" -> List("1"))).contentRequest
-    toRequest("/test.html", "localhost", Map("sEcho" -> List("1"))).relative("x.html").contentRequest should not equal toRequest("/x.html", "otherhost", Map("sEcho" -> List("1"))).contentRequest
+    toRequest("/test.html").relative("x.html").responseRequest should equal(toRequest("/x.html").responseRequest)
+    toRequest("/test.html").relative("x.html").responseRequest should not equal toRequest("/y.html").responseRequest
+    toRequest("/a/b/c/test.html").relative("./../c/d/x.html").responseRequest should equal(toRequest("/a/b/c/d/x.html").responseRequest)
+    toRequest("/a/b/c/test.html").relative("/d/x.html").responseRequest should equal(toRequest("/d/x.html").responseRequest)
+    toRequest("/test.html", "localhost", Map("sEcho" -> List("1"))).relative("x.html").responseRequest should equal(toRequest("/x.html", "localhost", Map("sEcho" -> List("1"))).responseRequest)
+    toRequest("/test.html", "localhost", Map("sEcho" -> List("2"))).relative("x.html").responseRequest should not equal toRequest("/x.html", "localhost", Map("sEcho" -> List("1"))).responseRequest
+    toRequest("/test.html", "localhost", Map("sEcho" -> List("1"))).relative("x.html").responseRequest should not equal toRequest("/x.html", "otherhost", Map("sEcho" -> List("1"))).responseRequest
   }
 
   test("unique cache") {

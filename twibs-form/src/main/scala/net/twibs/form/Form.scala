@@ -99,7 +99,7 @@ trait Component extends TranslationSupport {
 
   def parse(parameters: Parameters): Unit = parameters.getStringsOption(name) match {
     case Some(parameterStrings) => parse(parameterStrings)
-    case None => Unit
+    case None => ()
   }
 
   def parse(parameterStrings: Seq[String]): Unit = _parsed = true

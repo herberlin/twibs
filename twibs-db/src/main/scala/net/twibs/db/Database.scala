@@ -88,10 +88,10 @@ trait Database {
   protected def migrate(ds: DataSource): Unit =
     if (migrationLocations.nonEmpty) {
       val flyway = new Flyway()
-      flyway.setInitOnMigrate(true)
+      flyway.setBaselineOnMigrate(true)
       flyway.setLocations(migrationLocations: _*)
       flyway.setDataSource(ds)
-      flyway.setValidateOnMigrate(false) //(RunMode.isProduction || RunMode.isStaging)
+      flyway.setValidateOnMigrate(false) //(RunMode.isPublic)
       flyway.migrate()
     }
 

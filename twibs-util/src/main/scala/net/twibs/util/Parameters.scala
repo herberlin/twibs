@@ -50,6 +50,8 @@ case class Parameters(parameterMap: Map[String, Seq[String]] = Map()) extends Se
   override def equals(obj: Any): Boolean = obj.isInstanceOf[Parameters] && obj.asInstanceOf[Parameters].parameterMap.equals(parameterMap)
 
   override def hashCode(): Int = 17 + parameterMap.hashCode()
+
+  def toURLString = if(parameterMap.isEmpty) "" else "?" + parameterMap.flatMap(e => e._2.map(v => s"${e._1}=$v")).mkString("&")
 }
 
 object Parameters {

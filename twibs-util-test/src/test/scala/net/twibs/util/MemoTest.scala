@@ -4,9 +4,12 @@
 
 package net.twibs.util
 
-import concurrent.duration._
+import java.io.{ObjectOutputStream, ObjectInputStream, ByteArrayInputStream, ByteArrayOutputStream}
 
 import net.twibs.testutil.TwibsTest
+import net.twibs.util.Predef._
+
+import scala.concurrent.duration._
 
 class MemoTest extends TwibsTest {
   test("Test timeout cache") {
@@ -17,11 +20,29 @@ class MemoTest extends TwibsTest {
       x
     }.recomputeAfter(40 millis)
 
-    cache() should be(1)
-    cache() should be(1)
+    cache() shouldBe 1
+    cache() shouldBe 1
     cache.reset()
-    cache() should be(2)
+    cache() shouldBe 2
     Thread.sleep(41)
-    cache() should be(3)
+    cache() shouldBe 3
+  }
+
+  test("Serializing Memo") {
+    val org = Memo(12)
+    org() shouldBe 12
+    val baos = new ByteArrayOutputStream
+    new ObjectOutputStream(baos).useAndClose(_.writeObject(org))
+    val memo = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray)).useAndClose { _.readObject.asInstanceOf[Memo[Int]]}
+    memo() shouldBe 12
+  }
+
+  test("Serializing WeakMemo") {
+    val org = WeakMemo("A")
+    org() shouldBe "A"
+    val baos = new ByteArrayOutputStream
+    new ObjectOutputStream(baos).useAndClose(_.writeObject(org))
+    val memo = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray)).useAndClose { _.readObject.asInstanceOf[Memo[String]]}
+    memo() shouldBe "A"
   }
 }

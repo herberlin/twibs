@@ -7,13 +7,16 @@ package net.twibs.util
 import com.ibm.icu.util.ULocale
 
 object LocaleUtils {
+  def lookupLocaleOption(locales: Seq[ULocale], locale: ULocale): Option[ULocale] = {
+    def lookup(locale: ULocale): Option[ULocale] =
+      if (locales.contains(locale)) Some(locale)
+      else Option(locale.getFallback).flatMap(lookup)
+
+    lookup(locale)
+  }
+
   def lookupLocale(locales: Seq[ULocale], locale: ULocale): ULocale = {
     require(locales.nonEmpty, "At least one locale must be given")
-
-    def lookupLocale(locale: ULocale): ULocale =
-      if (locales.contains(locale)) locale
-      else Option(locale.getFallback).fold(locales.head)(lookupLocale)
-
-    lookupLocale(locale)
+    lookupLocaleOption(locales, locale) getOrElse locales.head
   }
 }

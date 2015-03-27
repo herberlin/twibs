@@ -27,7 +27,7 @@ trait UploadButton extends Button with StringValues with PrimaryDisplayType {
   override def parse(request: Request) = request.uploads.get(name).map(uploads => uploaded(uploads.toList))
 
   // TODO: Convert UploadButton to input without appropriate Renderer
-  override def execute(): Unit = Unit
+  override def execute(): Unit = ()
 
   def uploaded(uploads: List[Upload]): Unit
 

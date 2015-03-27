@@ -13,7 +13,7 @@ case class Path(parts: Seq[String], suffix: String, absolute: Boolean) {
     if (parts.isEmpty) if (absolute) "/" else "./"
     else (if (absolute) "/" else "") + parts.mkString("/") + (suffix match {case "" | "/" => suffix case _ => "." + suffix})
 
-  def dropFirstPart = if (parts.size == 1) if (absolute) Path.root else Path.current else copy(parts.drop(1))
+  def tail = if (parts.size == 1) if (absolute) Path.root else Path.current else copy(parts.drop(1))
 
   def currentDir = if (isDir) this else parentDir
 
@@ -33,9 +33,11 @@ case class Path(parts: Seq[String], suffix: String, absolute: Boolean) {
 
   def relativize(path: Path) = if (!absolute && path.absolute) path else Path(currentDir.toURI.relativize(path.toURI))
 
-  def startsWith(path: Path) = path.isDir && path.absolute == absolute && parts.startsWith(path.parts)
+  def startsWith(path: Path) = path.isDir && path.absolute == absolute && currentDir.parts.startsWith(path.parts)
 
   def toURI = new URI(string)
+
+  override def toString = string
 
   def ++(path: Path) = path.copy(currentDir.parts ++ path.parts, absolute = absolute)
 }
