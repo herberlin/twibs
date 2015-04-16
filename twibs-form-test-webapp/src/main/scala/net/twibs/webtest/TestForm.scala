@@ -5,23 +5,23 @@
 package net.twibs.webtest
 
 import net.twibs.form._
-import net.twibs.util.{DefaultDisplayType, PrimaryDisplayType, WarningDisplayType}
+import net.twibs.util.{DefaultDisplayType, PrimaryDisplayType}
 
 class TestForm extends Form("test") with Bs3Form {
-  val openModal = new OpenModalLink() with PrimaryDisplayType with StringInput
+  val openModal = new OpenModalLink() with PrimaryDisplayType
 
   new HorizontalLayout {
     >> {<h3>Buttons</h3>}
     >> {<h4>Four simple buttons (only two of them are shown)</h4>}
 
-    new Button("enabled") with StringInput with PrimaryDisplayType
-    new Button("disabled") with StringInput with PrimaryDisplayType {
+    new Button("enabled") with BooleanButton with PrimaryDisplayType
+    new Button("disabled") with BooleanButton with PrimaryDisplayType {
       override protected def computeDisabled: Boolean = true
     }
-    new Button("hidden") with StringInput with PrimaryDisplayType {
+    new Button("hidden") with BooleanButton with PrimaryDisplayType {
       override protected def computeHidden: Boolean = true
     }
-    new Button("ignored") with StringInput with PrimaryDisplayType {
+    new Button("ignored") with BooleanButton with PrimaryDisplayType {
       override protected def computeIgnored: Boolean = true
     }
 
@@ -37,18 +37,20 @@ class TestForm extends Form("test") with Bs3Form {
 
     >> {<h4>Clicking this button produces an Internal Server Error</h4>}
 
-    new Button("internal-server-error") with StringInput with DefaultDisplayType {
+    new Button("internal-server-error") with BooleanButton with DefaultDisplayType {
       override def execute(): Seq[Result] = throw new RuntimeException("Internal Server Error")
     }
 
     >> {<h4>Clicking this button waits 5 seconds before returning. Transfer modal should show up.</h4>}
 
-    new Button("wait-5-seconds") with StringInput with DefaultDisplayType {
+    new Button("wait-5-seconds") with BooleanButton with DefaultDisplayType {
       override def execute(): Seq[Result] = Thread.sleep(5000)
     }
 
     val floatingButton = new Button("floating") with StringInput with DefaultDisplayType with Floating {
       override def execute(): Seq[Result] = AfterFormDisplay(info"pressed: Pressed $value".showNotification)
+
+      override def options: Seq[ValueType] = "1" :: "2" :: Nil
     }
 
     >> {<h4>Use floating buttons to display inside html</h4>}
@@ -58,11 +60,13 @@ class TestForm extends Form("test") with Bs3Form {
     >> {<h3>Popover</h3>}
     >> {<h4>Clicking the next button shows a popover containing another button</h4>}
 
-    new Popover("popover") with WarningDisplayType {
-      new Button("popover-button") with PrimaryDisplayType with StringInput {
-        override def execute(): Seq[Result] = AfterFormDisplay(info"pressed: Popover button pressed".showNotification)
-      }
-    }
+
+    // TODO: Enabled Popover again
+//    new Popover("popover") with WarningDisplayType {
+//      new Button("popover-button") with PrimaryDisplayType with StringInput {
+//        override def execute(): Seq[Result] = AfterFormDisplay(info"pressed: Popover button pressed".showNotification)
+//      }
+//    }
 
     >> {<h3>Fields</h3>}
     >> {<h4>Four simple input fields (only two of them are shown) one is rendered hidden</h4>}
@@ -99,7 +103,7 @@ class TestForm extends Form("test") with Bs3Form {
     new HtmlField("html") with StringInput
 
     >> {<h4>Checkboxes &amp; Radiobuttons</h4>}
-    new BooleanCheckboxField("boolean")
+    new CheckboxField("boolean") with BooleanCheckboxField
 
     new CheckboxField("checkbox") with StringInput {
       override def options = "a" :: "b" :: Nil

@@ -1,9 +1,9 @@
 package net.twibs.form
 
-import scala.xml.PrettyPrinter
-
 import net.twibs.testutil.TwibsTest
 import net.twibs.util._
+
+import scala.xml.PrettyPrinter
 
 class FormTest extends TwibsTest {
   test("Invalid name throws exception") {
@@ -51,10 +51,10 @@ class FormTest extends TwibsTest {
     val form = new Form("test") {
       val field = new SingleLineField("field") with StringInput
 
-      val container = new StaticContainer("level1") {
+      val container = new ChildContainer("level1") {
         val field = new SingleLineField("field") with StringInput
 
-        val container = new StaticContainer("level2") {
+        val container = new ChildContainer("level2") {
           val field = new SingleLineField("field") with StringInput
         }
       }
@@ -87,7 +87,7 @@ class FormTest extends TwibsTest {
 
         override protected def computeValid: Boolean = false
       }
-      val submit = new Button("submit") with StringInput with DefaultDisplayType with ExecuteValidated
+      val submit = new Button("submit") with BooleanButton with DefaultDisplayType with ExecuteValidated
     }
 
     f.enabled.isValid shouldBe true
@@ -112,9 +112,9 @@ class FormTest extends TwibsTest {
 
   test("Dynamic values validation") {
     val form = new Form("test") {
-      val dynamics = new DynamicContainer("uploads") {
+      val dynamics = new ChildContainer("uploads") with DynamicChildren {
 
-        trait UserContainer extends Dynamic {
+        class UserContainer extends ChildContainer("user") with DynamicContainer {
           val username = new SingleLineField("username") with StringInput
 
           val password = new SingleLineField("password") with StringInput
@@ -126,7 +126,7 @@ class FormTest extends TwibsTest {
 
         override def maximumNumberOfDynamics: Int = 2
 
-        override def create(dynamicId: String): UserContainer with Dynamic = new Dynamic("user", dynamicId) with UserContainer with Detachable
+        override def createChild(): UserContainer = new UserContainer with Detachable
       }
     }
 
@@ -209,15 +209,15 @@ class FormTest extends TwibsTest {
   test("Validate hierarchy is correct") {
     val form = new Form("test") {
 
-      class CustomContainer extends StaticContainer("custom")
+      class CustomContainer extends ChildContainer("custom")
 
-      val container = new StaticContainer("level1") {
-        val container = new StaticContainer("level2") {
+      val container = new ChildContainer("level1") {
+        val container = new ChildContainer("level2") {
           val field = new SingleLineField("field") with StringInput
 
-          val dynamics = new DynamicContainer("uploads") {
+          val dynamics = new ChildContainer("uploads") with DynamicChildren {
 
-            trait UserContainer extends Dynamic {
+            class UserContainer extends ChildContainer("user") with DynamicContainer {
               val username = new SingleLineField("username") with StringInput
 
               val password = new SingleLineField("password") with StringInput
@@ -227,7 +227,7 @@ class FormTest extends TwibsTest {
 
             type T = UserContainer
 
-            override def create(dynamicId: String): UserContainer with Dynamic = new Dynamic("user", dynamicId) with UserContainer
+            override def createChild(): UserContainer = new UserContainer
 
             def check0(): Unit = children should have size 0
 
@@ -252,8 +252,8 @@ class FormTest extends TwibsTest {
 
     form.components should have size 6
 
-    form.container.container.dynamics.create("a")
-    form.container.container.dynamics.create("b")
+    DynamicID.use("a"){form.container.container.dynamics.createChild()}
+    DynamicID.use("b"){form.container.container.dynamics.createChild()}
 
     form.components should have size 12
 
@@ -296,9 +296,9 @@ class FormTest extends TwibsTest {
 
         new DisplayText("<h3>Display text</h3>")
 
-        val dynamics = new DynamicContainer("users") {
+        val dynamics = new ChildContainer("users") with DynamicChildren {
 
-          trait UserContainer extends Dynamic {
+          class UserContainer extends ChildContainer("user") with DynamicContainer {
             val username = new SingleLineField("username") with StringInput
 
             val password = new SingleLineField("password") with StringInput
@@ -310,15 +310,15 @@ class FormTest extends TwibsTest {
 
           override def maximumNumberOfDynamics: Int = 2
 
-          override def create(dynamicId: String): UserContainer with Dynamic = new Dynamic("user", dynamicId) with UserContainer with Detachable
+          override def createChild(): UserContainer = new UserContainer with Detachable
         }
 
-        new StaticContainer("easy") with Detachable {
-          new Button("wait") with StringInput with PrimaryDisplayType with DefaultButton
+        new ChildContainer("easy") with Detachable {
+          new Button("wait") with BooleanButton with PrimaryDisplayType with DefaultButton with A
           new Hidden("hidden") with StringInput
         }
 
-        dynamics.create("admin")
+        DynamicID.use("admin"){dynamics.createChild()}
 
         override def messages: Seq[Message] = warn"invalid: Fill out form" +: warn"invalid: Fill out form".copy(dismissable = false) +: super.messages
       }.html
@@ -352,7 +352,7 @@ class FormTest extends TwibsTest {
         |    <header class="form-header">
         |        <h3>test</h3>
         |    </header>
-        |    <input type="submit" class="concealed" tabindex="-1" name="wait" value=""/>
+        |    <input type="submit" class="concealed" tabindex="-1" name="wait" value="true"/>
         |    <div id="a_shell" name="test" class="form-container-shell">
         |        <div id="a" class="form-container">
         |            <div class="alert alert-warning alert-dismissable">
@@ -376,7 +376,7 @@ class FormTest extends TwibsTest {
         |            <div id="a_easy_shell" name="easy" class="detachable form-container-shell">
         |                <button type="button" class="close" data-toggle="popover" data-html="true" data-placement="auto left" data-title="Delete component?" data-content='<button type="button" class="btn btn-danger" data-dismiss="detachable">Delete</button>'>&times;</button>
         |                <div id="a_easy" class="form-container">
-        |                    <button type="submit" name="wait" id="a_easy_wait" class="can-be-disabled btn btn-primary" value="">wait</button>
+        |                    <button type="submit" name="wait" id="a_easy_wait" class="can-be-disabled btn btn-primary" value="true">wait</button>
         |                    <input type="hidden" autocomplete="off" name="hidden" value=""/>
         |                </div>
         |            </div>
@@ -389,11 +389,11 @@ class FormTest extends TwibsTest {
     val f = new Form("a") {
       new SingleLineField("s") with StringInput
 
-      new Button("b") with StringInput with PrimaryDisplayType {
+      new Button("b") with BooleanButton with PrimaryDisplayType {
 
       }
     }
-    f.parse(Map("s" -> Seq("s"), "b" -> Seq("")))
+    f.parse(Map("s" -> Seq("s"), "b" -> Seq("true")))
 
     f.validate() shouldBe true
   }
@@ -413,8 +413,8 @@ class FormTest extends TwibsTest {
       val ignored = new SingleLineField("i") with StringInput {
         override protected def selfIsIgnored: Boolean = true
       }
-      val button = new Button("s") with StringInput with PrimaryDisplayType
-      val link = new OpenModalLink() with LongInput with DefaultDisplayType
+      val button = new Button("s") with BooleanButton with PrimaryDisplayType
+      val link = new OpenModalLink() with DefaultDisplayType
     }
 
     f.field.strings = "1" :: "2" :: Nil

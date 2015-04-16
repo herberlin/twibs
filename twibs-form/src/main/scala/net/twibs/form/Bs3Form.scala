@@ -4,23 +4,19 @@
 
 package net.twibs.form
 
-import net.twibs.util.JavaScript._
 import net.twibs.util.XmlUtils._
-import net.twibs.util.{ApplicationSettings, DisplayType, Message, Request}
+import net.twibs.util.{ApplicationSettings, Message, Request}
 
-import scala.xml.{NodeSeq, Text, Unparsed}
+import scala.xml.{NodeSeq, Unparsed}
 
 sealed trait Bs3Container extends Container {
-  override def html = {
-    if (isIgnored) NodeSeq.Empty
-    else if (isHidden) super.html
-    else {
-      <div id={shellId} name={name} class={("form-container-shell" :: Nil).addClass(isDetachable, "detachable")}>
-        {if (isDetachable) closeButton else NodeSeq.Empty}
-        {containerCore}
+  override def visibleHtml: NodeSeq =
+    <div id={shellId} name={name} class={("form-container-shell" :: Nil).addClass(isDetachable, "detachable")}>
+      {if (isDetachable) closeButton else NodeSeq.Empty}
+      <div id={id} class={containerCssClasses}>
+        {super.visibleHtml}
       </div>
-    }
-  }
+    </div>
 
   def closeButton = {
     def dismissButton: NodeSeq = <button type="button" class="btn btn-danger" data-dismiss="detachable">{t"delete-component.button-title: Delete"}</button>
@@ -29,286 +25,60 @@ sealed trait Bs3Container extends Container {
     else NodeSeq.Empty
   }
 
-  def containerCore: NodeSeq =
-    <div id={id} class="form-container">
-      {messagesHtml}
-      {super.html}
-    </div>
+  override def containerCssClasses = "form-container" +: super.containerCssClasses
 
-  def messagesHtml = renderMessages(messages)
-
-  def renderMessages(messages: Seq[Message]) = messages.map(renderMessage)
-
-  def renderMessage(message: Message): NodeSeq =
+  override def renderMessage(message: Message): NodeSeq =
     if (message.dismissable)
         <div class={"alert" :: ("alert-" + message.displayTypeString) :: "alert-dismissable" :: Nil}><button type="button" class="close" data-dismiss="alert">×</button>{message.text}</div>
     else
         <div class={"alert" :: ("alert-" + message.displayTypeString) :: Nil}>{message.text}</div>
 
-  def hidden(name: String, value: String): NodeSeq = <input type="hidden" autocomplete="off" name={name} value={value} />
+  /* Buttons */
 
-  trait ButtonRenderer extends DisplayType {
-    def buttonCssClasses = "btn" :: ("btn-" + displayTypeString) :: Nil
+  abstract class Button(ilk: String) extends super.Button(ilk) {
+    override def controlCssClasses = "btn" +: ("btn-" + displayTypeString) +: super.controlCssClasses
 
-    def renderButtonTitle = if (buttonUseIconOnly) buttonIconOrButtonTitleIfEmptyHtml else buttonTitleWithIconHtml
-
-    def buttonUseIconOnly = false
-
-    def buttonIconOrButtonTitleIfEmptyHtml: NodeSeq = buttonIconHtml match {case NodeSeq.Empty => buttonTitleHtml case s => s }
-
-    def buttonTitleWithIconHtml: NodeSeq = buttonIconHtml match {case NodeSeq.Empty => buttonTitleHtml case ns => if (buttonIconBefore) ns ++ Text(" ") ++ buttonTitleHtml else buttonTitleHtml ++ Text(" ") ++ ns }
-
-    def buttonIconBefore = true
-
-    def buttonIconHtml: NodeSeq = buttonIconName match {
+    override def buttonIconHtml: NodeSeq = buttonIconName match {
       case "" => NodeSeq.Empty
       case s if s.startsWith("fa-") => <span class={s"fa $s"}></span>
       case s if s.startsWith("glyphicon-") => <span class={s"glyphicon $s"}></span>
       case s => <span class={s"glyphicon glyphicon-$s"}></span>
     }
-
-    def buttonTitleHtml: NodeSeq = Unparsed(buttonTitle)
-
-    def buttonTitle: String
-
-    def buttonIconName: String
   }
 
-  abstract class Button(ilk: String) extends super.Button(ilk) with ButtonRenderer {
-    override def html =
-      this match {
-        case b: Options => b.optionEntries.flatMap(o => render(o.string, o.index))
-        case _ => render(string, 0)
-      }
+  /* Containers */
 
-    def render(string: String, index: Int): NodeSeq = {
-      if (isHidden) NodeSeq.Empty
-      else if (isDisabled) <span class={"disabled" :: buttonCssClasses}>{renderButtonTitle}</span>
-      else <button type="submit" name={name} id={indexId(index)} class={"can-be-disabled" :: buttonCssClasses} value={string}>{renderButtonTitle}</button>
-    }
-  }
+  //  trait Popover extends ChildContainer with ButtonRenderer {
+  //    def popoverContainer = form.shellId.toCssId
+  //
+  //    def popoverPlacement = "bottom"
+  //
+  //    def popoverTitle = t"popover-title:"
+  //
+  //    def popoverContentText = t"popover-text:"
+  //
+  //    override def visibleHtml: NodeSeq =
+  //      if (isDisabled) <span class={"disabled" :: buttonCssClasses}>{renderButtonTitle}</span>
+  //      else <button type="button" class={"can-be-disabled" :: buttonCssClasses}  data-container={popoverContainer} data-toggle="popover" data-html="true" data-placement={popoverPlacement} data-title={popoverTitle} data-content={super.html}>{renderButtonTitle}</button>
+  //  }
 
-  trait EnabledForm extends Button {
-    override def buttonCssClasses: List[String] = "enabled-form" +: super.buttonCssClasses
-  }
+  class ChildContainer(ilk: String) extends super.ChildContainer(ilk) with Bs3Container
 
-  trait NoRefocus extends Button {
-    override def buttonCssClasses: List[String] = "no-refocus" +: super.buttonCssClasses
-  }
+  class HorizontalLayout extends ChildContainer("hl") with Bs3HorizontalLayout
 
-  trait DefaultButton extends super.DefaultButton {
-    override def defaultButtonHtml: NodeSeq = <input type="submit" class="concealed" tabindex="-1" name={name} value={defaultButtonValue} />
-
-    private def defaultButtonValue = this match {
-      case b: Options if b.optionEntries.nonEmpty => b.optionEntries.head.string
-      case _ => string
-    }
-  }
-
-  abstract class Popover(ilk: String) extends StaticContainer(ilk) with ButtonRenderer {
-    def popoverContainer = form.shellId.toCssId
-
-    def popoverPlacement = "bottom"
-
-    def popoverTitle = t"popover-title:"
-
-    def popoverContentText = t"popover-text:"
-
-    def buttonTitle = t"button-title: #$ilk"
-
-    def buttonIconName = t"button-icon:"
-
-    override def html: NodeSeq =
-      if (isIgnored) NodeSeq.Empty
-      else if (isHidden) super.html
-      else if (isDisabled) <span class={"disabled" :: buttonCssClasses}>{renderButtonTitle}</span>
-      else <button type="button" class={"can-be-disabled" :: buttonCssClasses}  data-container={popoverContainer} data-toggle="popover" data-html="true" data-placement={popoverPlacement} data-title={popoverTitle} data-content={super.html}>{renderButtonTitle}</button>
-  }
-
-  trait LinkButton extends Button {
-    override def render(string: String, index: Int): NodeSeq = {
-      if (isHidden) NodeSeq.Empty
-      else if (isDisabled) <span class={"disabled" :: buttonCssClasses}>{renderButtonTitle}</span>
-      else <a href="#" class={"can-be-disabled" :: buttonCssClasses} data-call={link(name, string)}>{renderButtonTitle}</a>
-    }
-
-    def link(parameters: Seq[(String, String)]) = form.actionLinkWithContextPathAppIdAndParameters(parameters)
-  }
-
-  abstract class OpenModalLink extends Button("open-modal") with LinkButton with Floating {
-    override def execute(): Seq[Result] = InsteadOfFormDisplay(form.openModalJs)
-
-    override def link(parameters: Seq[(String, String)]) = form.actionLinkWithContextPathAndParameters(parameters)
-  }
-
-  abstract class Hidden(ilk: String) extends super.Hidden(ilk) {
-    override def html: NodeSeq =
-      if (isIgnored) NodeSeq.Empty
-      else entries.flatMap(entry => hidden(name, entry.string))
-  }
-
-  trait Field extends super.Field {
-    override def html = entries.flatMap(renderEntry)
-
-    def fieldCssClasses: Seq[String] = Nil
-
-    def renderEntry(entry: Entry): NodeSeq =
-      if (isIgnored) NodeSeq.Empty
-      else if (isHidden) renderHidden(entry)
-      else inner(entry)
-
-    protected def inner(entry: Entry): NodeSeq
-
-    protected def renderHidden(entry: Entry) = hidden(name, entry.string)
-  }
-
-  abstract class SingleLineField(ilk: String) extends super.SingleLineField(ilk) with Field {
-    protected def inner(entry: Entry) =
-        <input type="text" name={name} id={indexId(entry.index)} placeholder={placeholder} value={entry.string} class={fieldCssClasses}/>
-        .setIfMissing(isDisabled, "disabled", "disabled")
-        .addClass(isDisabled, "disabled")
-        .addClass(!isDisabled, "can-be-disabled")
-        .addClass(submitOnChange && isEnabled, "submit-on-change")
-        .set(maximumLength < Int.MaxValue, "maxlength", maximumLength.toString)
-  }
-
-  abstract class MultiLineField(ilk: String) extends super.MultiLineField(ilk) with Field {
-    protected def inner(entry: Entry) =
-      <textarea rows={rows.toString} name={name} id={indexId(entry.index)} placeholder={placeholder} class={fieldCssClasses}>{entry.string}</textarea>
-        .setIfMissing(isDisabled, "disabled", "disabled")
-        .addClass(isDisabled, "disabled")
-        .addClass(!isDisabled, "can-be-disabled")
-        .addClass(submitOnChange && isEnabled, "submit-on-change")
-        .set(maximumLength < Int.MaxValue, "maxlength", maximumLength.toString)
-
-    def rows = 6
-
-    override protected def renderHidden(entry: Entry): NodeSeq = <textarea class="concealed" name={name}>{entry.string}</textarea>
-  }
-
-  abstract class HtmlField(ilk: String) extends MultiLineField(ilk) {
-    // Remove CKEDITOR instance from previous textarea otherwise a javascript error appears
-    override def replaceContentJs: JsCmd = jQuery(id).call("ckeditorGet").call("destroy")
-
-    override def javascript: JsCmd =
-      jQuery(id).call("ckeditor", ckeditorInit, ckeditorConfig)
-
-    def ckeditorInit = jQuery(id.toCssId + " +div.cke").call("addClass", "form-control")
-
-    def ckeditorConfig: Map[String, Any] =
-      Map(
-        "skin" -> "bootstrapck",
-        "resize_enabled" -> false,
-        "removePlugins" -> "elementspath",
-        "toolbar" -> Array(Array("Bold", "Italic", "-", "Smiley")))
-
-    override def focusJs: JsCmd = jQuery(entries.find(!_.valid).map(e => indexId(e.index)) getOrElse id).call("ckeditorGet").call("focus")
-  }
-
-  trait FieldWithOptions extends super.FieldWithOptions {
-    def triggerValue = "TRIGGER"
-
-    override def parse(parameterStrings: Seq[String]): Unit = super.parse(parameterStrings.filter(_ != triggerValue))
-
-    def triggerHtml = hidden(name, triggerValue)
-
-    override def html =
-      if (isIgnored) NodeSeq.Empty
-      else if (isHidden) entries.flatMap(entry => hidden(name, entry.string)) ++ triggerHtml
-      else renderOptions
-
-    def renderOptions: NodeSeq = optionEntries.flatMap(renderOption) ++ triggerHtml
-
-    def renderOption(option: Entry): NodeSeq
-  }
-
-  trait CheckboxOrRadioField extends FieldWithOptions {
-    def renderOption(option: Entry): NodeSeq =
-        <input type={inputType} name={name} id={indexId(option.index)} value={option.string}/>
-        .setIfMissing(isDisabled, "disabled", "disabled")
-        .addClass(isDisabled, "disabled")
-        .addClass(!isDisabled, "can-be-disabled")
-        .addClass(submitOnChange && isEnabled, "submit-on-change")
-        .set(values.contains(option.valueOption.get), "checked")
-
-    def inputType: String
-  }
-
-  trait BsCheckboxField extends CheckboxOrRadioField {
-    override def inputType: String = "checkbox"
-  }
-
-  trait BsRadioField extends CheckboxOrRadioField {
-    override def inputType: String = "radio"
-  }
-
-  abstract class CheckboxField(ilk: String) extends super.CheckboxField(ilk) with BsCheckboxField
-
-  class BooleanCheckboxField(ilk: String) extends super.BooleanCheckboxField(ilk) with BsCheckboxField
-
-  abstract class RadioField(ilk: String) extends super.RadioField(ilk) with BsRadioField
-
-  trait Chosen extends SelectField with Field {
-    override def fieldCssClasses = (if (required) "chosen" else "chosen-optional") +: super.fieldCssClasses
-  }
-
-  abstract class SingleSelectField(ilk: String) extends super.SingleSelectField(ilk) with FieldWithOptions with Field {
-    protected def inner(entry: Entry) =
-      <select name={name} id={indexId(entry.index)} data-placeholder={placeholder} class={fieldCssClasses}>{renderOptions}</select>
-        .setIfMissing(isDisabled, "disabled", "disabled")
-        .addClass(isDisabled, "disabled")
-        .addClass(!isDisabled, "can-be-disabled")
-        .addClass(submitOnChange && isEnabled, "submit-on-change")
-
-    override def optionEntries: Seq[Entry] =
-      if (required) super.optionEntries
-      else Entry("", None, "", None) +: super.optionEntries
-
-    override def renderOption(option: Entry): NodeSeq =
-      <option value={ option.string }>{ option.title }</option>.set(option.string == string, "selected")
-  }
-
-  abstract class MultiSelectField(ilk: String) extends super.MultiSelectField(ilk) with FieldWithOptions with Field {
-    protected def inner(entry: Entry) =
-      <select name={name} id={indexId(entry.index)} data-placeholder={placeholder} multiple="multiple" class={fieldCssClasses}>{renderOptions}</select>
-        .setIfMissing(isDisabled, "disabled", "disabled")
-        .addClass(isDisabled, "disabled")
-        .addClass(!isDisabled, "can-be-disabled")
-        .addClass(submitOnChange && isEnabled, "submit-on-change")
-
-    override def renderOption(option: Entry): NodeSeq =
-      <option value={ option.string }>{ option.title }</option>.set(strings.contains(option.string), "selected")
-  }
-
-  class StaticContainer(ilk: String) extends super.StaticContainer(ilk) with Bs3Container
-
-  abstract class DynamicContainer(ilk: String) extends super.DynamicContainer(ilk) with Bs3Container {
-
-    class Dynamic(ilk: String, dynamicId: String) extends super.Dynamic(ilk, dynamicId) with Bs3Container {
-      override def html =
-        if (isIgnored) NodeSeq.Empty
-        else super.html ++ hidden(parent.name, dynamicId)
-    }
-
-  }
-
-  class HorizontalLayout extends StaticContainer("hl") with Bs3HorizontalLayout
-
-  class ButtonRow extends StaticContainer("br") with Bs3Container {
-    override def html =
-      if (isIgnored) NodeSeq.Empty
-      else if (isHidden) super.html
-      else <div>{containerCore}</div>
-  }
-
+  class ButtonRow extends ChildContainer("br") with Bs3Container
 }
 
 trait Bs3HorizontalLayout extends Bs3Container {
-  override def html: NodeSeq = <div class="form-horizontal">{super.html}</div>
+  override def containerCssClasses = "form-horizontal" +: super.containerCssClasses
 
-  def ->>(nodeSeq: => NodeSeq) = new DisplayHtml(<div class="form-group"><div class="col-sm-offset-3 col-sm-9">{nodeSeq}</div></div>)
+  def labelColumns = 3
 
-  trait Messages extends InputComponent {
+  def contentColumns = 9
+
+  def ->>(nodeSeq: => NodeSeq) = new DisplayHtml(<div class="form-group"><div class={s"col-sm-offset-$labelColumns col-sm-$contentColumns"}>{nodeSeq}</div></div>)
+
+  trait Messages extends super.Control {
     def labelCssMessageClass = if (validated) max(messages ++ entries.flatMap(_.messageOption)) else ""
 
     def max(messages: Seq[Message]) = messages match {
@@ -323,50 +93,47 @@ trait Bs3HorizontalLayout extends Bs3Container {
     def renderMessages = if (validated) messages.map(m => <div class={cssMessageClass(m)}><div class="help-block">{m.text}</div></div>) else NodeSeq.Empty
   }
 
-  trait Field extends super.Field with Messages {
-    override def fieldCssClasses: Seq[String] = "form-control" +: super.fieldCssClasses
+  /* Fields */
 
-    override def html: NodeSeq =
-      if (isHidden || isFloating) super.html
+  trait Field extends super.Field with Messages {
+    override def controlCssClasses: Seq[String] = "form-control" +: super.controlCssClasses
+
+    override def controlHtml: NodeSeq =
+      if (isFloating) super.visibleHtml
       else
         <div class="form-group">
-            <div class={labelCssMessageClass :: "col-sm-3" :: Nil}><label class="control-label">{fieldTitle}</label></div>
-            <div class="col-sm-9">{renderMessages ++ super.html}</div>
-          </div>.addClass(required, "required")
-
-    def renderEntryMessage(entry: Entry) =
-      if (validated)
-        entry.messageOption.fold(NodeSeq.Empty)(message => <div class="help-block">{message.text}</div>)
-      else NodeSeq.Empty
-
-    override def renderEntry(entry: Entry): NodeSeq =
-      if (isHidden)
-        super.renderEntry(entry)
-      else
-        <div class={cssMessageClass(entry.messageOption)}>
-          {super.renderEntry(entry)}
-          {renderEntryMessage(entry)}
-        </div>
-  }
-
-  trait FieldWithOptions extends super.FieldWithOptions with Field
-
-  trait SelectField extends super.SelectField with FieldWithOptions
-
-  trait CheckboxOrRadioField extends super.CheckboxOrRadioField with Messages {
-    override def renderOptions: NodeSeq =
-      <div class="form-group">
-          <div class={labelCssMessageClass :: "col-sm-3" :: Nil}><label class="control-label">{fieldTitle}</label></div>
-          <div class="col-sm-9">{renderMessages ++ super.renderOptions}</div>
+          <div class={labelCssMessageClass :: s"col-sm-$labelColumns" :: Nil}><label class="control-label">{fieldTitle}</label></div>
+          <div class={s"col-sm-$contentColumns"}>{renderMessages ++ super.visibleHtml}</div>
         </div>.addClass(required, "required")
 
-    override def renderOption(option: Entry): NodeSeq =
-        <div class="checkbox">
-          <label>
-            {super.renderOption(option)} {option.title}
-          </label>
-        </div>
+//    def renderEntryMessage(entry: Entry) =
+//      if (validated)
+//        entry.messageOption.fold(NodeSeq.Empty)(message => <div class="help-block">{message.text}</div>)
+//      else NodeSeq.Empty
+//
+//    override def renderVisible2(entry: Entry): NodeSeq =
+//        <div class={cssMessageClass(entry.messageOption)}>
+//          {renderInputFor(entry)}
+//          {renderEntryMessage(entry)}
+//        </div>
+//
+//    def renderInputFor(entry: Entry): NodeSeq = NodeSeq.Empty
   }
+
+//  trait CheckboxOrRadioField extends super.CheckboxOrRadioField with FieldWithOptions {
+//    override def renderOptions: NodeSeq =
+//      <div class="form-group">
+//        <div class={labelCssMessageClass :: s"col-sm-$labelColumns" :: Nil}><label class="control-label">{fieldTitle}</label></div>
+//        <div class={s"col-sm-$contentColumns"}>{renderMessages ++ super.renderOptions}</div>
+//      </div>.addClass(required, "required")
+//
+//    override def renderOption(option: Entry): NodeSeq =
+//      <div class="checkbox">
+//        <label>
+//          {super.renderOption(option)} {option.title}
+//        </label>
+//      </div>
+//  }
 
   abstract class SingleLineField(ilk: String) extends super.SingleLineField(ilk) with Field
 
@@ -374,32 +141,34 @@ trait Bs3HorizontalLayout extends Bs3Container {
 
   abstract class HtmlField(ilk: String) extends super.HtmlField(ilk) with Field
 
-  abstract class CheckboxField(ilk: String) extends super.CheckboxField(ilk) with CheckboxOrRadioField
+  abstract class CheckboxField(ilk: String) extends super.CheckboxField(ilk) with Field
 
-  abstract class RadioField(ilk: String) extends super.RadioField(ilk) with CheckboxOrRadioField
-
-  class BooleanCheckboxField(ilk: String) extends super.BooleanCheckboxField(ilk) with CheckboxOrRadioField
+  abstract class RadioField(ilk: String) extends super.RadioField(ilk) with Field
 
   abstract class SingleSelectField(ilk: String) extends super.SingleSelectField(ilk) with SelectField
 
   abstract class MultiSelectField(ilk: String) extends super.MultiSelectField(ilk) with SelectField
 
+  /* Buttons */
+
   abstract class Button(ilk: String) extends super.Button(ilk) {
-    override def html: NodeSeq =
-      if (isHidden || isFloating) super.html
+    override def controlHtml: NodeSeq =
+      if (isFloating) super.visibleHtml
       else
-          <div class="form-group">
-            <div class="col-sm-offset-3 col-sm-9">{super.html}</div>
-          </div>
+        <div class="form-group">
+          <div class={s"col-sm-offset-$labelColumns col-sm-$contentColumns"}>{super.visibleHtml}</div>
+        </div>
   }
 
-  class ButtonRow extends StaticContainer("br") with Bs3Container {
-    override def html =
-      if (isIgnored) NodeSeq.Empty
-      else if (isHidden) super.html
-      else <div class="form-group"><div class="col-sm-offset-3 col-sm-9">{containerCore}</div></div>
-  }
+  /* Containers */
 
+  abstract class ChildContainer(ilk: String) extends super.ChildContainer(ilk) with Bs3HorizontalLayout
+
+  //  trait Popover extends super.Popover with Bs3HorizontalLayout with ButtonRenderer
+
+  class ButtonRow extends super.ButtonRow with Bs3HorizontalLayout {
+    override def visibleHtml = <div class="form-group"><div class={s"col-sm-offset-$labelColumns col-sm-$contentColumns"}>{super.visibleHtml}</div></div>
+  }
 }
 
 trait Bs3Form extends Form with Bs3Container {
@@ -428,7 +197,7 @@ trait Bs3Form extends Form with Bs3Container {
     if (isIgnored) NodeSeq.Empty
     else surround(inlineContent, "false") ++ javascriptHtml
 
-  override def html: NodeSeq = surround({if (modal) modalContent else inlineContent})
+  override def visibleHtml: NodeSeq = surround({if (modal) modalContent else inlineContent})
 
   def surround(content: NodeSeq, modalValue: String = modal.toString) =
     <form id={formId} name={name} class={formCssClasses} action={actionLinkWithContextPath} method="post" enctype="multipart/form-data">
@@ -465,7 +234,7 @@ trait Bs3Form extends Form with Bs3Container {
       </div>
     </div> ++ formHeader ++ formBody
 
-  def formBody = defaultButtonHtml ++ super.html
+  def formBody = defaultButtonHtml ++ super.visibleHtml
 
   def javascriptHtml = javascript.toString match {case "" => NodeSeq.Empty case js => <script>{Unparsed("$(function () {" + js + "});")}</script> }
 
@@ -475,4 +244,4 @@ trait Bs3Form extends Form with Bs3Container {
   }
 }
 
-trait Bs3HorizontalForm extends Form with Bs3HorizontalLayout with Bs3Form
+trait Bs3HorizontalForm extends Bs3Form with Bs3HorizontalLayout

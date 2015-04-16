@@ -42,7 +42,7 @@ trait Input extends TranslationSupport {
       else None
   }
 
-  private def setEntries(es: Seq[Entry]): Unit = _entries = Some(es.zipWithIndex.map { case (i, index) => i.copy(index = index)})
+  private def setEntries(es: Seq[Entry]): Unit = _entries = Some(es.zipWithIndex.map { case (i, index) => i.copy(index = index) })
 
   protected def stringToEntry(string: String) =
     stringProcessors(Entry(string, None, string, None)) match {
@@ -113,7 +113,9 @@ trait Input extends TranslationSupport {
 
   final def isModified = _entries.isDefined
 
-  final def valid = messageOption.isEmpty && entries.forall(_.valid)
+  final def valid = messageOption.isEmpty && !firstInvalidEntryOption.isDefined
+
+  final def firstInvalidEntryOption = entries.find(!_.valid)
 
   final def messageOption = _messageOption
 
@@ -251,7 +253,7 @@ trait IntInput extends Input {
 trait Options extends Input {
   def options: Seq[ValueType]
 
-  def optionEntries: Seq[Entry] = options.map(super.valueToEntry)
+  def optionEntries: Seq[Entry] = options.zipWithIndex.map { case (option, index) => super.valueToEntry(option).copy(index = index) }
 
   override protected def valueToEntry(value: ValueType): Entry =
     optionEntries.find(_.valueOption == Some(value)) getOrElse (throw new FormException("Value must be in options"))
@@ -277,3 +279,5 @@ trait EnumerationInput[E <: Enumeration] extends Input with Options {
 
   override protected def titleFor(string: String): String = translator.usage("value-title").translate(string, string)
 }
+
+class FormException(message: String) extends RuntimeException(message)
