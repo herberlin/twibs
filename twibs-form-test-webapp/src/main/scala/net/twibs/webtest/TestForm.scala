@@ -5,120 +5,144 @@
 package net.twibs.webtest
 
 import net.twibs.form._
-import net.twibs.util.{DefaultDisplayType, PrimaryDisplayType}
+import net.twibs.util.{DangerDisplayType, DefaultDisplayType, PrimaryDisplayType, WarningDisplayType}
 
-class TestForm extends Form("test") with Bs3Form {
-  val openModal = new OpenModalLink() with PrimaryDisplayType
+class RadioTestForm extends Form("radio") with Bs3HorizontalForm {
+  >> {<h2>Radios</h2>}
+  >> {<h3>With submit on change</h3>}
+  new RadioField("radio") with StringInput with SubmitOnChange {
+    override def options = "a" :: "b" :: Nil
 
-  new HorizontalLayout {
-    >> {<h3>Buttons</h3>}
-    >> {<h4>Four simple buttons (only two of them are shown)</h4>}
+    override def execute(): Seq[Result] =
+      if (isSubmittedOnChange) AfterFormDisplay(info"pressed: Radio button changed: $string".showNotification)
+      else Ignored
+  }
 
-    new Button("enabled") with BooleanButton with PrimaryDisplayType
-    new Button("disabled") with BooleanButton with PrimaryDisplayType {
-      override protected def computeDisabled: Boolean = true
-    }
-    new Button("hidden") with BooleanButton with PrimaryDisplayType {
-      override protected def computeHidden: Boolean = true
-    }
-    new Button("ignored") with BooleanButton with PrimaryDisplayType {
-      override protected def computeIgnored: Boolean = true
-    }
+  >> {<h3>Can have more than one entry</h3>}
+  new RadioField("radio") with StringInput with SubmitOnChange {
+    override def options = "a" :: "b" :: Nil
 
-    >> {<h4>One button with three different values</h4>}
+    override def execute(): Seq[Result] =
+      if (isSubmittedOnChange) AfterFormDisplay(info"pressed: Radio button changed: $string".showNotification)
+      else Ignored
 
-    new Button("three-values") with StringInput with Options with DefaultDisplayType {
-      override def options: Seq[String] = "a" :: "b" :: "c" :: Nil
+    override def defaults: Seq[ValueType] = "a" :: "" :: Nil
+  }
+}
 
-      override def execute(): Seq[Result] =
-        if (validate()) AfterFormDisplay(info"pressed: Pressed $value".showNotification)
-        else AfterFormDisplay(warn"invalid: Invalid Value selected ''$string''".showNotification)
-    }
 
-    >> {<h4>Clicking this button produces an Internal Server Error</h4>}
+class TestForm extends Form("test") with Bs3HorizontalForm {
+  val openModal = new Button("open-modal") with OpenModalLinkButton with PrimaryDisplayType
 
-    new Button("internal-server-error") with BooleanButton with DefaultDisplayType {
+  >> {<h3>Buttons</h3>}
+  >> {<h4>Four simple buttons with the states enabled, disabled, hidden and ignored (two are shown)</h4>}
+  new Button("enabled") with SimpleButton with PrimaryDisplayType
+  new Button("disabled") with SimpleButton with PrimaryDisplayType {
+    override protected def selfIsDisabled: Boolean = true
+  }
+  new Button("hidden") with SimpleButton with PrimaryDisplayType {
+    override protected def selfIsHidden: Boolean = true
+  }
+  new Button("ignored") with SimpleButton with PrimaryDisplayType {
+    override protected def selfIsIgnored: Boolean = true
+  }
+
+  >> {<h4>One button with three different values</h4>}
+  >> {<p>There is a control label, the first button takes its label, icon and display-type from the values of application.conf,
+     the second and third take the defaults.</p>}
+  new Button("button-with-three-values") with StringInput with Options with DefaultDisplayType {
+    override def options: Seq[String] = "a" :: "b" :: "c" :: Nil
+
+    override def execute(): Seq[Result] =
+      if (validate()) AfterFormDisplay(info"pressed: Pressed ''$value''".showNotification)
+      else AfterFormDisplay(warn"invalid: Invalid Value selected ''$string''".showNotification)
+  }
+
+  >> {<h4>A button row containing two buttons.</h4>}
+  >> {<p>Clicking the first produces an Internal Server Error, clicking the second
+      waits 2 seconds before returning. Transfer modal should show up.</p>}
+  new ButtonRow {
+    new Button("internal-server-error") with SimpleButton with DangerDisplayType {
       override def execute(): Seq[Result] = throw new RuntimeException("Internal Server Error")
     }
-
-    >> {<h4>Clicking this button waits 5 seconds before returning. Transfer modal should show up.</h4>}
-
-    new Button("wait-5-seconds") with BooleanButton with DefaultDisplayType {
-      override def execute(): Seq[Result] = Thread.sleep(5000)
+    new Button("wait-2-seconds") with SimpleButton with WarningDisplayType {
+      override def execute(): Seq[Result] = Thread.sleep(2000)
     }
-
-    val floatingButton = new Button("floating") with StringInput with DefaultDisplayType with Floating {
-      override def execute(): Seq[Result] = AfterFormDisplay(info"pressed: Pressed $value".showNotification)
-
-      override def options: Seq[ValueType] = "1" :: "2" :: Nil
-    }
-
-    >> {<h4>Use floating buttons to display inside html</h4>}
-    >> {<p>First Button with value 1: {floatingButton.withValue("1")(_.html)}</p>}
-    >> {<p>Second {floatingButton.withValue("2")(_.html)} has value 2</p>}
-
-    >> {<h3>Popover</h3>}
-    >> {<h4>Clicking the next button shows a popover containing another button</h4>}
-
-
-    // TODO: Enabled Popover again
-//    new Popover("popover") with WarningDisplayType {
-//      new Button("popover-button") with PrimaryDisplayType with StringInput {
-//        override def execute(): Seq[Result] = AfterFormDisplay(info"pressed: Popover button pressed".showNotification)
-//      }
-//    }
-
-    >> {<h3>Fields</h3>}
-    >> {<h4>Four simple input fields (only two of them are shown) one is rendered hidden</h4>}
-
-    val enabled = new SingleLineField("enabled") with StringInput
-    enabled.strings = "" :: "" :: Nil
-//    enabled.validate()
-
-    >> {<h5>Even though the disabled field has values and is validated no validation information is displayed</h5>}
-    val disabled = new SingleLineField("disabled") with StringInput {
-      override protected def computeDisabled: Boolean = true
-    }
-    disabled.strings = "" :: "" :: Nil
-    disabled.validate()
-
-    new SingleLineField("hidden") with StringInput {
-      override protected def computeHidden: Boolean = true
-    }
-    new SingleLineField("ignored") with StringInput {
-      override protected def computeIgnored: Boolean = true
-    }
-
-    new SingleSelectField("single-select") with StringInput with Chosen with Optional {
-      override def options: Seq[ValueType] = "Dear" :: "Bear" :: "Lion" :: Nil
-    }
-
-    new MultiSelectField("multi-select") with StringInput with Chosen {
-      override def options: Seq[ValueType] = "Dear" :: "Bear" :: "Lion" :: Nil
-    }
-
-    >> {<h4>Multiline</h4>}
-    new MultiLineField("multiline") with StringInput
-
-    new HtmlField("html") with StringInput
-
-    >> {<h4>Checkboxes &amp; Radiobuttons</h4>}
-    new CheckboxField("boolean") with BooleanCheckboxField
-
-    new CheckboxField("checkbox") with StringInput {
-      override def options = "a" :: "b" :: Nil
-    }
-
-    new RadioField("radio") with StringInput with SubmitOnChange {
-      override def options = "a" :: "b" :: Nil
-
-      override def execute(): Seq[Result] =
-        if (isSubmittedOnChange) AfterFormDisplay(info"pressed: Radio button changed: $string".showNotification)
-        else Ignored
-    }
-
-    >> {<h3>Modal</h3>}
-    >> {<h4>Open a copy of this form in a modal dialog</h4>}
-    >> {new TestForm().openModal.html}
   }
+
+  val floatingButton = new Button("floating") with StringInput with DefaultDisplayType with Floating with DynamicOptions {
+    override def execute(): Seq[Result] = AfterFormDisplay(info"pressed: Pressed $string".showNotification)
+  }
+
+  >> {<h4>Use floating buttons to display inside html</h4>}
+  >> {<p>First Button with value 1 {floatingButton.withOption("1")(_.html)}. Second {floatingButton.withOption("2")(_.html)} has value 2</p>}
+
+  >> {<h3>Popover</h3>}
+  >> {<h4>Clicking the next button shows a popover containing another button</h4>}
+
+
+  // TODO: Enabled Popover again
+  //    new Popover("popover") with WarningDisplayType {
+  //      new Button("popover-button") with PrimaryDisplayType with StringInput {
+  //        override def execute(): Seq[Result] = AfterFormDisplay(info"pressed: Popover button pressed".showNotification)
+  //      }
+  //    }
+
+  >> {<h3>Fields</h3>}
+  >> {<h4>Four simple input fields (only two of them are shown) one is rendered hidden</h4>}
+
+  val enabled = new SingleLineField("enabled") with StringInput
+  enabled.strings = "" :: "" :: Nil
+  //    enabled.validate()
+
+  >> {<h5>Even though the disabled field has values and is validated no validation information is displayed</h5>}
+  val disabled = new SingleLineField("disabled") with StringInput {
+    override protected def computeDisabled: Boolean = true
+  }
+  disabled.strings = "" :: "" :: Nil
+  disabled.validate()
+
+  new SingleLineField("hidden") with StringInput {
+    override protected def computeHidden: Boolean = true
+  }
+  new SingleLineField("ignored") with StringInput {
+    override protected def computeIgnored: Boolean = true
+  }
+
+  new SingleSelectField("single-select") with StringInput with Chosen with Optional {
+    override def options: Seq[ValueType] = "Dear" :: "Bear" :: "Lion" :: Nil
+  }
+
+  new MultiSelectField("multi-select") with StringInput with Chosen {
+    override def options: Seq[ValueType] = "Dear" :: "Bear" :: "Lion" :: Nil
+  }
+
+  new MultiSelectField("multi-select") with StringInput with Chosen with Optional {
+    override def options: Seq[ValueType] = "Dear" :: "Bear" :: "Lion" :: Nil
+  }
+
+  >> {<h4>Multiline</h4>}
+  new MultiLineField("multiline") with StringInput
+
+  new HtmlField("html") with StringInput
+
+  >> {<h4>Checkboxes</h4>}
+  >> {<p>Simple boolean checkbox with submit on change</p>}
+  new CheckboxField("boolean-checkbox") with BooleanCheckboxField with SubmitOnChange
+
+  >> {<p>Enabled with two options. First label configured in application.conf</p>}
+  new CheckboxField("checkbox-enabled") with StringInput {
+    override def options = "a" :: "b" :: Nil
+  }
+
+  >> {<p>Disabled with one option.</p>}
+  new CheckboxField("checkbox-disabled") with StringInput {
+    override def options = "a" :: Nil
+
+    override protected def selfIsDisabled: Boolean = true
+  }
+
+  >> {<h3>Modal</h3>}
+  >> {<h4>Open a copy of this form in a modal dialog</h4>}
+  >> {new TestForm().openModal.html}
 }

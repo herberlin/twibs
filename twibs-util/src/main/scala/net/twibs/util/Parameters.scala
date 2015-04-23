@@ -38,6 +38,11 @@ case class Parameters(parameterMap: Map[String, Seq[String]] = Map()) extends Se
 
   def getStringsOption(key: String): Option[Seq[String]] = getStringsOptionNotEmpty(key)
 
+  def getStringsStartingWithOption(keyPrefix: String): Option[Seq[String]] = parameterMap.filter(_._1.startsWith(keyPrefix)) match {
+    case m if m.isEmpty => None
+    case m => Some(m.flatMap(_._2).toSeq)
+  }
+
   private def getStringsOptionNotEmpty(key: String): Option[Seq[String]] =
     getStringsNotNullOption(key) match {
       case Some(Seq()) => Some(Seq(""))

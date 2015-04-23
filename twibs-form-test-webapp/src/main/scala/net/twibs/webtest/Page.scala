@@ -48,6 +48,7 @@ class Page extends Responder {
       </head>
       <body>
         <div class="container">
+          {new RadioTestForm().inlineHtml}
           {new TestForm().inlineHtml}
         </div>
       </body>

@@ -87,7 +87,7 @@ class FormTest extends TwibsTest {
 
         override protected def computeValid: Boolean = false
       }
-      val submit = new Button("submit") with BooleanButton with DefaultDisplayType with ExecuteValidated
+      val submit = new Button("submit") with SimpleButton with DefaultDisplayType with ExecuteValidated
     }
 
     f.enabled.isValid shouldBe true
@@ -135,11 +135,11 @@ class FormTest extends TwibsTest {
 
     form.process(Map("uploads" -> Seq("e", "b", "c")))
     form.dynamics.validate() shouldBe false
-    form.dynamics.messages(0).toString should be("warning: Please provide no more than 2 children")
+    form.dynamics.messages.head.toString should be("warning: Please provide no more than 2 children")
 
     form.process(Map("uploads" -> Seq()))
     form.dynamics.validate() shouldBe false
-    form.dynamics.messages(0).toString should be("warning: Please provide at least one child")
+    form.dynamics.messages.head.toString should be("warning: Please provide at least one child")
 
     form.reset()
     form.dynamics.isValid shouldBe true
@@ -169,7 +169,7 @@ class FormTest extends TwibsTest {
     }
 
     trait Parent extends Item {
-      implicit def thisAsParent = this
+      implicit def thisAsParent: Parent = this
     }
 
     trait Child extends Item {
@@ -250,12 +250,12 @@ class FormTest extends TwibsTest {
     form.container.container.check()
     form.container.container.dynamics.check0()
 
-    form.components should have size 6
+    form.descendants should have size 6
 
     DynamicID.use("a"){form.container.container.dynamics.createChild()}
     DynamicID.use("b"){form.container.container.dynamics.createChild()}
 
-    form.components should have size 12
+    form.descendants should have size 12
 
     form.container.container.dynamics.dynamics.foreach(_.check2())
     form.container.container.dynamics.check2()
@@ -263,7 +263,7 @@ class FormTest extends TwibsTest {
     form.container.container.dynamics.reset()
     form.container.container.dynamics.check0()
 
-    form.components should have size 6
+    form.descendants should have size 6
 
     form.container.container.check()
   }
@@ -314,7 +314,7 @@ class FormTest extends TwibsTest {
         }
 
         new ChildContainer("easy") with Detachable {
-          new Button("wait") with BooleanButton with PrimaryDisplayType with DefaultButton with A
+          new Button("wait") with SimpleButton with PrimaryDisplayType with DefaultButton
           new Hidden("hidden") with StringInput
         }
 
@@ -324,7 +324,7 @@ class FormTest extends TwibsTest {
       }.html
     }
 
-    println(new PrettyPrinter(2000, 4).format(out.head))
+//    println(new PrettyPrinter(2000, 4).format(out.head))
     new PrettyPrinter(2000, 4).format(out.head) should be(
       """<form id="a_form" name="test" class="twibs-form" action="/forms/net/twibs/form/Form" method="post" enctype="multipart/form-data">
         |    <input type="hidden" autocomplete="off" name="test-form-id" value="a"/>
@@ -366,8 +366,8 @@ class FormTest extends TwibsTest {
         |                    <div id="a_users_user_shell" name="user" class="detachable form-container-shell">
         |                        <button type="button" class="close" data-toggle="popover" data-html="true" data-placement="auto left" data-title="Delete component?" data-content='<button type="button" class="btn btn-danger" data-dismiss="detachable">Delete</button>'>&times;</button>
         |                        <div id="a_users_user" class="form-container">
-        |                            <input class="can-be-disabled" type="text" name="adminusername" id="a_users_user_adminusername" placeholder="username" value=""/>
-        |                            <input class="can-be-disabled" type="text" name="adminpassword" id="a_users_user_adminpassword" placeholder="password" value=""/>
+        |                            <input class="form-control can-be-disabled" type="text" name="adminusername" id="a_users_user_adminusername" placeholder="username" value=""/>
+        |                            <input class="form-control can-be-disabled" type="text" name="adminpassword" id="a_users_user_adminpassword" placeholder="password" value=""/>
         |                        </div>
         |                    </div>
         |                    <input type="hidden" autocomplete="off" name="users" value="admin"/>
@@ -389,7 +389,7 @@ class FormTest extends TwibsTest {
     val f = new Form("a") {
       new SingleLineField("s") with StringInput
 
-      new Button("b") with BooleanButton with PrimaryDisplayType {
+      new Button("b") with SimpleButton with PrimaryDisplayType {
 
       }
     }
@@ -413,8 +413,8 @@ class FormTest extends TwibsTest {
       val ignored = new SingleLineField("i") with StringInput {
         override protected def selfIsIgnored: Boolean = true
       }
-      val button = new Button("s") with BooleanButton with PrimaryDisplayType
-      val link = new OpenModalLink() with DefaultDisplayType
+      val button = new Button("s") with SimpleButton with PrimaryDisplayType
+      val link = new Button("open-modal") with OpenModalLinkButton with DefaultDisplayType
     }
 
     f.field.strings = "1" :: "2" :: Nil

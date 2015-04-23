@@ -42,7 +42,7 @@ trait Input extends TranslationSupport {
       else None
   }
 
-  private def setEntries(es: Seq[Entry]): Unit = _entries = Some(es.zipWithIndex.map { case (i, index) => i.copy(index = index) })
+  private def setEntries(es: Seq[Entry]): Unit = _entries = Some(reindex(es))
 
   protected def stringToEntry(string: String) =
     stringProcessors(Entry(string, None, string, None)) match {
@@ -82,14 +82,16 @@ trait Input extends TranslationSupport {
 
   protected def titleFor(string: String) = string
 
-  // Implement
+  /* Implement */
+
   def defaults: Seq[ValueType] = Nil
 
   def convertToString(value: ValueType): String
 
   def convertToValue(string: String): Option[ValueType]
 
-  // Overridable
+  /* Overridable */
+
   def required = true
 
   def trim = true
@@ -105,8 +107,10 @@ trait Input extends TranslationSupport {
   def computeDefaultEntries = {
     val ret = defaults.map(valueToEntry)
     val pad = minimumNumberOfEntries - ret.size
-    if (pad > 0) ret ++ List.fill(pad)(stringToEntry("")) else ret
+    reindex(if (pad > 0) ret ++ List.fill(pad)(stringToEntry("")) else ret)
   }
+
+  def reindex(es: Seq[Entry]) = es.zipWithIndex.map { case (e, index) => e.copy(index = index) }
 
   // Accessors
   final def defaultEntries = cachedDefaultEntries()
@@ -176,7 +180,7 @@ trait Optional extends Input {
 }
 
 trait TranslatedValueTitles extends Input {
-  override protected def titleFor(string: String): String = translator.usage("value-title").translate(string, super.titleFor(string))
+  override def titleFor(string: String): String = translator.usage("values").usage(string).translate("title", super.titleFor(string))
 }
 
 trait StringInput extends Input {
@@ -253,13 +257,15 @@ trait IntInput extends Input {
 trait Options extends Input {
   def options: Seq[ValueType]
 
-  def optionEntries: Seq[Entry] = options.zipWithIndex.map { case (option, index) => super.valueToEntry(option).copy(index = index) }
+  def optionEntries: Seq[Entry] = reindex(options.map(super.valueToEntry))
 
   override protected def valueToEntry(value: ValueType): Entry =
-    optionEntries.find(_.valueOption == Some(value)) getOrElse (throw new FormException("Value must be in options"))
+    optionEntries.find(_.valueOption == Some(value)) getOrElse invalidOption(convertToString(value))
 
   override protected def stringToEntry(string: String): Entry =
-    optionEntries.find(_.string == string) getOrElse Entry(string, None, string, Some(warn"not-an-option-message: ''$string'' is not an option"))
+    optionEntries.find(_.string == string) getOrElse invalidOption(string)
+
+  def invalidOption(string:String) = Entry(string, None, string, Some(warn"not-an-option-message: ''$string'' is not an option"))
 }
 
 trait EnumerationInput[E <: Enumeration] extends Input with Options {

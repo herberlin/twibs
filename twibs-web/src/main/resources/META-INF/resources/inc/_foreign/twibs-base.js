@@ -35,8 +35,7 @@ var Twibs = {
     },
     mailme: function (host, name, subject) {
         if (subject) {
-            self.location = "mail" + "to:" + name + "@" + host + "?subject="
-                + subject;
+            self.location = "mail" + "to:" + name + "@" + host + "?subject=" + subject;
         } else {
             self.location = "mail" + "to:" + name + "@" + host;
         }
@@ -174,7 +173,7 @@ $(function () {
             .on('change', '.twibs-form .submit-on-change', function () {
                 var $this = $(this);
                 window.setTimeout(function () {
-                    $this.reloadForm($this.attr('name'))
+                    $this.reloadForm($this.data("name") || $this.attr('name'))
                 }, 1);
             })
             .on('click', '[data-dismiss="detachable"]', function (e) {
