@@ -242,9 +242,11 @@ trait Bs3HorizontalLayout extends Bs3Container {
 trait Bs3Form extends Form with Bs3Container {
   def formHeader = if (formHeaderContent.isEmpty) formHeaderContent else <header class="form-header">{formHeaderContent}</header>
 
-  def formHeaderContent: NodeSeq = formTitle ++ formDescription
+  def formHeaderContent: NodeSeq = formTitleChecked ++ formDescription
 
-  def formTitle = formTitleString match {case "" => NodeSeq.Empty case s => <h3>{s}</h3> }
+  private def formTitleChecked = formTitleString match {case "" => NodeSeq.Empty case s => formTitleHtml }
+
+  def formTitleHtml = <h3>{formTitleString}</h3>
 
   def formTitleString = t"form-title: #$name"
 
@@ -268,7 +270,7 @@ trait Bs3Form extends Form with Bs3Container {
   override def enabledFloatingHtml: NodeSeq = surround({if (modal) modalContent else inlineContent})
 
   def surround(content: NodeSeq, modalValue: String = modal.toString) =
-    <form id={formId} name={name} class={formCssClasses} action={actionLinkWithContextPath} method="post" enctype="multipart/form-data">
+    <form id={formId} name={name} class={formCssClasses} action={actionLink} method="post" enctype="multipart/form-data">
       {hidden(pnId, id) ++ hidden(pnModal, modalValue) ++ hidden(ApplicationSettings.PN_NAME, Request.applicationSettings.name)}
       {content}
     </form>

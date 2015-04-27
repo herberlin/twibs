@@ -8,7 +8,8 @@ import net.twibs.form._
 import net.twibs.util.{DangerDisplayType, DefaultDisplayType, PrimaryDisplayType, WarningDisplayType}
 
 class RadioTestForm extends Form("radio") with Bs3HorizontalForm {
-  >> {<h2>Radios</h2>}
+  override def formTitleHtml = <h1>{formTitleString}</h1>
+
   >> {<h3>With submit on change</h3>}
   new RadioField("radio") with StringInput with SubmitOnChange {
     override def options = "a" :: "b" :: Nil

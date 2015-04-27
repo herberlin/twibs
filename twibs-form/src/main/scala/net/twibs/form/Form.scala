@@ -816,17 +816,11 @@ class Form(val ilk: String) extends Container with CancelStateInheritance {
 
   def focusJs = descendants.collectFirst({ case f: Focusable if f.needsFocus => f.focusJs }) getOrElse JsEmpty
 
-  def actionLink = "/forms" + ClassUtils.toPath(getClassForActionLink(getClass))
+  def actionLinkWithContextPathAppIdAndParameters(parameters: Seq[(String, String)]): String = actionLink + queryString(addAppIdAndModal(addComponentParameters(parameters)))
 
-  @tailrec
-  private def getClassForActionLink(classToCheck: Class[_]): Class[_] =
-    if (classToCheck.isLocalClass) getClassForActionLink(classToCheck.getSuperclass) else classToCheck
+  def actionLinkWithContextPathAndParameters(parameters: Seq[(String, String)]): String = actionLink + queryString(addComponentParameters(parameters))
 
-  def actionLinkWithContextPathAppIdAndParameters(parameters: Seq[(String, String)]): String = actionLinkWithContextPath + queryString(addAppIdAndModal(addComponentParameters(parameters)))
-
-  def actionLinkWithContextPathAndParameters(parameters: Seq[(String, String)]): String = actionLinkWithContextPath + queryString(addComponentParameters(parameters))
-
-  def actionLinkWithContextPath: String = Request.contextPath + actionLink
+  def actionLink: String = Request.contextPath + request.path
 
   def queryString(parameters: Seq[(String, String)]) = "?" + FormUtils.toQueryString(parameters)
 

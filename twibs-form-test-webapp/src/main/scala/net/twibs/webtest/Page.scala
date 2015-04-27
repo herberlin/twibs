@@ -10,6 +10,8 @@ import net.twibs.util.Predef._
 import net.twibs.web._
 import org.threeten.bp.Instant
 
+import scala.xml.Unparsed
+
 class Page extends Responder {
   def respond(request: Request): Option[Response] =
     if (request.path.string == "/index.html" && request.method == GetMethod) Some(indexResponse)
@@ -28,6 +30,7 @@ class Page extends Responder {
   def yearString = modified.getYear.toString
 
   def dateString = modified.formatAsIso
+  //          {new TestForm().inlineHtml}
 
   def html =
     <html lang="de" class="no-js">
@@ -40,17 +43,26 @@ class Page extends Responder {
         <meta name="date" content={dateString}/>
         <meta name="description" content="Twibs Webtest"/>
         <meta name="keywords" content="Java, Scala, CMS, Software"/>
-        <link rel="stylesheet" href="/inc/foreign.css"/>
-        <link rel="stylesheet" href="/inc/default.css"/>
+        <link rel="stylesheet" href="/clientlibs/shared/twibs.css"/>
+        <link rel="stylesheet" href="/clientlibs/twibs-form/twibs-form.css"/>
         <link rel="shortcut icon" href="/favicon.ico"/>
-        <script src="/inc/foreign.js"></script>
-        <script src="/inc/default.js"></script>
       </head>
       <body>
         <div class="container">
           {new RadioTestForm().inlineHtml}
-          {new TestForm().inlineHtml}
         </div>
       </body>
+        {Unparsed("""
+          <!--[if lt IE 9]>
+              <script src="http://code.jquery.com/jquery-1.11.2.min.js"></script>
+              <script src="https://cdnjs.cloudflare.com/ajax/libs/respond.js/1.4.2/respond.min.js"></script>
+              <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.2/html5shiv-printshiv.min.js"></script>
+          <![endif]-->
+          <!--[if (gte IE 9) | (!IE)]><!-->
+              <script src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
+          <!--<![endif]-->
+                  """)}
+        <script src="/clientlibs/shared/twibs.js"></script>
+        <script src="/clientlibs/twibs-form/twibs-form.js"></script>
     </html>
 }
