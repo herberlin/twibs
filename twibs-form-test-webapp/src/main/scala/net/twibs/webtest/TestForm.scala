@@ -5,23 +5,27 @@
 package net.twibs.webtest
 
 import net.twibs.form._
-import net.twibs.util.{DangerDisplayType, DefaultDisplayType, PrimaryDisplayType, WarningDisplayType}
+import net.twibs.util._
 
 class RadioTestForm extends Form("radio") with Bs3HorizontalForm {
   override def formTitleHtml = <h1>{formTitleString}</h1>
 
-  >> {<h3>With submit on change</h3>}
-  new RadioField("radio") with StringInput with SubmitOnChange {
-    override def options = "a" :: "b" :: Nil
-
-    override def execute(): Seq[Result] =
-      if (isSubmittedOnChange) AfterFormDisplay(info"pressed: Radio button changed: $string".showNotification)
-      else Ignored
-  }
-
+//  >> {<h3>With submit on change</h3>}
+//  new RadioField("radio") with StringInput with SubmitOnChange {
+//    override def options = "a" :: "b" :: Nil
+//
+//    override def execute(): Seq[Result] =
+//      if (isSubmittedOnChange) AfterFormDisplay(info"pressed: Radio button changed: $string".showNotification)
+//      else Ignored
+//  }
+//
   >> {<h3>Can have more than one entry</h3>}
   new RadioField("radio") with StringInput with SubmitOnChange {
     override def options = "a" :: "b" :: Nil
+
+//    override def messages: Seq[Message] = info"info-test-message: Test" +: super.messages
+
+
 
     override def execute(): Seq[Result] =
       if (isSubmittedOnChange) AfterFormDisplay(info"pressed: Radio button changed: $string".showNotification)
@@ -29,6 +33,8 @@ class RadioTestForm extends Form("radio") with Bs3HorizontalForm {
 
     override def defaults: Seq[ValueType] = "a" :: "" :: Nil
   }
+
+  new Button("submit") with SimpleButton with PrimaryDisplayType with ExecuteValidated
 }
 
 

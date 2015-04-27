@@ -131,15 +131,15 @@ class FormTest extends TwibsTest {
     }
 
     form.dynamics.isValid shouldBe true
-    form.dynamics.messages should be('empty)
+    form.dynamics.validationMessageOption should be('empty)
 
     form.process(Map("uploads" -> Seq("e", "b", "c")))
     form.dynamics.validate() shouldBe false
-    form.dynamics.messages.head.toString should be("warning: Please provide no more than 2 children")
+    form.dynamics.validationMessageOption.get.toString should be("warning: Please provide no more than 2 children")
 
     form.process(Map("uploads" -> Seq()))
     form.dynamics.validate() shouldBe false
-    form.dynamics.messages.head.toString should be("warning: Please provide at least one child")
+    form.dynamics.validationMessageOption.get.toString should be("warning: Please provide at least one child")
 
     form.reset()
     form.dynamics.isValid shouldBe true
@@ -320,7 +320,7 @@ class FormTest extends TwibsTest {
 
         DynamicID.use("admin"){dynamics.createChild()}
 
-        override def messages: Seq[Message] = warn"invalid: Fill out form" +: warn"invalid: Fill out form".copy(dismissable = false) +: super.messages
+//        override def messages: Seq[Message] = warn"invalid: Fill out form" +: warn"invalid: Fill out form".copy(dismissable = false) +: super.messages
       }.html
     }
 

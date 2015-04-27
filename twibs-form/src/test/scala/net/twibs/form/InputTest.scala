@@ -36,21 +36,21 @@ class InputTest extends TwibsTest {
     input.strings = "1" :: "2" :: "3" :: Nil
     input.valid shouldBe false
     input.entries.forall(_.valid) shouldBe true
-    input.messageOption should not be 'empty
+    input.validationMessageOption should not be 'empty
   }
 
   test("Test minimum number of entries") {
     val input = createInput
     input.strings = Nil
     input.valid shouldBe false
-    input.messageOption.get.toString should be("warning: Please enter at least one value")
+    input.validationMessageOption.get.toString should be("warning: Please enter at least one value")
   }
 
   test("Test maximum number of entries") {
     val input = createInput
     input.strings = "1" :: "2" :: "3" :: Nil
     input.valid shouldBe false
-    input.messageOption.get.toString should be("warning: Please enter no more than 2 values")
+    input.validationMessageOption.get.toString should be("warning: Please enter no more than 2 values")
   }
 
   test("Filling defaults with empty strings") {
@@ -100,7 +100,7 @@ class InputTest extends TwibsTest {
 
     input.string = "failure"
     input.valid shouldBe false
-    input.entries.head.messageOption.get.toString should be("warning: 'failure' is not an option")
+    input.entries.head.validationMessageOption.get.toString should be("warning: 'failure' is not an option")
   }
 
   test("Required by default") {
@@ -108,23 +108,23 @@ class InputTest extends TwibsTest {
 
     input.string = ""
     input.entries(0).valid shouldBe false
-    input.entries(0).messageOption.get.toString should be("warning: Please enter a value")
+    input.entries(0).validationMessageOption.get.toString should be("warning: Please enter a value")
 
     input.string = "x"
     input.valid shouldBe false
-    input.entries(0).messageOption.get.toString should be("warning: Invalid format for string 'x'")
+    input.entries(0).validationMessageOption.get.toString should be("warning: Invalid format for string 'x'")
   }
 
   test("Optional") {
     val input = new TestLongInput with Optional
 
     input.string = ""
-    input.entries(0).messageOption should be(None)
+    input.entries(0).validationMessageOption should be(None)
     input.entries(0).valid shouldBe true
 
     input.string = "x"
     input.valid shouldBe false
-    input.entries(0).messageOption.get.toString should be("warning: Invalid format for string 'x'")
+    input.entries(0).validationMessageOption.get.toString should be("warning: Invalid format for string 'x'")
   }
 
   test("Trimmed by default") {
@@ -176,10 +176,10 @@ class InputTest extends TwibsTest {
     }
 
     input.strings = "a" :: "ab" :: "abcd" :: "abcde" :: Nil
-    input.entries(0).messageOption.get.toString should be("warning: Please enter at least 2 characters")
-    input.entries(1).messageOption should be('empty)
-    input.entries(2).messageOption should be('empty)
-    input.entries(3).messageOption.get.toString should be("warning: Please enter no more than 4 characters")
+    input.entries(0).validationMessageOption.get.toString should be("warning: Please enter at least 2 characters")
+    input.entries(1).validationMessageOption should be('empty)
+    input.entries(2).validationMessageOption should be('empty)
+    input.entries(3).validationMessageOption.get.toString should be("warning: Please enter no more than 4 characters")
   }
 
   test("Regex") {
@@ -188,8 +188,8 @@ class InputTest extends TwibsTest {
     }
 
     input.strings = "0123" :: "r" :: Nil
-    input.entries(0).messageOption should be('empty)
-    input.entries(1).messageOption.get.toString should be("warning: Please enter a string that matches '[0-9]+'")
+    input.entries(0).validationMessageOption should be('empty)
+    input.entries(1).validationMessageOption.get.toString should be("warning: Please enter a string that matches '[0-9]+'")
   }
 
   test("Long validation") {
@@ -212,7 +212,7 @@ class InputTest extends TwibsTest {
     input.strings = " info @example.com " :: "mb@example.com" :: "noemail" :: Nil
     input.strings should be("info @example.com" :: "mb@example.com" :: "noemail" :: Nil)
     input.values should be("mb@example.com" :: Nil)
-    input.entries(0).messageOption.get.toString should be("warning: 'info @example.com' is not a valid email address")
+    input.entries(0).validationMessageOption.get.toString should be("warning: 'info @example.com' is not a valid email address")
   }
 
   test("Web address validation") {
@@ -221,7 +221,7 @@ class InputTest extends TwibsTest {
     input.strings = "http://www.example.com" :: "http://www" :: Nil
     input.strings should be("http://www.example.com" :: "http://www" :: Nil)
     input.values should be("http://www.example.com" :: Nil)
-    input.entries(1).messageOption.get.toString should be("warning: 'http://www' is not a valid web address")
+    input.entries(1).validationMessageOption.get.toString should be("warning: 'http://www' is not a valid web address")
   }
 
 }

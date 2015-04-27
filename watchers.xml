@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TaskOptions>
+  <TaskOptions>
+    <option name="arguments" value="--no-color --source-map $FileDirPathFromParent(clientlib)$/$FileDirName$.less $FileDirName$.css" />
+    <option name="checkSyntaxErrors" value="true" />
+    <option name="description" value="Compiles .less files into .css files" />
+    <option name="exitCodeBehavior" value="ERROR" />
+    <option name="fileExtension" value="less" />
+    <option name="immediateSync" value="true" />
+    <option name="name" value="Less" />
+    <option name="output" value="src/main/webapp/clientlibs/$FileDirName$.css" />
+    <option name="outputFilters">
+      <array>
+        <FilterInfo>
+          <option name="description" value="lessc error format" />
+          <option name="name" value="lessc" />
+          <option name="regExp" value="$MESSAGE$$FILE_PATH$?:$LINE$:$COLUMN$" />
+        </FilterInfo>
+      </array>
+    </option>
+    <option name="outputFromStdout" value="false" />
+    <option name="passParentEnvs" value="true" />
+    <option name="program" value="lessc" />
+    <option name="scopeName" value="LessCompiler" />
+    <option name="trackOnlyRoot" value="false" />
+    <option name="workingDir" value="$ModuleFileDir$/src/main/webapp/clientlibs" />
+    <envs />
+  </TaskOptions>
+  <TaskOptions>
+    <option name="arguments" value="--process_jquery_primitives --compilation_level SIMPLE_OPTIMIZATIONS --js $FileDirPathFromParent(clientlibs)$/**.js --js_output_file $FileDirName$.js --create_source_map %outname%.map" />
+    <option name="checkSyntaxErrors" value="true" />
+    <option name="description" value="Compiles .js files" />
+    <option name="exitCodeBehavior" value="ERROR" />
+    <option name="fileExtension" value="js" />
+    <option name="immediateSync" value="true" />
+    <option name="name" value="Closure Compiler" />
+    <option name="output" value="src/main/webapp/clientlibs/$FileDirName$.js" />
+    <option name="outputFilters">
+      <array />
+    </option>
+    <option name="outputFromStdout" value="false" />
+    <option name="passParentEnvs" value="true" />
+    <option name="program" value="/home/hombre/Programme/closure-compiler.jar" />
+    <option name="scopeName" value="Closure Compiler" />
+    <option name="trackOnlyRoot" value="false" />
+    <option name="workingDir" value="$ModuleFileDir$/src/main/webapp/clientlibs" />
+    <envs />
+  </TaskOptions>
+</TaskOptions>
+

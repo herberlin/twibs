@@ -11,34 +11,34 @@ import org.owasp.html.PolicyFactory
 trait Input extends TranslationSupport {
   type ValueType
 
-  case class Entry(string: String, valueOption: Option[ValueType], title: String, messageOption: Option[Message], continue: Boolean = true, index: Int = 0) {
-    def valid = messageOption.isEmpty
+  case class Entry(string: String, valueOption: Option[ValueType], title: String, validationMessageOption: Option[Message], continue: Boolean = true, index: Int = 0) {
+    def valid = validationMessageOption.isEmpty
 
     def withIndex(newIndex: Int) = copy(index = newIndex)
 
-    def invalid(message: Message) = copy(messageOption = Some(message), continue = false)
+    def invalid(message: Message) = copy(validationMessageOption = Some(message), continue = false)
 
     def validate(valid: => Boolean, message: => Message) = if (valid) this else invalid(message)
   }
 
   private[this] var _entries: Option[Seq[Entry]] = None
 
-  private[this] var _messageOption: Option[Message] = None
+  private[this] var _validationMessageOption: Option[Message] = None
 
   private[this] final val cachedDefaultEntries = Memo(computeDefaultEntries)
 
   final def values_=(values: Seq[ValueType]): Unit = {
     setEntries(values.map(valueToEntry))
-    _messageOption = None
+    _validationMessageOption = None
   }
 
   final def strings_=(strings: Seq[String]): Unit = {
     setEntries(strings.map(stringToEntry))
-    _messageOption =
+    _validationMessageOption =
       if (_entries.get.size < minimumNumberOfEntries)
-        Some(warn"minimum-number-of-entries-message: Please enter at least {$minimumNumberOfEntries, plural, =1{one value}other{# values}}")
+        Some(danger"minimum-number-of-entries-message: Please enter at least {$minimumNumberOfEntries, plural, =1{one value}other{# values}}")
       else if (_entries.get.size > maximumNumberOfEntries)
-        Some(warn"maximum-number-of-entries-message: Please enter no more than {$maximumNumberOfEntries, plural, =1{one value}other{# values}}")
+        Some(danger"maximum-number-of-entries-message: Please enter no more than {$maximumNumberOfEntries, plural, =1{one value}other{# values}}")
       else None
   }
 
@@ -47,7 +47,7 @@ trait Input extends TranslationSupport {
   protected def stringToEntry(string: String) =
     stringProcessors(Entry(string, None, string, None)) match {
       case e if e.continue => convertToValue(e.string) match {
-        case None => e.invalid(warn"format-message: Invalid format for string ''${e.string}''")
+        case None => e.invalid(danger"format-message: Invalid format for string ''${e.string}''")
         case valueOption => valueProcessors(valueToEntry(valueOption.get))
       }
       case e => e
@@ -59,7 +59,7 @@ trait Input extends TranslationSupport {
 
   private def processRequired = (entry: Entry) =>
     if (entry.continue && entry.string.isEmpty)
-      if (required) entry.invalid(warn"required-message: Please enter a value")
+      if (required) entry.invalid(danger"required-message: Please enter a value")
       else entry.copy(continue = false)
     else entry
 
@@ -68,9 +68,9 @@ trait Input extends TranslationSupport {
       entry.copy(string = trim(entry.string))
     else entry
 
-  private def minimumLengthProcessor = (entry: Entry) => entry.validate(entry.string.length >= minimumLength, warn"minimum-length-message: Please enter at least $minimumLength characters")
+  private def minimumLengthProcessor = (entry: Entry) => entry.validate(entry.string.length >= minimumLength, danger"minimum-length-message: Please enter at least $minimumLength characters")
 
-  private def maximumLengthProcessor = (entry: Entry) => entry.validate(entry.string.length <= maximumLength, warn"maxiumum-length-message: Please enter no more than $maximumLength characters")
+  private def maximumLengthProcessor = (entry: Entry) => entry.validate(entry.string.length <= maximumLength, danger"maxiumum-length-message: Please enter no more than $maximumLength characters")
 
   protected def trim(string: String) = string.trim
 
@@ -117,11 +117,11 @@ trait Input extends TranslationSupport {
 
   final def isModified = _entries.isDefined
 
-  final def valid = messageOption.isEmpty && !firstInvalidEntryOption.isDefined
+  final def valid = validationMessageOption.isEmpty && !firstInvalidEntryOption.isDefined
 
   final def firstInvalidEntryOption = entries.find(!_.valid)
 
-  final def messageOption = _messageOption
+  final def validationMessageOption = _validationMessageOption
 
   final def entries: Seq[Entry] = _entries getOrElse defaultEntries
 
@@ -192,7 +192,7 @@ trait StringInput extends Input {
 
   override def stringProcessors: (Entry) => Entry = super.stringProcessors andThen regexProcessor
 
-  private def regexProcessor = (entry: Entry) => entry.validate(regex.isEmpty || entry.string.matches(regex), warn"regex-message: Please enter a string that matches ''$regex''")
+  private def regexProcessor = (entry: Entry) => entry.validate(regex.isEmpty || entry.string.matches(regex), danger"regex-message: Please enter a string that matches ''$regex''")
 
   // Overideable
   def regex = ""
@@ -204,7 +204,7 @@ trait SingleLineInput extends StringInput {
   override protected def trim(string: String): String = super.trim(super.trim(string).stripLineEnd)
 
   private def checkLineBreaks = (entry: Entry) =>
-    if (entry.continue && (entry.string.contains("\n") || entry.string.contains("\r"))) entry.invalid(warn"line-breaks-message: Value must not contain line breaks")
+    if (entry.continue && (entry.string.contains("\n") || entry.string.contains("\r"))) entry.invalid(danger"line-breaks-message: Value must not contain line breaks")
     else entry
 }
 
@@ -212,14 +212,14 @@ trait EmailAddressInput extends SingleLineInput {
   override def stringProcessors = super.stringProcessors andThen emailAddressProcessor
 
   private def emailAddressProcessor = (entry: Entry) =>
-    if (entry.continue) entry.validate(EmailUtils.isValidEmailAddress(entry.string), warn"format-message: ''${entry.string}'' is not a valid email address")
+    if (entry.continue) entry.validate(EmailUtils.isValidEmailAddress(entry.string), danger"format-message: ''${entry.string}'' is not a valid email address")
     else entry
 }
 
 trait WebAddressInput extends SingleLineInput {
   override def stringProcessors = super.stringProcessors andThen webAddressProcessor
 
-  private def webAddressProcessor = (entry: Entry) => entry.validate(UrlUtils.isValidWebAddress(entry.string), warn"format-message: ''${entry.string}'' is not a valid web address")
+  private def webAddressProcessor = (entry: Entry) => entry.validate(UrlUtils.isValidWebAddress(entry.string), danger"format-message: ''${entry.string}'' is not a valid web address")
 }
 
 trait HtmlInput extends StringInput {
@@ -265,7 +265,7 @@ trait Options extends Input {
   override protected def stringToEntry(string: String): Entry =
     optionEntries.find(_.string == string) getOrElse invalidOption(string)
 
-  def invalidOption(string:String) = Entry(string, None, string, Some(warn"not-an-option-message: ''$string'' is not an option"))
+  def invalidOption(string:String) = Entry(string, None, string, Some(danger"not-an-option-message: ''$string'' is not an option"))
 }
 
 trait EnumerationInput[E <: Enumeration] extends Input with Options {

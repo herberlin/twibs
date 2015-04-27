@@ -41,12 +41,6 @@ trait Component extends TranslationSupport {
 
   def shellId = id ~ "shell"
 
-  def messages: Seq[Message] = _messages
-
-  private[this] val _messages: ListBuffer[Message] = ListBuffer()
-
-  def addMessage(message: Message) = _messages += message
-
   private[this] var _validated = false
 
   private[this] var _parsed = false
@@ -75,7 +69,6 @@ trait Component extends TranslationSupport {
     hiddenCache.reset()
     ignoredCache.reset()
     validCache.reset()
-    _messages.clear()
     _validated = false
     _parsed = false
   }
@@ -111,7 +104,7 @@ trait Component extends TranslationSupport {
   final def html: NodeSeq =
     if (isIgnored) ignoredHtml
     else if (isHidden) hiddenHtml
-    else if (isFloating) floatingHtml
+    else if (isFloating) componentHtml
     else treeHtml
 
   def ignoredHtml: NodeSeq = NodeSeq.Empty
@@ -120,15 +113,15 @@ trait Component extends TranslationSupport {
 
   def treeHtml: NodeSeq = if (isEnabled) enabledTreeHtml else disabledTreeHtml
 
-  def disabledTreeHtml: NodeSeq = disabledFloatingHtml
+  def disabledTreeHtml: NodeSeq = disabledComponentHtml
 
-  def enabledTreeHtml: NodeSeq = enabledFloatingHtml
+  def enabledTreeHtml: NodeSeq = enabledComponentHtml
 
-  def floatingHtml: NodeSeq = if (isEnabled) enabledFloatingHtml else disabledFloatingHtml
+  def componentHtml: NodeSeq = if (isEnabled) enabledComponentHtml else disabledComponentHtml
 
-  def disabledFloatingHtml: NodeSeq = enabledFloatingHtml
+  def disabledComponentHtml: NodeSeq = enabledComponentHtml
 
-  def enabledFloatingHtml: NodeSeq = hiddenHtml
+  def enabledComponentHtml: NodeSeq = hiddenHtml
 
   // Execution with result
   implicit def toResultSeq(unit: Unit): Seq[Result] = Ignored :: Nil
@@ -145,8 +138,10 @@ trait Component extends TranslationSupport {
 
   def execute(): Seq[Result] = Ignored
 
-  implicit class WrapMessage(message: Message) {
+  implicit class RichMessage(message: Message) {
     def showNotificationAfterReload(session: Session = Session.current) = session.addNotificationToSession(message.showNotification.toString + ";")
+
+    def messageCssClass: String = if (validated) "has-" + message.messageTypeString else ""
   }
 
   // Accessors
@@ -184,6 +179,8 @@ trait Container extends Component {
 
   def children: Seq[Component] = _children
 
+  def validationMessageOption: Option[Message] = None
+
   def descendants: Stream[Component] = GraphUtils.breadthFirstSearch[Component](this) {
     case container: Container => container.children
     case component => Seq(component)
@@ -216,13 +213,9 @@ trait Container extends Component {
 
   override def hiddenHtml = childrenHtml
 
-  override def enabledFloatingHtml = messagesHtml ++ childrenHtml
+  override def enabledComponentHtml = validationMessageHtml ++ childrenHtml
 
-  def messagesHtml = renderMessages(messages)
-
-  def renderMessages(messages: Seq[Message]): NodeSeq = messages.flatMap(renderMessage)
-
-  def renderMessage(message: Message): NodeSeq = message.text
+  def validationMessageHtml = validationMessageOption.fold(NodeSeq.Empty)(_.text)
 
   def childrenHtml: NodeSeq = children.flatMap(child => if (child.isFloating) NodeSeq.Empty else renderChild(child))
 
@@ -266,7 +259,7 @@ trait Container extends Component {
 
     override protected def computeIgnored: Boolean = !visible
 
-    override def enabledFloatingHtml = renderHtml
+    override def enabledComponentHtml = renderHtml
   }
 
   class DisplayText(visible: => Boolean, text: => String) extends DisplayHtml(visible, Unparsed(text)) {
@@ -278,8 +271,6 @@ trait Container extends Component {
       super.parse(parameterStrings)
       strings = parameterStrings
     }
-
-    override def messages: Seq[Message] = messageOption.fold(super.messages)(_ +: super.messages)
 
     override protected def computeValid = valid
 
@@ -301,24 +292,20 @@ trait Container extends Component {
 
     def controlCssClasses: Seq[String] = Nil
 
-    override def enabledFloatingHtml = controlHtml
+    override def enabledComponentHtml = controlHtml
 
     def controlHtml: NodeSeq = NodeSeq.Empty
 
     def controlTitle = t"control-title: #$ilk"
 
-    def labelCssMessageClass = if (validated) max(messages ++ entries.flatMap(_.messageOption)) else ""
+    def labelMessageCssClass = if (validated) max(validationMessageOption +: entries.map(_.validationMessageOption)) else ""
 
-    private def max(messages: Seq[Message]) = messages match {
+    private def max(messages: Seq[Option[Message]]) = messages.flatten match {
       case x if x.isEmpty => ""
-      case x => cssMessageClass(x.maxBy(_.importance))
+      case x => x.maxBy(_.importance).messageCssClass
     }
 
-    def cssMessageClass(omessageOption: Option[Message]): String = messageOption.fold("")(cssMessageClass)
-
-    def cssMessageClass(message: Message): String = if (validated) "has-" + message.displayTypeString else ""
-
-    def renderMessages = if (validated) messages.map(m => <div class={cssMessageClass(m)}><div class="help-block">{m.text}</div></div>) else NodeSeq.Empty
+//    def renderMessages = if (validated) messages.map(m => <div class={cssMessageClass(m)}><div class="help-block">{m.text}</div></div>) else NodeSeq.Empty
   }
 
   abstract class Hidden(ilk: String) extends Child(ilk: String) with Control with ParametersInLinks {
@@ -503,19 +490,14 @@ trait Container extends Component {
 
     //    override def maximumNumberOfEntries: Int = optionEntries.size
 
-    override def parse(parameters: Parameters): Unit = parameters.getStringsStartingWithOption(name) match {
-      case Some(parameterStrings) => parse(parameterStrings)
-      case None => ()
-    }
-
     def entryName(entry: Entry) = name + "_" + entry.index
 
     override def controlHtmlFor(entry: Entry): NodeSeq =
       super.controlHtmlFor(entry) ++
-          <input type="radio" name={entryName(entry)} data-name={name} value="" class="concealed" />.set(entry.string == "", "checked")
+          <input type="radio" name={entryName(entry)} data-fieldName={name} value="" class="concealed" />.set(entry.string == "", "checked")
 
     override def optionHtmlFor(entry: Entry, option: Entry): NodeSeq =
-        <input type="radio" name={entryName(entry)} data-name={name} id={optionId(entry, option)} value={option.string} class={controlCssClasses} />
+        <input type="radio" data-fieldName={name} name={entryName(entry)} id={optionId(entry, option)} value={option.string} class={controlCssClasses} />
         .setIfMissing(isDisabled, "disabled", "disabled")
         .addClass(isDisabled, "disabled")
         .addClass(!isDisabled, "can-be-disabled")
@@ -687,10 +669,10 @@ trait DynamicChildren extends Container {
 
   def maximumNumberOfDynamics = Int.MaxValue
 
-  override def messages: Seq[Message] =
-    if (numberOfDynamicsValid) super.messages
-    else if (dynamics.size < minimumNumberOfDynamics) warn"minimum-number-of-children-message: Please provide at least {$minimumNumberOfDynamics, plural, =1{one child}other{# children}}" +: super.messages
-    else warn"maximum-number-of-chilren-message: Please provide no more than {$maximumNumberOfDynamics, plural, =1{one child}other{# children}}" +: super.messages
+  override def validationMessageOption: Option[Message] =
+    if (numberOfDynamicsValid) super.validationMessageOption
+    else if (dynamics.size < minimumNumberOfDynamics) Some(danger"minimum-number-of-children-message: Please provide at least {$minimumNumberOfDynamics, plural, =1{one child}other{# children}}")
+    else Some(danger"maximum-number-of-chilren-message: Please provide no more than {$maximumNumberOfDynamics, plural, =1{one child}other{# children}}")
 }
 
 protected[form] object DynamicID extends DynamicVariableWithDefault[String] {
@@ -768,7 +750,7 @@ class Form(val ilk: String) extends Container with CancelStateInheritance {
 
   def modalHtml: NodeSeq = html
 
-  override def renderMessage(message: Message): NodeSeq = <div>{message.text}</div>
+//  override def renderMessage(message: Message): NodeSeq = <div>{message.text}</div>
 
   def process(parameters: Parameters): Response = try {
     reset()

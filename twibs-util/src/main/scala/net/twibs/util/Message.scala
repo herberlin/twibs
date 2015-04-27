@@ -13,6 +13,11 @@ case class Message(text: NodeSeq, displayTypeString: String, importance: Int, di
 
   def showNotification(options: Map[String, Any] = Map()): JsCmd = JsCmd("").call("new PNotify", Map("text" -> text, "type" -> displayTypeString.replace("danger", "error"), "nonblock" -> Map("nonblock" -> true)) ++ options)
 
+  def messageTypeString = displayTypeString match {
+    case "danger" => "error"
+    case m => m
+  }
+
   override def toString: String = s"$displayTypeString: $text"
 
   override def hashCode(): Int = text.hashCode + displayTypeString.hashCode

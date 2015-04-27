@@ -5,16 +5,16 @@
 package net.twibs.form
 
 import net.twibs.util.XmlUtils._
-import net.twibs.util.{ApplicationSettings, Message, Request}
+import net.twibs.util.{ApplicationSettings, Request}
 
 import scala.xml.{NodeSeq, Unparsed}
 
 sealed trait Bs3Container extends Container {
-  override def floatingHtml: NodeSeq =
+  override def componentHtml: NodeSeq =
     <div id={shellId} name={name} class={("form-container-shell" :: Nil).addClass(isDetachable, "detachable")}>
       {if (isDetachable) closeButton else NodeSeq.Empty}
       <div id={id} class={containerCssClasses}>
-        {super.floatingHtml}
+        {super.componentHtml}
       </div>
     </div>
 
@@ -27,11 +27,11 @@ sealed trait Bs3Container extends Container {
 
   override def containerCssClasses = "form-container" +: super.containerCssClasses
 
-  override def renderMessage(message: Message): NodeSeq =
-    if (message.dismissable)
-        <div class={"alert" :: ("alert-" + message.displayTypeString) :: "alert-dismissable" :: Nil}><button type="button" class="close" data-dismiss="alert">×</button>{message.text}</div>
-    else
-        <div class={"alert" :: ("alert-" + message.displayTypeString) :: Nil}>{message.text}</div>
+//  override def renderMessage(message: Message): NodeSeq =
+//    if (message.dismissable)
+//        <div class={"alert" :: ("alert-" + message.displayTypeString) :: "alert-dismissable" :: Nil}><button type="button" class="close" data-dismiss="alert">×</button>{message.text}</div>
+//    else
+//        <div class={"alert" :: ("alert-" + message.displayTypeString) :: Nil}>{message.text}</div>
 
   trait Bs3Field extends Field {
     override def controlCssClasses: Seq[String] = "form-control" +: super.controlCssClasses
@@ -116,6 +116,7 @@ sealed trait Bs3Container extends Container {
   abstract class ChildContainer(ilk: String) extends Child(ilk) with ChildContainerTrait
 
   abstract class ButtonRow extends Child("br") with ButtonRowTrait
+
 }
 
 trait Bs3HorizontalLayout extends Bs3Container {
@@ -134,12 +135,12 @@ trait Bs3HorizontalLayout extends Bs3Container {
       controlTitle match {
         case "" =>
           <div class="form-group">
-            <div class={s"col-sm-offset-$labelColumns col-sm-$contentColumns"}>{renderMessages ++ super.treeHtml}</div>
+            <div class={s"col-sm-offset-$labelColumns col-sm-$contentColumns"}>{validationMessageHtml ++ super.treeHtml}</div>
           </div>
         case ct =>
           <div class="form-group">
-            <div class={labelCssMessageClass :: s"col-sm-$labelColumns" :: Nil}><label class="control-label">{ct}</label></div>
-            <div class={s"col-sm-$contentColumns"}>{renderMessages ++ super.treeHtml}</div>
+            <div class={labelMessageCssClass :: s"col-sm-$labelColumns" :: Nil}><label class="control-label">{ct}</label></div>
+            <div class={s"col-sm-$contentColumns"}>{validationMessageHtml ++ super.treeHtml}</div>
           </div>.addClass(required, "required")
       }
   }
@@ -192,6 +193,14 @@ trait Bs3HorizontalLayout extends Bs3Container {
   }
 
   trait RadioFieldTrait extends super.RadioFieldTrait with Bs3HlControl {
+    override def controlHtmlFor(entry: Entry): NodeSeq =
+      entry.validationMessageOption.filter(_ => validated) match {
+        case Some(message) => <div class={message.messageCssClass}>
+          {super.controlHtmlFor(entry)}<div class="help-block">{message.text}</div>
+        </div>
+        case None => <div>{super.controlHtmlFor(entry)}</div>
+      }
+
     override def optionHtmlFor(entry: Entry, option: Entry): NodeSeq =
       <div class="radio">
         <label>
@@ -267,7 +276,7 @@ trait Bs3Form extends Form with Bs3Container {
     if (isIgnored) NodeSeq.Empty
     else surround(inlineContent, "false") ++ javascriptHtml
 
-  override def enabledFloatingHtml: NodeSeq = surround({if (modal) modalContent else inlineContent})
+  override def enabledComponentHtml: NodeSeq = surround({if (modal) modalContent else inlineContent})
 
   def surround(content: NodeSeq, modalValue: String = modal.toString) =
     <form id={formId} name={name} class={formCssClasses} action={actionLink} method="post" enctype="multipart/form-data">
@@ -304,7 +313,7 @@ trait Bs3Form extends Form with Bs3Container {
       </div>
     </div> ++ formHeader ++ formBody
 
-  def formBody = defaultButtonHtml ++ super.enabledFloatingHtml
+  def formBody = defaultButtonHtml ++ super.enabledComponentHtml
 
   def javascriptHtml = javascript.toString match {case "" => NodeSeq.Empty case js => <script>{Unparsed("$(function () {" + js + "});")}</script> }
 

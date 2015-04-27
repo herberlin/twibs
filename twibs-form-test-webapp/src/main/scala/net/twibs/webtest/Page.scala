@@ -43,8 +43,8 @@ class Page extends Responder {
         <meta name="date" content={dateString}/>
         <meta name="description" content="Twibs Webtest"/>
         <meta name="keywords" content="Java, Scala, CMS, Software"/>
-        <link rel="stylesheet" href="/clientlibs/shared/twibs.css"/>
-        <link rel="stylesheet" href="/clientlibs/twibs-form/twibs-form.css"/>
+        <link rel="stylesheet" href="/clientlibs/twibs.css"/>
+        <link rel="stylesheet" href="/clientlibs/twibs-form.css"/>
         <link rel="shortcut icon" href="/favicon.ico"/>
       </head>
       <body>
@@ -59,10 +59,10 @@ class Page extends Responder {
               <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.2/html5shiv-printshiv.min.js"></script>
           <![endif]-->
           <!--[if (gte IE 9) | (!IE)]><!-->
-              <script src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
+              <script src="/clientlibs/jquery.js"></script>
           <!--<![endif]-->
                   """)}
-        <script src="/clientlibs/shared/twibs.js"></script>
-        <script src="/clientlibs/twibs-form/twibs-form.js"></script>
+        <script src="/clientlibs/twibs.js"></script>
+        <script src="/clientlibs/twibs-form.js"></script>
     </html>
 }
