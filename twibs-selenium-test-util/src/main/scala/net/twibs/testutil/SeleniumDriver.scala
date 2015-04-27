@@ -18,19 +18,19 @@ import org.openqa.selenium.chrome.ChromeDriverService
 import org.openqa.selenium.remote.{DesiredCapabilities, RemoteWebDriver}
 
 object SeleniumDriver {
-  private val seleniumVersion = "2.11"
-  private val baseUrl = "http://chromedriver.storage.googleapis.com/2.11/chromedriver"
+  private val driverVersion = "2.15"
+  private val baseUrl = s"http://chromedriver.storage.googleapis.com/$driverVersion/chromedriver"
   private val linuxUrl = baseUrl + "_linux64.zip"
   private val windowsUrl = baseUrl + "_win32.zip"
   private val macUrl = baseUrl + "_mac32.zip"
 
   private lazy val service: ChromeDriverService = {
     val chromeDriverLibrary = if (SystemSettings.os.isMac)
-      loadDriverFrom(macUrl, s"chromedriver_mac_$seleniumVersion")
+      loadDriverFrom(macUrl, s"chromedriver_mac_$driverVersion")
     else if (SystemSettings.os.isWindows)
-      loadDriverFrom(windowsUrl, s"chromedriver_win_$seleniumVersion")
+      loadDriverFrom(windowsUrl, s"chromedriver_win_$driverVersion")
     else
-      loadDriverFrom(linuxUrl, s"chromedriver_linux_$seleniumVersion")
+      loadDriverFrom(linuxUrl, s"chromedriver_linux_$driverVersion")
     new ChromeDriverService.Builder()
       .usingAnyFreePort()
       .usingDriverExecutable(chromeDriverLibrary)

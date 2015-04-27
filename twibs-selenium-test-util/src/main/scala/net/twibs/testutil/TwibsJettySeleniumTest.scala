@@ -40,12 +40,16 @@ trait TwibsJettySeleniumTest extends TwibsSeleniumTest {
     server.setStopAtShutdown(true)
     Request.activate(Request.copy(contextPath = contextPath))
     val webAppContext = new WebAppContext()
+    init(webAppContext)
+    server.setHandler(webAppContext)
+    server.start()
+  }
+
+  def init(webAppContext: WebAppContext) : Unit = {
     webAppContext.setClassLoader(Thread.currentThread.getContextClassLoader)
     webAppContext.setContextPath(Request.contextPath)
     webAppContext.setResourceBase(new File(resourceBase).getAbsolutePath)
-    webAppContext.addFilter(filterClass, "/*", null)
-    server.setHandler(webAppContext)
-    server.start()
+    webAppContext.addFilter(filterClass, "*.html", null)
   }
 
   def stopServer(): Unit = {
