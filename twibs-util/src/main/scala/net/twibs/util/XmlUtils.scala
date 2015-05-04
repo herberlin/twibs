@@ -4,10 +4,11 @@
 
 package net.twibs.util
 
-import xml._
+import scala.xml._
 
 trait XmlUtils {
-  implicit def enhanceElemWithMethods(elem: Elem) = new {
+
+  implicit class RichElem(elem: Elem) {
     def addClass(condition: Boolean, cssClass: => String): Elem = if (condition) addClasses(cssClass :: Nil) else elem
 
     def addClasses(condition: Boolean, cssClasses: => Seq[String]): Elem = if (condition) addClasses(cssClasses) else elem
@@ -50,7 +51,9 @@ trait XmlUtils {
 
   implicit def toXmlText(string: String): Text = Text(string)
 
-  implicit def toCssClasses(baseCssClasses: Seq[String]) = new {
+  implicit def toXmlAttribute(nodeSeq: NodeSeq): Text = nodeSeq.toString()
+
+  implicit class CssClasses(baseCssClasses: Seq[String]) {
     def addClass(condition: Boolean, cssClass: => String): Seq[String] = if (condition) addClasses(cssClass :: Nil) else baseCssClasses
 
     def addClasses(condition: Boolean, cssClasses: => Seq[String]): Seq[String] = if (condition) addClasses(cssClasses) else baseCssClasses
@@ -61,6 +64,7 @@ trait XmlUtils {
 
     private def cleanup(cssClasses: Seq[String]) = cssClasses.filterNot(_.isEmpty).distinct
   }
+
 }
 
 object XmlUtils extends XmlUtils
