@@ -4,9 +4,9 @@
 
 package net.twibs.webtest
 
-import net.twibs.util.{Request, GetMethod, ClassUtils}
 import net.twibs.util.Formatters._
 import net.twibs.util.Predef._
+import net.twibs.util.{ClassUtils, GetMethod, Request}
 import net.twibs.web._
 import org.threeten.bp.Instant
 
@@ -30,6 +30,7 @@ class Page extends Responder {
   def yearString = modified.getYear.toString
 
   def dateString = modified.formatAsIso
+
   //          {new TestForm().inlineHtml}
 
   def html =
@@ -49,10 +50,60 @@ class Page extends Responder {
       </head>
       <body>
         <div class="container">
-          {new RadioTestForm().inlineHtml}
+          {val f = new RadioTestForm()
+          f.r.validate()
+          f.inlineHtml}
+          <div>
+            <p>
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+              Lots of text<br />
+            </p>
+
+            <div class="twibs-notify">
+              <div class="alert alert-danger">This is an error message</div>
+              <div class="alert alert-info">The info text</div>
+              <div class="alert alert-warning">Some more errors</div>
+            </div>
+          </div>
         </div>
       </body>
-        {Unparsed("""
+        {Unparsed( """
           <!--[if lt IE 9]>
               <script src="http://code.jquery.com/jquery-1.11.2.min.js"></script>
               <script src="https://cdnjs.cloudflare.com/ajax/libs/respond.js/1.4.2/respond.min.js"></script>
@@ -61,7 +112,7 @@ class Page extends Responder {
           <!--[if (gte IE 9) | (!IE)]><!-->
               <script src="/clientlibs/jquery.js"></script>
           <!--<![endif]-->
-                  """)}
+                   """)}
         <script src="/clientlibs/twibs.js"></script>
         <script src="/clientlibs/twibs-form.js"></script>
     </html>

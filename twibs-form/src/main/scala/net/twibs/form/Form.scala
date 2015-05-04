@@ -14,7 +14,7 @@ import net.twibs.web._
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 import scala.languageFeature.dynamics
-import scala.xml.{NodeSeq, Text, Unparsed}
+import scala.xml.{Elem, NodeSeq, Text, Unparsed}
 
 trait Result
 
@@ -282,30 +282,28 @@ trait Container extends Component {
 
     def entryId(entry: Entry) = id ~ (if (entry.index > 0) entry.index.toString else "")
 
-    // Same as controlId but may change
-    def optionId(option: Entry) = id ~ (if (option.index > 0) option.index.toString else "")
+    def optionId(option: Entry) = id ~~ (if (option.index > 0) option.index.toString else "")
 
-    def optionId(entry: Entry, option: Entry) = entryId(entry) ~ (if (option.index > 0) option.index.toString else "")
-
-    // TODO: Remove this
-    def controlId(index: Int) = id ~ (if (index > 0) index.toString else "")
+    def optionId(entry: Entry, option: Entry) = entryId(entry) ~~ (if (option.index > 0) option.index.toString else "")
 
     def controlCssClasses: Seq[String] = Nil
 
-    override def enabledComponentHtml = controlHtml
+    override def enabledComponentHtml: NodeSeq = controlHtml ++ helpMessageHtml
 
-    def controlHtml: NodeSeq = NodeSeq.Empty
+    def controlHtml: Elem = <span></span>
 
     def controlTitle = t"control-title: #$ilk"
 
     def labelMessageCssClass = if (validated) max(validationMessageOption +: entries.map(_.validationMessageOption)) else ""
 
+    def helpMessageHtml: NodeSeq = helpMessageOption.fold(NodeSeq.Empty)(Unparsed(_))
+
+    def helpMessageOption = Option(t"help-message:").filter(!_.isEmpty)
+
     private def max(messages: Seq[Option[Message]]) = messages.flatten match {
       case x if x.isEmpty => ""
       case x => x.maxBy(_.importance).messageCssClass
     }
-
-//    def renderMessages = if (validated) messages.map(m => <div class={cssMessageClass(m)}><div class="help-block">{m.text}</div></div>) else NodeSeq.Empty
   }
 
   abstract class Hidden(ilk: String) extends Child(ilk: String) with Control with ParametersInLinks {
@@ -317,19 +315,19 @@ trait Container extends Component {
   }
 
   trait Triggered extends Control {
-    override def hiddenHtml: NodeSeq = super.hiddenHtml ++ triggerHtml
+//    override def hiddenHtml: NodeSeq = super.hiddenHtml ++ triggerHtml
 
-    override def controlHtml: NodeSeq = super.controlHtml ++ triggerHtml
+//    override def additionalControlHtml: NodeSeq = triggerHtml
 
     override def parse(parameterStrings: Seq[String]): Unit = super.parse(parameterStrings.filter(_ != triggerValue))
 
     def triggerHtml = hidden(name, triggerValue)
 
-    def triggerValue = "TRIGGER"
+    def triggerValue = "_TRIGGER_"
   }
 
   trait OneControlForAllEntries extends Control with Options {
-    override def controlHtml: NodeSeq = optionEntries.flatMap(optionHtmlFor)
+    override def controlHtml = <div class="entries">{optionEntries.flatMap(optionHtmlFor)}</div>
 
     override def invalidControlIdOption: Option[IdString] = if (isValid) None else Some(id)
 
@@ -341,7 +339,7 @@ trait Container extends Component {
   }
 
   trait OneControlPerEntry extends Control {
-    override def controlHtml = entries.flatMap(controlHtmlFor)
+    override def controlHtml = <div class="entries">{entries.flatMap(controlHtmlFor)}</div>
 
     def controlHtmlFor(entry: Entry): NodeSeq
   }
@@ -492,9 +490,7 @@ trait Container extends Component {
 
     def entryName(entry: Entry) = name + "_" + entry.index
 
-    override def controlHtmlFor(entry: Entry): NodeSeq =
-      super.controlHtmlFor(entry) ++
-          <input type="radio" name={entryName(entry)} data-fieldName={name} value="" class="concealed" />.set(entry.string == "", "checked")
+    override def controlHtmlFor(entry: Entry): NodeSeq = super.controlHtmlFor(entry) ++ triggerHtml
 
     override def optionHtmlFor(entry: Entry, option: Entry): NodeSeq =
         <input type="radio" data-fieldName={name} name={entryName(entry)} id={optionId(entry, option)} value={option.string} class={controlCssClasses} />
@@ -503,6 +499,18 @@ trait Container extends Component {
         .addClass(!isDisabled, "can-be-disabled")
         .addClass(submitOnChange && isEnabled, "submit-on-change")
         .set(entry.valueOption == option.valueOption, "checked")
+
+    override def parse(parameterStrings: Seq[String]): Unit = super.parse(resolveTriggers(parameterStrings))
+
+    private def resolveTriggers(parameterStrings: Seq[String]) : Seq[String] = parameterStrings.headOption match {
+      case None => Nil
+      case Some(v) if v == triggerValue => "" +: resolveTriggers(parameterStrings.tail)
+      case Some(v) => v +: resolveTriggers(parameterStrings.tail.tail)
+    }
+
+    def triggerHtml = hidden(name, triggerValue)
+
+    def triggerValue = "_TRIGGER_"
   }
 
   /* Buttons */

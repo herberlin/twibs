@@ -5,9 +5,32 @@
 package net.twibs.form
 
 import net.twibs.util.XmlUtils._
-import net.twibs.util.{ApplicationSettings, Request}
+import net.twibs.util.{ApplicationSettings, Message, Request}
 
-import scala.xml.{NodeSeq, Unparsed}
+import scala.xml.{Elem, NodeSeq, Unparsed}
+
+sealed trait Bs3Component extends Component {
+
+  implicit class Bs3RichElem(elem: Elem) {
+    def addPopover(messageOption: Option[Message], placement: String = "bottom"): Elem = messageOption.fold(elem)(addPopover(_, placement))
+
+    def addPopover(message: Message, placement: String): Elem =
+      elem
+        .set("data-toggle", "popover")
+        .set("data-content", message.toBsMessageAttribute)
+        .set("data-placement", placement)
+        .set("data-trigger", "hover focus")
+        .set("data-html", "true")
+        .addClass(message.messageCssClass)
+  }
+
+  implicit class Bs3RichMessage(message: Message) {
+    def toBsMessage = <div class={s"alert alert-${message.displayTypeString}"}>{message.text}</div>
+
+    def toBsMessageAttribute: String = toBsMessage.toString()
+  }
+
+}
 
 sealed trait Bs3Container extends Container {
   override def componentHtml: NodeSeq =
@@ -27,11 +50,11 @@ sealed trait Bs3Container extends Container {
 
   override def containerCssClasses = "form-container" +: super.containerCssClasses
 
-//  override def renderMessage(message: Message): NodeSeq =
-//    if (message.dismissable)
-//        <div class={"alert" :: ("alert-" + message.displayTypeString) :: "alert-dismissable" :: Nil}><button type="button" class="close" data-dismiss="alert">×</button>{message.text}</div>
-//    else
-//        <div class={"alert" :: ("alert-" + message.displayTypeString) :: Nil}>{message.text}</div>
+  //  override def renderMessage(message: Message): NodeSeq =
+  //    if (message.dismissable)
+  //        <div class={"alert" :: ("alert-" + message.displayTypeString) :: "alert-dismissable" :: Nil}><button type="button" class="close" data-dismiss="alert">×</button>{message.text}</div>
+  //    else
+  //        <div class={"alert" :: ("alert-" + message.displayTypeString) :: Nil}>{message.text}</div>
 
   trait Bs3Field extends Field {
     override def controlCssClasses: Seq[String] = "form-control" +: super.controlCssClasses
@@ -39,7 +62,7 @@ sealed trait Bs3Container extends Container {
 
   /* Buttons */
 
-  trait ButtonTrait extends super.ButtonTrait {
+  trait ButtonTrait extends super.ButtonTrait with Bs3Component {
     override def optionHtmlFor(option: Entry): NodeSeq = new Bs3OptionRenderer(option).html
 
     class Bs3OptionRenderer(option: Entry) extends OptionRenderer(option) {
@@ -130,19 +153,24 @@ trait Bs3HorizontalLayout extends Bs3Container {
 
   /* Fields */
 
-  trait Bs3HlControl extends Control {
+  trait Bs3HlControl extends Control with Bs3Component {
     override def treeHtml: NodeSeq =
       controlTitle match {
         case "" =>
           <div class="form-group">
-            <div class={s"col-sm-offset-$labelColumns col-sm-$contentColumns"}>{validationMessageHtml ++ super.treeHtml}</div>
+            <div class={s"col-sm-offset-$labelColumns col-sm-$contentColumns"}>{super.treeHtml}</div>
           </div>
         case ct =>
           <div class="form-group">
             <div class={labelMessageCssClass :: s"col-sm-$labelColumns" :: Nil}><label class="control-label">{ct}</label></div>
-            <div class={s"col-sm-$contentColumns"}>{validationMessageHtml ++ super.treeHtml}</div>
+            <div class={s"col-sm-$contentColumns"}>{super.treeHtml}</div>
           </div>.addClass(required, "required")
       }
+
+    override def controlHtml =
+      super.controlHtml.addPopover(validationMessageOption.filter(_ => validated), "top")
+
+    override def helpMessageHtml: NodeSeq = helpMessageOption.fold(NodeSeq.Empty)(m => <div class="help-block">{Unparsed(m)}</div>)
   }
 
   trait Bs3HlField extends Bs3Field with Bs3HlControl {
@@ -194,12 +222,7 @@ trait Bs3HorizontalLayout extends Bs3Container {
 
   trait RadioFieldTrait extends super.RadioFieldTrait with Bs3HlControl {
     override def controlHtmlFor(entry: Entry): NodeSeq =
-      entry.validationMessageOption.filter(_ => validated) match {
-        case Some(message) => <div class={message.messageCssClass}>
-          {super.controlHtmlFor(entry)}<div class="help-block">{message.text}</div>
-        </div>
-        case None => <div>{super.controlHtmlFor(entry)}</div>
-      }
+      <div class="entry">{super.controlHtmlFor(entry)}</div>.addPopover(entry.validationMessageOption.filter(_ => validated))
 
     override def optionHtmlFor(entry: Entry, option: Entry): NodeSeq =
       <div class="radio">

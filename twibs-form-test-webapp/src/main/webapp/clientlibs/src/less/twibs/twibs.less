@@ -9,295 +9,334 @@
 @import "jquery.bootstrap-touchspin.less";
 
 .chosen-container-multi .chosen-choices .search-field:first-child {
-  margin-left: 8px;
+    margin-left: 8px;
 }
 
 .twibs-form {
-  select.chosen[multiple] {
-    height: @input-height-base;
-  }
+    select.chosen[multiple] {
+        height: @input-height-base;
+    }
 
-  .controls .alert:last-child {
-    margin-bottom: 0;
-  }
+    .controls .alert:last-child {
+        margin-bottom: 0;
+    }
 
-  .field-info {
-    .text-emphasis-variant(@state-info-text);
-    cursor: help;
-  }
+    .field-info {
+        .text-emphasis-variant(@state-info-text);
+        cursor: help;
+    }
 
-  .input-group-btn {
-    vertical-align: top;
-  }
+    .input-group-btn {
+        vertical-align: top;
+    }
 
-  div.textarea-print {
-    height: auto;
-    white-space: pre-wrap;
-    min-height: 34px;
-  }
+    div.textarea-print {
+        height: auto;
+        white-space: pre-wrap;
+        min-height: 34px;
+    }
 
-  .form-control-static + .input-group-btn .btn {
-    border-bottom-left-radius: @border-radius-base;
-    border-top-left-radius: @border-radius-base;
-  }
+    .form-control-static + .input-group-btn .btn {
+        border-bottom-left-radius: @border-radius-base;
+        border-top-left-radius: @border-radius-base;
+    }
+
+    /* Entries can have a message specific background */
+    .entries {
+        padding: 2px;
+        border-radius: 4px;
+    }
+    .entries.has-error {
+        &:extend(.bg-danger);
+    }
+
+    /* Prepare entry to receive a background in case of a message */
+    .entry {
+        padding: 0 8px 5px 8px;
+        border-radius: @border-radius-base;
+        border: 1px solid @input-bg;
+
+        & + .entry {
+            margin-top: 2px;
+        }
+    }
+    .entry.has-error {
+        &:extend(.bg-danger);
+    }
+
+    .help-block {
+        padding-left: 8px;
+    }
+
+    /* Position popovers on form-groups leftmost */
+    .form-group {
+        .popover.bottom, .popover.top {
+            left: 11px !important;
+        }
+    }
+
+    /* No margin if alert is last in popover */
+    .popover-content > .alert:last-child {
+        margin-bottom: 0px;
+    }
 }
 
 /* Hide the second @ in email address */
 span.mhost span {
-  display: none;
+    display: none;
 }
 
 .no-js {
-  body {
-    padding-top: 60px;
-  }
+    body {
+        padding-top: 60px;
+    }
 
-  .no-js-warning {
-    position: absolute;
-    top: 8px;
-    width: 100%;
-  }
+    .no-js-warning {
+        position: absolute;
+        top: 8px;
+        width: 100%;
+    }
 }
 
 .js .no-js-warning {
-  display: none;
+    display: none;
 }
 
 .form-group.required label.control-label:after {
-  content: "*";
-  position: absolute;
-  padding-left: 3px;
+    content: "*";
+    position: absolute;
+    padding-left: 3px;
 }
 
 .file-upload-button {
-  position: relative;
-  overflow: hidden;
+    position: relative;
+    overflow: hidden;
 
-  input[type="file"] {
-    position: absolute;
-    top: 0;
-    right: 0;
-    margin: 0;
-    .opacity(0);
-    font-size: 100px;
-    direction: ltr;
-    cursor: pointer;
-  }
+    input[type="file"] {
+        position: absolute;
+        top: 0;
+        right: 0;
+        margin: 0;
+        .opacity(0);
+        font-size: 100px;
+        direction: ltr;
+        cursor: pointer;
+    }
 }
 
 span[data-toggle="collapse"] {
-  cursor: pointer;
+    cursor: pointer;
 }
 
 .files > div {
-  margin-top: 8px;
+    margin-top: 8px;
 }
 
 option:disabled {
-  display: none;
+    display: none;
 }
 
 .datepicker {
-  z-index: 1100 !important;
+    z-index: 1100 !important;
 }
 
 .submit {
-  cursor: pointer;
+    cursor: pointer;
 }
 
 .emptiable {
-  position: relative;
-  display: block;
+    position: relative;
+    display: block;
 
-  input {
-    padding-right: 26px;
-  }
-  .input-clear {
-    position: absolute;
-    right: 10px;
-    top: 0;
-    padding: 9px 0;
-    z-index: 2;
-    .opacity(0.3);
-
-    cursor: pointer;
-
-    &:hover {
-      .opacity(1);
+    input {
+        padding-right: 26px;
     }
-  }
+    .input-clear {
+        position: absolute;
+        right: 10px;
+        top: 0;
+        padding: 9px 0;
+        z-index: 2;
+        .opacity(0.3);
+
+        cursor: pointer;
+
+        &:hover {
+            .opacity(1);
+        }
+    }
 }
 
 .fixed-content {
-  z-index: 10;
+    z-index: 10;
 }
 
 .data-table-container {
-  overflow-x: auto;
-  width: 100%;
-  nav .form-inline .form-control {
-    width: auto;
-  }
-  .data-table {
-    th.sort, th.sort-asc, th.sort-desc {
-      cursor: pointer;
-      white-space: nowrap;
-      padding-right: 18px;
-      &:before {
-        font-family: FontAwesome, sans-serif;
-        margin-right: -12px;
-        float: right;
-      }
+    overflow-x: auto;
+    width: 100%;
+    nav .form-inline .form-control {
+        width: auto;
     }
-    th.sort:before {
-      content: "\f0dc";
+    .data-table {
+        th.sort, th.sort-asc, th.sort-desc {
+            cursor: pointer;
+            white-space: nowrap;
+            padding-right: 18px;
+            &:before {
+                font-family: FontAwesome, sans-serif;
+                margin-right: -12px;
+                float: right;
+            }
+        }
+        th.sort:before {
+            content: "\f0dc";
+        }
+        th.sort-asc:before {
+            content: "\f0dd";
+        }
+        th.sort-desc:before {
+            content: "\f0de";
+        }
     }
-    th.sort-asc:before {
-      content: "\f0dd";
-    }
-    th.sort-desc:before {
-      content: "\f0de";
-    }
-  }
 }
 
 // Workaround: Bootstrap sets display: block; on collapse in.
 tr.collapse.in {
-  display: table-row;
+    display: table-row;
 }
 
 .table.with-actions > tbody > tr > td:last-child {
-  width: 1%;
-  white-space: nowrap;
-  > .btn + .btn, .btn + .btn-group, .btn-group + .btn {
-    margin-left: 6px;
-  }
-  > .btn:last-child, .btn-group:last-child {
-    margin-right: -4px;
-  }
-  > .btn-group .btn {
-    float: none;
-  }
+    width: 1%;
+    white-space: nowrap;
+    > .btn + .btn, .btn + .btn-group, .btn-group + .btn {
+        margin-left: 6px;
+    }
+    > .btn:last-child, .btn-group:last-child {
+        margin-right: -4px;
+    }
+    > .btn-group .btn {
+        float: none;
+    }
 }
 
 .table-controls-top {
-  margin-bottom: 1em;
-  position: relative;
-  min-height: 1px;
-  padding-left: 15px;
-  padding-right: 15px;
+    margin-bottom: 1em;
+    position: relative;
+    min-height: 1px;
+    padding-left: 15px;
+    padding-right: 15px;
 
-  span.display-text {
-    margin-left: 20px;
-  }
+    span.display-text {
+        margin-left: 20px;
+    }
 }
 
 .form-header {
-  position: relative;
-  margin: 9px 0 18px;
-  border-bottom: 1px solid #DDD;
+    position: relative;
+    margin: 9px 0 18px;
+    border-bottom: 1px solid #DDD;
 
-  h3 {
-    font-size: 16px;
-    line-height: 25px;
-  }
+    h3 {
+        font-size: 16px;
+        line-height: 25px;
+    }
 
-  aside.pull-right {
-    margin-top: -8px;
-  }
+    aside.pull-right {
+        margin-top: -8px;
+    }
 }
 
 .upload-with-comment {
-  position: relative;
-  > button {
-    position: absolute;
-    right: 0;
-    top: 0;
-  }
+    position: relative;
+    > button {
+        position: absolute;
+        right: 0;
+        top: 0;
+    }
 }
 
 .cms-top-menu {
-  position: fixed;
-  top: 0;
-  right: 0;
-  padding: 4px;
-  opacity: 0.2;
+    position: fixed;
+    top: 0;
+    right: 0;
+    padding: 4px;
+    opacity: 0.2;
 }
 
 .cms-top-menu:hover {
-  opacity: 1;
+    opacity: 1;
 }
 
 .cms-top-menu .btn img {
-  width: 24px;
+    width: 24px;
 }
 
 span.btn.active {
-  cursor: not-allowed;
+    cursor: not-allowed;
 }
 
 span.placeholder {
-  color: #999;
+    color: #999;
 }
 
 .concealed {
-  visibility: hidden !important;
-  position: absolute !important;
-  top: -10000px !important;
-  left: -10000px !important;
-  width: 1px;
-  height: 1px;
+    visibility: hidden !important;
+    position: absolute !important;
+    top: -10000px !important;
+    left: -10000px !important;
+    width: 1px;
+    height: 1px;
 }
 
 .detachable {
-  background-color: lighten(@state-info-bg, 5%);
-  padding: 10px 8px 0 8px;
-  margin-bottom: 15px;
+    background-color: lighten(@state-info-bg, 5%);
+    padding: 10px 8px 0 8px;
+    margin-bottom: 15px;
 
-  .detachable {
-    background-color: lighten(@state-info-bg, 3%);
-    border: 1px solid darken(@state-info-bg, 30%);
-    border-radius: @border-radius-base;
-  }
+    .detachable {
+        background-color: lighten(@state-info-bg, 3%);
+        border: 1px solid darken(@state-info-bg, 30%);
+        border-radius: @border-radius-base;
+    }
 
-  > button.close {
-    margin: 0 0 6px 6px;
-  }
+    > button.close {
+        margin: 0 0 6px 6px;
+    }
 
-  .detachable-content {
-    overflow: hidden;
-  }
+    .detachable-content {
+        overflow: hidden;
+    }
 
-  > .form-group:last-child {
-    margin-bottom: 0;
-  }
+    > .form-group:last-child {
+        margin-bottom: 0;
+    }
 }
 
 .panel-body > .form-group:last-child {
-  margin-bottom: 0;
+    margin-bottom: 0;
 }
 
 .has-spinner {
-  .spinner {
-    opacity: 0;
-    width: 0;
-    .animation(~"none");
-  }
-
-  .fa {
-    .transition(~"opacity 0.25s, width 0.25s, margin-right 0.25s");
-  }
-
-  &.disabled, &[disabled] {
-    .fa, .glyphicon {
-      width: 0;
-      opacity: 0;
+    .spinner {
+        opacity: 0;
+        width: 0;
+        .animation(~"none");
     }
-    .fa.spinner {
-      opacity: 1;
-      width: auto;
-      margin-right: 0.5em;
-      .animation(~"spin 2s infinite linear");
+
+    .fa {
+        .transition(~"opacity 0.25s, width 0.25s, margin-right 0.25s");
     }
-  }
+
+    &.disabled, &[disabled] {
+        .fa, .glyphicon {
+            width: 0;
+            opacity: 0;
+        }
+        .fa.spinner {
+            opacity: 1;
+            width: auto;
+            margin-right: 0.5em;
+            .animation(~"spin 2s infinite linear");
+        }
+    }
 }

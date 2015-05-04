@@ -20,7 +20,7 @@ class RadioTestForm extends Form("radio") with Bs3HorizontalForm {
 //  }
 //
   >> {<h3>Can have more than one entry</h3>}
-  new RadioField("radio") with StringInput with SubmitOnChange {
+  val r = new RadioField("radio") with StringInput with SubmitOnChange {
     override def options = "a" :: "b" :: Nil
 
 //    override def messages: Seq[Message] = info"info-test-message: Test" +: super.messages
@@ -34,7 +34,7 @@ class RadioTestForm extends Form("radio") with Bs3HorizontalForm {
     override def defaults: Seq[ValueType] = "a" :: "" :: Nil
   }
 
-  new Button("submit") with SimpleButton with PrimaryDisplayType with ExecuteValidated
+  new Button("submit") with SimpleButton with PrimaryDisplayType with ExecuteValidated with DefaultButton
 }
 
 
