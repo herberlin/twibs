@@ -22,6 +22,17 @@ sealed trait Bs3Component extends Component {
         .set("data-trigger", "hover focus")
         .set("data-html", "true")
         .addClass(message.messageCssClass)
+
+    def addTooltip(messageOption: Option[Message], placement: String = "bottom"): Elem = messageOption.fold(elem)(addTooltip(_, placement))
+
+    def addTooltip(message: Message, placement: String): Elem =
+      elem
+        .set("data-toggle", "tooltip")
+        .set("data-title", message.text.toString())
+        .set("data-placement", placement)
+        .set("data-trigger", "hover focus")
+        .set("data-html", "true")
+        .addClass(message.messageCssClass)
   }
 
   implicit class Bs3RichMessage(message: Message) {
@@ -154,21 +165,39 @@ trait Bs3HorizontalLayout extends Bs3Container {
   /* Fields */
 
   trait Bs3HlControl extends Control with Bs3Component {
-    override def treeHtml: NodeSeq =
-      controlTitle match {
-        case "" =>
-          <div class="form-group">
-            <div class={s"col-sm-offset-$labelColumns col-sm-$contentColumns"}>{super.treeHtml}</div>
-          </div>
-        case ct =>
-          <div class="form-group">
-            <div class={labelMessageCssClass :: s"col-sm-$labelColumns" :: Nil}><label class="control-label">{ct}</label></div>
-            <div class={s"col-sm-$contentColumns"}>{super.treeHtml}</div>
-          </div>.addClass(required, "required")
-      }
+    override def treeHtml: NodeSeq = <div class="form-group">{formGroupContent}</div>.addClass(required, "required")
 
-    override def controlHtml =
-      super.controlHtml.addPopover(validationMessageOption.filter(_ => validated), "top")
+    def formGroupContent = controlTitle match {
+      case "" =>
+        <div class={s"col-sm-offset-$labelColumns col-sm-$contentColumns"}>{super.treeHtml}</div>
+      case ct =>
+        <div class={s"col-sm-$labelColumns" :: Nil}><label class={labelMessageCssClass :: "control-label" :: Nil}>{ct}{infoIcon}</label></div> ++
+        <div class={s"col-sm-$contentColumns"}>{super.treeHtml}</div>
+    }
+
+    def infoIcon = infoMessageOption match {
+      case None => NodeSeq.Empty
+      case Some(string) =>
+        val title = infoMessageOption.fold("")(_ => infoMessageTitle)
+        <span class="info-icon fa fa-info-circle"></span>
+          .set(!title.isEmpty, "data-title", title)
+          .set("data-toggle", "popover")
+          .set("data-content", string)
+          .set("data-placement", "bottom")
+          .set("data-trigger", "hover focus")
+          .set("data-container", form.formId.toCssId)
+          .set("data-html", "true")
+    }
+
+    override def controlHtml = super.controlHtml.addTooltip(validationMessageOption.filter(_ => validated), "top")
+
+    //    override def infoMessageHtml: NodeSeq =
+    //      infoMessageOption.fold(NodeSeq.Empty) { m =>
+    //        val title = infoMessageTitle
+    //        <span class="info-message" data-toggle="popover" data-trigger="hover click focus" data-placement="right" data-content={m} data-html="true"><span class="fa fa-info-circle"></span></span>
+    //          .setIfMissing(!title.isEmpty, "title", title)
+    //          .setIfMissing(!title.isEmpty, "data-title", title)
+    //      }
 
     override def helpMessageHtml: NodeSeq = helpMessageOption.fold(NodeSeq.Empty)(m => <div class="help-block">{Unparsed(m)}</div>)
   }
@@ -222,7 +251,7 @@ trait Bs3HorizontalLayout extends Bs3Container {
 
   trait RadioFieldTrait extends super.RadioFieldTrait with Bs3HlControl {
     override def controlHtmlFor(entry: Entry): NodeSeq =
-      <div class="entry">{super.controlHtmlFor(entry)}</div>.addPopover(entry.validationMessageOption.filter(_ => validated))
+      <div class="entry">{super.controlHtmlFor(entry)}</div>.addTooltip(entry.validationMessageOption.filter(_ => validated))
 
     override def optionHtmlFor(entry: Entry, option: Entry): NodeSeq =
       <div class="radio">

@@ -300,6 +300,12 @@ trait Container extends Component {
 
     def helpMessageOption = Option(t"help-message:").filter(!_.isEmpty)
 
+    def infoMessageHtml = infoMessageOption.fold(NodeSeq.Empty)(_.text)
+
+    def infoMessageTitle = t"info-message.title: $controlTitle"
+
+    def infoMessageOption = Some(t"info-message.content:").filter(!_.isEmpty)
+
     private def max(messages: Seq[Option[Message]]) = messages.flatten match {
       case x if x.isEmpty => ""
       case x => x.maxBy(_.importance).messageCssClass
@@ -490,7 +496,13 @@ trait Container extends Component {
 
     def entryName(entry: Entry) = name + "_" + entry.index
 
-    override def controlHtmlFor(entry: Entry): NodeSeq = super.controlHtmlFor(entry) ++ triggerHtml
+    override def controlHtmlFor(entry: Entry): NodeSeq = super.controlHtmlFor(entry) ++ actionsHtml ++ triggerHtml
+
+    def actionsHtml: NodeSeq = NodeSeq.Empty // plusActionHtml ++ minusActionHtml
+
+    def plusActionHtml = <button><span class="fa fa-plus"></span></button>
+
+    def minusActionHtml = <button class="btn btn-xs btn-default"><span class="fa fa-minus"></span></button>
 
     override def optionHtmlFor(entry: Entry, option: Entry): NodeSeq =
         <input type="radio" data-fieldName={name} name={entryName(entry)} id={optionId(entry, option)} value={option.string} class={controlCssClasses} />

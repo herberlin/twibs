@@ -7,8 +7,8 @@ package net.twibs.util
 import com.ibm.icu.text.MessageFormat
 import com.ibm.icu.util.ULocale
 
-import scala.collection.convert.decorateAsJava._
 import scala.collection.concurrent.TrieMap
+import scala.collection.convert.decorateAsJava._
 import scala.collection.mutable.ArrayBuffer
 import scala.xml.Unparsed
 
@@ -48,7 +48,7 @@ abstract class Translator(id: String, usages: List[String], kinds: List[String])
   }
 
   private def resolve(prefixes: List[String], key: String): Option[String] =
-    prefixes.view.map(prefix => resolve(prefix + key)).collectFirst { case Some(x) => x}
+    prefixes.view.map(prefix => resolve(prefix + key)).collectFirst { case Some(x) => x }
 
   def translate(sc: StringContext, args: Any*): String = {
     sc.checkLengths(args)

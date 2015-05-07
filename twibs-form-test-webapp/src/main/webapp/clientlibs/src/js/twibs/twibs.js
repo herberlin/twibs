@@ -101,8 +101,8 @@ $(function () {
         $.fn.closePopoversByScript = function () {
             return this.each(function () {
                 var $this = $(this);
-                $this.find('[data-toggle=popover],.popover-by-script').popover('hide');
-                $this.find('.popover.in').detach();
+                //$this.find('[data-toggle=popover],.popover-by-script').popover('hide');
+                //$this.find('.popover.in').detach();
             })
         };
 
@@ -110,7 +110,7 @@ $(function () {
             return this.each(function () {
                 var $this = $(this);
                 $this.find(".twibs-form:visible").submitForm("form-reload", "");
-                $this.closePopoversByScript();
+                //$this.closePopoversByScript();
             })
         };
 
@@ -178,14 +178,14 @@ $(function () {
                 });
             })
             .on("click", function (e) {
-                var $target = $(e.target);
-                if ($target.closest('.popover').length == 0) {
-                    $('[data-toggle=popover],.popover-by-script').not($target.closest('[data-toggle=popover]')).popover('hide');
-                    // Bootstrap 3.0.2 does not detach the popup on hide (wait until fade out is done).
-                    setTimeout(function () {
-                        $('.popover').not(".in").detach()
-                    }, 400)
-                }
+                //var $target = $(e.target);
+                //if ($target.closest('.popover').length == 0) {
+                //    $('[data-toggle=popover],.popover-by-script').not($target.closest('[data-toggle=popover]')).popover('hide');
+                //    // Bootstrap 3.0.2 does not detach the popup on hide (wait until fade out is done).
+                //    setTimeout(function () {
+                //        $('.popover').not(".in").detach()
+                //    }, 400)
+                //}
             })
             .on("twibs-update-dom", function () {
                 $('.twibs-form select.chosen').chosen({disable_search_threshold: 6, width: '100%'});
@@ -197,6 +197,8 @@ $(function () {
                 });
 
                 $('[data-toggle="popover"]').popover();
+
+                $('[data-toggle="tooltip"]').tooltip();
 
                 $('input.numeric').TouchSpin();
 
