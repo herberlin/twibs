@@ -93,7 +93,7 @@ trait Component extends TranslationSupport {
   protected def computeValid: Boolean = true
 
   def parse(parameters: Parameters): Unit = parameters.getStringsOption(name) match {
-    case Some(parameterStrings) => parse(parameterStrings)
+    case Some(parameterStrings) => parse(parameterStrings.filter(_ != triggerValue))
     case None => ()
   }
 
@@ -144,6 +144,8 @@ trait Component extends TranslationSupport {
     def messageCssClass: String = if (validated) "has-" + message.messageTypeString else ""
   }
 
+  def triggerValue = "_TRIGGER_"
+
   // Accessors
   final def isEnabled: Boolean = !isDisabled
 
@@ -164,6 +166,39 @@ trait Component extends TranslationSupport {
     require(!name.endsWith(FormConstants.PN_FORM_MODAL_SUFFIX), s"Suffix '${FormConstants.PN_FORM_MODAL_SUFFIX}' is reserved")
     require(name != ApplicationSettings.PN_NAME, s"'${ApplicationSettings.PN_NAME}' is reserved")
   }
+
+  implicit class Bs3RichElem(elem: Elem) {
+    def addPopover(messageOption: Option[Message], placement: String = "bottom"): Elem = messageOption.fold(elem)(addPopover(_, placement))
+
+    def addPopover(message: Message, placement: String): Elem =
+      elem
+        .set("data-toggle", "popover")
+        .set("data-content", message.toBsMessageAttribute)
+        .set("data-placement", placement)
+        .set("data-trigger", "hover focus")
+        .set("data-html", "true")
+        .set("data-container", form.formId.toCssId)
+        .addClass(message.messageCssClass)
+
+    def addTooltip(messageOption: Option[Message], placement: String = "bottom"): Elem = messageOption.fold(elem)(addTooltip(_, placement))
+
+    def addTooltip(message: Message, placement: String): Elem =
+      elem
+        .set("data-toggle", "tooltip")
+        .set("data-title", message.text.toString())
+        .set("data-placement", placement)
+        .set("data-trigger", "hover focus")
+        .set("data-html", "true")
+        .set("data-container", form.formId.toCssId)
+        .addClass(message.messageCssClass)
+  }
+
+  implicit class Bs3RichMessage(message: Message) {
+    def toBsMessage = <div class={s"alert alert-${message.displayTypeString}"}>{message.text}</div>
+
+    def toBsMessageAttribute: String = toBsMessage.toString()
+  }
+
 }
 
 trait ExecuteValidated extends Component {
@@ -219,11 +254,48 @@ trait Container extends Component {
 
   def childrenHtml: NodeSeq = children.flatMap(child => if (child.isFloating) NodeSeq.Empty else renderChild(child))
 
-  def containerCssClasses: Seq[String] = Nil
+  def containerCssClasses: Seq[String] = "form-container" +: Nil
 
   def renderChild(child: Component) = child.html
 
   def isDetachable = isInstanceOf[Detachable]
+
+  override def componentHtml: NodeSeq =
+    <div id={shellId} name={name} class={("form-container-shell" :: Nil).addClass(isDetachable, "detachable")}>
+      {if (isDetachable) closeButton else NodeSeq.Empty}
+      <div id={id} class={containerCssClasses}>
+        {super.componentHtml}
+      </div>
+    </div>
+
+  def closeButton = {
+    def dismissButton: NodeSeq = <button type="button" class="btn btn-danger" data-dismiss="detachable">{t"delete-component.button-title: Delete"}</button>
+
+    if (isEnabled) <button type="button" class="close" data-toggle="popover" data-html="true" data-placement="auto left" data-title={t"delete-component.popover-title: Delete component?"} data-content={dismissButton}>&times;</button>
+    else NodeSeq.Empty
+  }
+
+  //  override def renderMessage(message: Message): NodeSeq =
+  //    if (message.dismissable)
+  //        <div class={"alert" :: ("alert-" + message.displayTypeString) :: "alert-dismissable" :: Nil}><button type="button" class="close" data-dismiss="alert">×</button>{message.text}</div>
+  //    else
+  //        <div class={"alert" :: ("alert-" + message.displayTypeString) :: Nil}>{message.text}</div>
+
+  /* Containers */
+
+  //  trait Popover extends ChildContainer with ButtonRenderer {
+  //    def popoverContainer = form.shellId.toCssId
+  //
+  //    def popoverPlacement = "bottom"
+  //
+  //    def popoverTitle = t"popover-title:"
+  //
+  //    def popoverContentText = t"popover-text:"
+  //
+  //    override def visibleHtml: NodeSeq =
+  //      if (isDisabled) <span class={"disabled" :: buttonCssClasses}>{renderButtonTitle}</span>
+  //      else <button type="button" class={"can-be-disabled" :: buttonCssClasses}  data-container={popoverContainer} data-toggle="popover" data-html="true" data-placement={popoverPlacement} data-title={popoverTitle} data-content={super.html}>{renderButtonTitle}</button>
+  //  }
 
   class Child(val ilk: String) extends Component {
     final val parent = Container.this
@@ -266,7 +338,7 @@ trait Container extends Component {
     def this(text: => String) = this(true, text)
   }
 
-  trait Control extends Child with Input {
+  trait Control extends Child with Component with Input {
     override def parse(parameterStrings: Seq[String]): Unit = {
       super.parse(parameterStrings)
       strings = parameterStrings
@@ -310,6 +382,8 @@ trait Container extends Component {
       case x if x.isEmpty => ""
       case x => x.maxBy(_.importance).messageCssClass
     }
+
+    def triggerHtml = hidden(name, triggerValue)
   }
 
   abstract class Hidden(ilk: String) extends Child(ilk: String) with Control with ParametersInLinks {
@@ -318,18 +392,6 @@ trait Container extends Component {
 
   trait ParametersInLinks extends Control {
     override def linkParameters: Seq[(String, String)] = if (!isIgnored && isChanged) strings.map(v => name -> v) else Nil
-  }
-
-  trait Triggered extends Control {
-//    override def hiddenHtml: NodeSeq = super.hiddenHtml ++ triggerHtml
-
-//    override def additionalControlHtml: NodeSeq = triggerHtml
-
-    override def parse(parameterStrings: Seq[String]): Unit = super.parse(parameterStrings.filter(_ != triggerValue))
-
-    def triggerHtml = hidden(name, triggerValue)
-
-    def triggerValue = "_TRIGGER_"
   }
 
   trait OneControlForAllEntries extends Control with Options {
@@ -345,9 +407,60 @@ trait Container extends Component {
   }
 
   trait OneControlPerEntry extends Control {
-    override def controlHtml = <div class="entries">{entries.flatMap(controlHtmlFor)}</div>
+    control =>
+
+    override def controlHtml =
+      <div class="entries">{entriesHtml}{controlActions}</div>
+        .addClass(entries.size > 1, "sortable")
+
+    def entriesHtml: NodeSeq = entries match {
+      case Seq() => triggerHtml
+      case _ => entries.flatMap(controlHtmlFor)
+    }
+
+    def controlActions = <div class="actions">{entryAddActionHtml}</div>
+
+    def entryAddActionHtml = entryAddButton.withOption(-1)(_.html)
 
     def controlHtmlFor(entry: Entry): NodeSeq
+
+    val entryAddButton = new Button("add-entry-button") with DynamicOptions with IntInput with DefaultDisplayType with Floating {
+      override def controlCssClasses: Seq[String] = "btn-xs" +: super.controlCssClasses
+
+      override def buttonUseIconOnly: Boolean = true
+
+      override def execute(): Seq[Result] = addEntryBefore(value)
+
+      override protected def selfIsDisabled: Boolean =
+        control.entries.size >= control.maximumNumberOfEntries
+
+      override protected def selfIsIgnored: Boolean =
+        control.minimumNumberOfEntries == control.maximumNumberOfEntries && selfIsDisabled
+    }
+
+    val entryRemoveButton = new Button("remove-entry-button") with DynamicOptions with DefaultDisplayType with Floating with IntInput {
+      override def controlCssClasses: Seq[String] = "btn-xs" +: super.controlCssClasses
+
+      override def buttonUseIconOnly: Boolean = true
+
+      override def execute(): Seq[Result] = removeEntryAt(value)
+
+      override protected def selfIsDisabled: Boolean =
+        control.entries.size <= control.minimumNumberOfEntries
+
+      override protected def selfIsIgnored: Boolean =
+        control.minimumNumberOfEntries == control.maximumNumberOfEntries && selfIsDisabled
+    }
+
+    def addEntryBefore(pos: Int): Unit = strings = if (pos == -1) strings :+ "" else strings.patch(pos, Seq(""), 0)
+
+    def removeEntryAt(pos: Int): Unit = strings = strings.patch(pos, Seq(), 1)
+
+    override protected def setEntries(es: Seq[Entry]): Unit = {
+      super.setEntries(es)
+      entryAddButton.reset()
+      entryRemoveButton.reset()
+    }
   }
 
   def hidden(name: String, value: String): NodeSeq = <input type="hidden" autocomplete="off" name={name} value={value} />
@@ -366,6 +479,10 @@ trait Container extends Component {
     def focusJs: JsCmd = jQuery(invalidControlIdOption getOrElse id).call("focus")
   }
 
+  trait FormControlField extends Field {
+    override def controlCssClasses: Seq[String] = "form-control" +: super.controlCssClasses
+  }
+
   trait SubmitOnChange extends Field {
     override def submitOnChange = true
 
@@ -378,7 +495,7 @@ trait Container extends Component {
     def optionHtmlFor(entry: Entry, option: Entry): NodeSeq
   }
 
-  trait SingleLineFieldTrait extends Field with OneControlPerEntry {
+  trait SingleLineFieldTrait extends FormControlField with OneControlPerEntry {
     override def translator: Translator = super.translator.kind("SINGLE-LINE")
 
     override def controlHtmlFor(entry: Entry): NodeSeq =
@@ -390,7 +507,7 @@ trait Container extends Component {
         .set(maximumLength < Int.MaxValue, "maxlength", maximumLength.toString)
   }
 
-  trait MultiLineFieldTrait extends Field with OneControlPerEntry {
+  trait MultiLineFieldTrait extends FormControlField with OneControlPerEntry {
     override def translator: Translator = super.translator.kind("MULTI-LINE")
 
     override def controlHtmlFor(entry: Entry): NodeSeq =
@@ -425,7 +542,7 @@ trait Container extends Component {
     override def focusJs: JsCmd = jQuery(firstInvalidEntryOption.fold(id)(entryId)).call("ckeditorGet").call("focus")
   }
 
-  trait SelectField extends Field with Options {
+  trait SelectField extends FormControlField with Options {
     override def optionEntries: Seq[Entry] =
       if (required) super.optionEntries
       else Entry("", None, "", None) +: super.optionEntries
@@ -463,7 +580,7 @@ trait Container extends Component {
       <option value={ option.string }>{ option.title }</option>.set(option.string == stringOrEmpty, "selected")
   }
 
-  trait CheckboxFieldTrait extends Field with OneControlForAllEntries with Triggered {
+  trait CheckboxFieldTrait extends Field with OneControlForAllEntries {
     override def translator: Translator = super.translator.kind("CHECKBOX")
 
     //    override def required: Boolean = false
@@ -496,13 +613,13 @@ trait Container extends Component {
 
     def entryName(entry: Entry) = name + "_" + entry.index
 
-    override def controlHtmlFor(entry: Entry): NodeSeq = super.controlHtmlFor(entry) ++ actionsHtml ++ triggerHtml
+    override def controlHtmlFor(entry: Entry): NodeSeq = entryActions(entry) ++ super.controlHtmlFor(entry) ++ entryTriggerHtml
 
-    def actionsHtml: NodeSeq = NodeSeq.Empty // plusActionHtml ++ minusActionHtml
+    def entryActions(entry: Entry) = <div class="actions">{addEntryActionHtml(entry)}{removeEntryActionHtml(entry)}</div>
 
-    def plusActionHtml = <button><span class="fa fa-plus"></span></button>
+    def addEntryActionHtml(entry: Entry) = entryAddButton.withOption(entry.index)(_.html)
 
-    def minusActionHtml = <button class="btn btn-xs btn-default"><span class="fa fa-minus"></span></button>
+    def removeEntryActionHtml(entry: Entry) = entryRemoveButton.withOption(entry.index)(_.html)
 
     override def optionHtmlFor(entry: Entry, option: Entry): NodeSeq =
         <input type="radio" data-fieldName={name} name={entryName(entry)} id={optionId(entry, option)} value={option.string} class={controlCssClasses} />
@@ -512,17 +629,17 @@ trait Container extends Component {
         .addClass(submitOnChange && isEnabled, "submit-on-change")
         .set(entry.valueOption == option.valueOption, "checked")
 
-    override def parse(parameterStrings: Seq[String]): Unit = super.parse(resolveTriggers(parameterStrings))
+    override def parse(parameterStrings: Seq[String]): Unit = super.parse(resolveEntryTriggers(parameterStrings))
 
-    private def resolveTriggers(parameterStrings: Seq[String]) : Seq[String] = parameterStrings.headOption match {
+    private def resolveEntryTriggers(parameterStrings: Seq[String]): Seq[String] = parameterStrings.headOption match {
       case None => Nil
-      case Some(v) if v == triggerValue => "" +: resolveTriggers(parameterStrings.tail)
-      case Some(v) => v +: resolveTriggers(parameterStrings.tail.tail)
+      case Some(v) if v == entryTriggerValue => "" +: resolveEntryTriggers(parameterStrings.tail)
+      case Some(v) => v +: resolveEntryTriggers(parameterStrings.tail.tail)
     }
 
-    def triggerHtml = hidden(name, triggerValue)
+    def entryTriggerHtml = hidden(name, entryTriggerValue)
 
-    def triggerValue = "_TRIGGER_"
+    def entryTriggerValue = "_ET_"
   }
 
   /* Buttons */
@@ -541,6 +658,8 @@ trait Container extends Component {
     override def optionHtmlFor(option: Entry): NodeSeq = new OptionRenderer(option).html
 
     override def titleFor(string: String) = translator.usage("values").usage(string).translate("title", buttonTitle)
+
+    override def validateInTree(): Unit = ()
 
     class OptionRenderer(option: Entry) {
       def html = if (isEnabled) enabledHtml else disabledHtml
@@ -561,14 +680,22 @@ trait Container extends Component {
 
       def buttonIconBefore = true
 
-      def buttonIconHtml: NodeSeq = NodeSeq.Empty
+      def translator = ButtonTrait.this.translator.usage("values").usage(option.string)
 
-      def controlCssClasses: Seq[String] = ButtonTrait.this.controlCssClasses
+      def buttonIconHtml: NodeSeq = buttonIconName match {
+        case "" => NodeSeq.Empty
+        case s if s.startsWith("fa-") => <span class={s"fa $s"}></span>
+        case s if s.startsWith("glyphicon-") => <span class={s"glyphicon $s"}></span>
+        case s => <span class={s"glyphicon glyphicon-$s"}></span>
+      }
 
-      def displayTypeString = ButtonTrait.this.displayTypeString
+      def buttonIconName = translator.translate("icon", ButtonTrait.this.buttonIconName)
+
+      def controlCssClasses = "btn" +: ("btn-" + displayTypeString) +: ButtonTrait.this.controlCssClasses
+
+      def displayTypeString = translator.translate("display-type", ButtonTrait.this.displayTypeString)
     }
 
-    override def validateInTree(): Unit = ()
   }
 
   trait DynamicOptions extends ButtonTrait {
@@ -653,6 +780,8 @@ trait Container extends Component {
   abstract class ChildContainer(ilk: String) extends Child(ilk) with ChildContainerTrait
 
   abstract class ButtonRow extends Child("br") with ButtonRowTrait
+
+  abstract class HorizontalLayout extends Child("hl") with HorizontalLayoutContainer
 
 }
 
@@ -766,11 +895,7 @@ class Form(val ilk: String) extends Container with CancelStateInheritance {
 
   override def translator = Request.current.translator.usage("FORM").usage(ilk)
 
-  def inlineHtml: NodeSeq = html
-
-  def modalHtml: NodeSeq = html
-
-//  override def renderMessage(message: Message): NodeSeq = <div>{message.text}</div>
+  //  override def renderMessage(message: Message): NodeSeq = <div>{message.text}</div>
 
   def process(parameters: Parameters): Response = try {
     reset()
@@ -837,6 +962,79 @@ class Form(val ilk: String) extends Container with CancelStateInheritance {
 
   // collectFirst does not work (for what ever reason)
   lazy val defaultButtonOption: Option[DefaultButton] = descendants.find(_.isInstanceOf[DefaultButton]).asInstanceOf[Option[DefaultButton]]
+
+  def modalHtml: NodeSeq =
+    if (isIgnored) NodeSeq.Empty
+    else
+    <div id={modalId} class="modal fade" role="dialog" name={name + "-modal"} tabindex="-1">
+      <div class="modal-dialog">
+        {surround(modalContent, "true")}
+      </div>
+    </div>
+
+  def inlineHtml: NodeSeq =
+    if (isIgnored) NodeSeq.Empty
+    else surround(inlineContent, "false") ++ javascriptHtml
+
+  override def enabledComponentHtml: NodeSeq = surround({if (modal) modalContent else inlineContent})
+
+  def surround(content: NodeSeq, modalValue: String = modal.toString) =
+    <form id={formId} name={name} class={formCssClasses} action={actionLink} method="post" enctype="multipart/form-data">
+      {hidden(pnId, id) ++ hidden(pnModal, modalValue) ++ hidden(ApplicationSettings.PN_NAME, Request.applicationSettings.name)}
+      {content}
+    </form>
+
+  def formCssClasses: Seq[String] = "twibs-form" :: Nil
+
+  def modalContent: NodeSeq =
+    <div class="modal-content">
+      <div class="modal-header">
+       <button type="button" class="close" data-dismiss="modal">×</button>
+        {formHeaderContent}
+      </div>
+      <div class="modal-body">{formBody}</div>
+    </div>
+
+  def inlineContent: NodeSeq =
+    <div class="modal transfer-modal">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4 class="modal-title">{t"transfer-modal.header: Transfering data ..."}</h4>
+          </div>
+          <div class="modal-body">
+            <div class="progress progress-striped active">
+              <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%">
+                <span class="sr-only"><span class="transfer-percent">0</span>{t"transfer-modal.sr-body: % Complete"}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div> ++ formHeader ++ formBody
+
+  def formHeader = if (formHeaderContent.isEmpty) formHeaderContent else <header class="form-header">{formHeaderContent}</header>
+
+  def formHeaderContent: NodeSeq = formTitleChecked ++ formDescription
+
+  private def formTitleChecked = formTitleString match {case "" => NodeSeq.Empty case s => formTitleHtml }
+
+  def formTitleHtml = <h3>{formTitleString}</h3>
+
+  def formTitleString = t"form-title: #$name"
+
+  def formDescription = formDescriptionString match {case "" => NodeSeq.Empty case s => Unparsed(s) }
+
+  def formDescriptionString = t"form-description:"
+
+  def formBody = defaultButtonHtml ++ super.enabledComponentHtml
+
+  def javascriptHtml = javascript.toString match {case "" => NodeSeq.Empty case js => <script>{Unparsed("$(function () {" + js + "});")}</script> }
+
+  def defaultButtonHtml: NodeSeq = defaultButtonOption match {
+    case Some(b) => b.defaultButtonHtml
+    case None => <input type="submit" class="concealed" tabindex="-1" name="fallback-default" value="" />
+  }
 
   validateSettings()
 }

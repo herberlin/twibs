@@ -8,6 +8,7 @@ goog.require("jquery.appear");
 goog.require("jquery.bootstrap.touchspin");
 goog.require("jquery.form");
 goog.require("pnotify");
+goog.require("jquery.sortable");
 
 Modernizr.load({
     test: Modernizr.input.placeholder,
@@ -189,7 +190,11 @@ $(function () {
             })
             .on("twibs-update-dom", function () {
                 $('.twibs-form select.chosen').chosen({disable_search_threshold: 6, width: '100%'});
-                $('.twibs-form select.chosen-optional').chosen({allow_single_deselect: true, disable_search_threshold: 6, width: '100%'});
+                $('.twibs-form select.chosen-optional').chosen({
+                    allow_single_deselect: true,
+                    disable_search_threshold: 6,
+                    width: '100%'
+                });
 
                 // 'chosen' does not preserve the focus, 'twibs' does.
                 $('.twibs-form select.chosen:focus').each(function () {
@@ -199,6 +204,12 @@ $(function () {
                 $('[data-toggle="popover"]').popover();
 
                 $('[data-toggle="tooltip"]').tooltip();
+
+                $('.twibs-form .sortable')
+                    .sortable({forcePlaceholderSize: true})
+                    .bind('sortupdate', function (e, ui) {
+                        ui.item.reloadForm("");
+                    });
 
                 $('input.numeric').TouchSpin();
 

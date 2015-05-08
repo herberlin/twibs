@@ -271,7 +271,7 @@ class FormTest extends TwibsTest {
   test("Focus") {
 
     val f = Request.copy(parameters = Map("test-form-id" -> Seq("a"), "test-form-modal" -> Seq("false"))).use {
-      new Form("test") with Bs3Form {
+      new Form("test") {
         val hl = new HorizontalLayout {
           val f = new SingleLineField("field") with StringInput
         }
@@ -292,7 +292,7 @@ class FormTest extends TwibsTest {
 
   test("Form renderer") {
     val out = Request.copy(parameters = Map("test-form-id" -> Seq("a"), "test-form-modal" -> Seq("false"))).use {
-      new Form("test") with Bs3Form {
+      new Form("test") {
 
         new DisplayText("<h3>Display text</h3>")
 
@@ -408,7 +408,7 @@ class FormTest extends TwibsTest {
   }
 
   test("Link parameters") {
-    val f = new Form("a") with Bs3Form {
+    val f = new Form("a") {
       val field = new SingleLineField("s") with StringInput
       val ignored = new SingleLineField("i") with StringInput {
         override protected def selfIsIgnored: Boolean = true

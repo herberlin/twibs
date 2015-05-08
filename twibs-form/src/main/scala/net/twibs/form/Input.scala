@@ -42,7 +42,7 @@ trait Input extends TranslationSupport {
       else None
   }
 
-  private def setEntries(es: Seq[Entry]): Unit = _entries = Some(reindex(es))
+  protected def setEntries(es: Seq[Entry]): Unit = _entries = Some(reindex(es))
 
   protected def stringToEntry(string: String) =
     stringProcessors(Entry(string, None, string, None)) match {
@@ -260,12 +260,14 @@ trait Options extends Input {
   def optionEntries: Seq[Entry] = reindex(options.map(super.valueToEntry))
 
   override protected def valueToEntry(value: ValueType): Entry =
-    optionEntries.find(_.valueOption == Some(value)) getOrElse invalidOption(convertToString(value))
+    optionEntries.find(_.valueOption == Some(value)) getOrElse invalidate(super.valueToEntry(value))
 
   override protected def stringToEntry(string: String): Entry =
-    optionEntries.find(_.string == string) getOrElse invalidOption(string)
+    optionEntries.find(_.string == string) getOrElse invalidate(super.stringToEntry(string))
 
-  def invalidOption(string:String) = Entry(string, None, string, Some(danger"not-an-option-message: ''$string'' is not an option"))
+  private def invalidate(entry: Entry) =
+    if (entry.valid) entry.copy(validationMessageOption = Some(danger"not-an-option-message: ''${entry.string}'' is not an option"))
+    else entry
 }
 
 trait EnumerationInput[E <: Enumeration] extends Input with Options {

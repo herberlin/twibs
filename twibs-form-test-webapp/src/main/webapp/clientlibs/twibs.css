@@ -1374,7 +1374,8 @@ a.bg-primary:hover {
 a.bg-success:hover {
   background-color: #c1e2b3;
 }
-.bg-info {
+.bg-info,
+.sortable-placeholder {
   background-color: #d9edf7;
 }
 a.bg-info:hover {
@@ -9279,21 +9280,33 @@ html > body > .ui-pnotify {
   padding: 2px;
   border-radius: 4px;
 }
+.twibs-form .entries.has-error {
+  min-height: 36px;
+}
+.twibs-form .entries > .actions {
+  float: right;
+  padding: 4px 9px 4px 4px;
+}
+.twibs-form .entries .actions .entries {
+  display: inline-block;
+}
 .twibs-form .entry {
   padding: 0 8px 5px 8px;
   border-radius: 4px;
   border: 1px solid #ffffff;
-  position: relative;
 }
-.twibs-form .entry .actions {
-  position: absolute;
-  right: 0;
+.twibs-form .entry > .actions {
+  float: right;
+  padding: 4px 0 4px 4px;
+  position: relative;
+  z-index: 1;
 }
 .twibs-form .entry + .entry {
   margin-top: 2px;
 }
 .twibs-form .help-block {
   padding-left: 8px;
+  margin-right: 50px;
 }
 .twibs-form .info-icon {
   font-size: 22px;
@@ -9306,6 +9319,9 @@ html > body > .ui-pnotify {
   content: "*";
   position: absolute;
   padding-left: 3px;
+}
+.sortable-placeholder {
+  border-radius: 4px;
 }
 /* Hide the second @ in email address */
 span.mhost span {

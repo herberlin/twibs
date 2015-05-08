@@ -7,7 +7,7 @@ package net.twibs.webtest
 import net.twibs.form._
 import net.twibs.util._
 
-class RadioTestForm extends Form("radio") with Bs3HorizontalForm {
+class RadioTestForm extends Form("radio") with HorizontalForm {
   override def formTitleHtml = <h1>{formTitleString}</h1>
 
 //  >> {<h3>With submit on change</h3>}
@@ -20,25 +20,39 @@ class RadioTestForm extends Form("radio") with Bs3HorizontalForm {
 //  }
 //
   >> {<h3>Can have more than one entry</h3>}
-  val r = new RadioField("radio") with StringInput with SubmitOnChange {
+  val multipleValues = new RadioField("radio-multiple-values") with StringInput with SubmitOnChange {
     override def options = "a" :: "b" :: Nil
 
-//    override def messages: Seq[Message] = info"info-test-message: Test" +: super.messages
+    override def execute(): Seq[Result] =
+      if (isSubmittedOnChange) AfterFormDisplay(info"pressed: Radio button changed: $string".showNotification)
+      else Ignored
 
+    override def defaults: Seq[ValueType] = "a" :: Nil
 
+    override def minimumNumberOfEntries: Int = 1
+
+    override def maximumNumberOfEntries: Int = 3
+  }
+
+  val singleValue = new RadioField("radio-single-value") with StringInput with SubmitOnChange {
+    override def options = "a" :: "b" :: Nil
 
     override def execute(): Seq[Result] =
       if (isSubmittedOnChange) AfterFormDisplay(info"pressed: Radio button changed: $string".showNotification)
       else Ignored
 
     override def defaults: Seq[ValueType] = "a" :: "" :: Nil
+
+    override def minimumNumberOfEntries: Int = 1
+
+    override def maximumNumberOfEntries: Int = 1
   }
 
   new Button("submit") with SimpleButton with PrimaryDisplayType with ExecuteValidated with DefaultButton
 }
 
 
-class TestForm extends Form("test") with Bs3HorizontalForm {
+class TestForm extends Form("test") with HorizontalForm {
   val openModal = new Button("open-modal") with OpenModalLinkButton with PrimaryDisplayType
 
   >> {<h3>Buttons</h3>}
