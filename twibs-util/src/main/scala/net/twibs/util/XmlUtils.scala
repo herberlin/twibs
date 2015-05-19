@@ -45,6 +45,8 @@ trait XmlUtils {
     def removeAttribute(name: String): Elem = elem.copy(attributes = elem.attributes.filter(_.key != name))
 
     def surround(ns: NodeSeq) = ns match {case NodeSeq.Empty => ns case _ => elem.copy(child = ns) }
+
+    def unwrapIfEmpty: NodeSeq = if(elem.child.isEmpty) NodeSeq.Empty else elem
   }
 
   implicit def cssClassesToAttributeValue(cssClasses: Seq[String]): Seq[Node] = Text(cssClasses.map(_.trim).filterNot(_.isEmpty).distinct.mkString(" "))

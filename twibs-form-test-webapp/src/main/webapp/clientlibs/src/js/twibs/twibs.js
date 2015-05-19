@@ -42,7 +42,7 @@ $(function () {
         var cp = typeof contextPath !== 'undefined' ? contextPath : '';
 
         $.fn.ckeditor = function (callback, config) {
-            $('<script src="' + cp + '/inc/ckeditor/ckeditor.js"></script><script src="' + cp + '/inc/ckeditor/adapters/jquery.js"></script>').appendTo('head');
+            $('<script src="' + cp + '/ckeditor/ckeditor.js"></script><script src="' + cp + '/ckeditor/adapters/jquery.js"></script>').appendTo('head');
             $(this).ckeditor(callback, config);
         };
 
@@ -50,20 +50,14 @@ $(function () {
             $(this).submitForm("form-change", value, true);
         };
 
-        $.fn.submitForm = function (key, value, enabledForm) {
+        $.fn.submitForm = function (key, value) {
             var data = {};
             data[key] = value;
             var bf = $("html").attr("class");
             if (bf) data["browser-features"] = bf;
             var config = {data: data};
-            if (!enabledForm) {
-                config["beforeSubmit"] = function (arr, $form) {
-                    $form.disableForm()
-                }
-            }
             $(this).each(function () {
-                var $form = $(this).closest('form');
-                $form.ajaxSubmit(ajaxSubmitConfig($form, config));
+                ajaxSubmitForm($(this).closest('form'), config);
             });
             return this;
         };
@@ -91,11 +85,20 @@ $(function () {
                 $this.find('select.form-control').trigger("chosen:updated");
             });
         };
+
         $.fn.reenableForm = function () {
             return this.each(function () {
                 var $this = $(this);
                 $this.find('.can-be-disabled').removeAttr('disabled');
                 $this.find('.can-be-disabled-by-class').removeClass('disabled');
+            })
+        };
+
+        /* $x.ckeditorGet().destroy() does not work as it takes only the first ckeditor instance */
+        $.fn.destroyCkeditor = function () {
+            return this.each(function () {
+                var ckeditor = $(this).data("ckeditorInstance");
+                if (ckeditor) ckeditor.destroy();
             })
         };
 
@@ -132,7 +135,7 @@ $(function () {
                 e.stopPropagation();
                 e.preventDefault();
                 var $this = $(this);
-                $this.closest('form').submitForm($this.attr('name'), $this.val(), $this.hasClass("enabled-form"));
+                $this.closest('form').submitForm($this.attr('name'), $this.val());
             })
             .on('click', '.submit', function (e) {
                 var $this = $(e.target);
@@ -140,7 +143,7 @@ $(function () {
                     e.stopPropagation();
                     e.preventDefault();
                     var $button = $this.closest(".submit");
-                    $button.submitForm($button.attr('name'), $button.attr('value'), $this.hasClass("enabled-form"));
+                    $button.submitForm($button.attr('name'), $button.attr('value'));
                 }
             })
             .on('keyup', '.submit-while-typing', function (e) {
@@ -168,7 +171,7 @@ $(function () {
             .on('change', '.twibs-form .submit-on-change', function () {
                 var $this = $(this);
                 window.setTimeout(function () {
-                    $this.reloadForm($this.data("name") || $this.attr('name'))
+                    $this.reloadForm($this.data("fieldname") || $this.data("name") || $this.attr('name'))
                 }, 1);
             })
             .on('click', '[data-dismiss="detachable"]', function (e) {
@@ -264,11 +267,12 @@ $(function () {
 
         if (location.hash !== '') hashchange();
 
-        function ajaxSubmitConfig($form, config) {
+        function ajaxSubmitForm($form, config) {
             var $modal = $form.find(".transfer-modal");
             var $bar = $modal.find('.progress-bar');
             var $percent = $modal.find('.transfer-percent');
             var modalTimeout;
+            var disableTimeout;
             var focusedId = $(document.activeElement).attr("id");
 
             function update(percent) {
@@ -276,7 +280,7 @@ $(function () {
                 $percent.html(percent);
             }
 
-            return $.extend(config, {
+            $form.ajaxSubmit($.extend(config, {
                 dataType: 'script',
                 error: function (jqxhr, status, error, $form) {
                     clearTimeout(modalTimeout);
@@ -287,11 +291,15 @@ $(function () {
                     update(0);
                     modalTimeout = setTimeout(function () {
                         $modal.modal({backdrop: 'static', keyboard: false});
-                    }, 1000);
+                    }, 2000);
+                    disableTimeout = setTimeout(function () {
+                        $form.disableForm();
+                    }, 250);
                 },
                 dataFilter: function (d) {
                     update(100);
                     clearTimeout(modalTimeout);
+                    clearTimeout(disableTimeout);
                     $modal.modal("hide");
                     return d;
                 },
@@ -313,7 +321,7 @@ $(function () {
                         }
                     }
                 }
-            });
+            }));
         }
 
         function failError(jqxhr, textStatus, exception) {
@@ -404,5 +412,10 @@ $(function () {
                 this.selected = this.hasAttribute("selected");
             });
         }
+
+        // Fire an event that twibs (and jquery) loading is complete
+        var event = document.createEvent("Event");
+        event.initEvent("twibs-loaded", true, true);
+        document.dispatchEvent(event);
     }
 );

@@ -89,7 +89,7 @@ abstract class Translator(id: String, usages: List[String], kinds: List[String])
       }
     } catch {
       case e: IllegalArgumentException =>
-        Translator.logger.error(s"Invalid format '$messageFormatString'", e)
+        TranslatorLogger.logger.error(s"Invalid format '$messageFormatString'", e)
         throw e
     }
 
@@ -116,12 +116,16 @@ trait TranslationSupport {
   }
 }
 
-object Translator extends UnwrapCurrent[Translator] with Loggable {
+object Translator extends UnwrapCurrent[Translator] {
   def current: Translator = Request.current.translator
 
   implicit def withTranslationFormatter(sc: StringContext)(implicit translator: Translator = current) = new {
     def t(args: Any*): String = translator.translate(sc, args: _*)
   }
+}
+
+private object TranslatorLogger {
+  lazy val logger = Logger(Translator.getClass)
 }
 
 abstract class BaseResolver(val locale: ULocale) {
@@ -147,5 +151,5 @@ abstract class BaseResolver(val locale: ULocale) {
 class TranslatorResolver(locale: ULocale, configuration: Configuration) extends BaseResolver(locale) {
   protected def resolve(fullKey: String): Option[String] = configuration.getString(fullKey)
 
-  protected def unresolved(fullKey: String, default: String): Unit = Translator.logger.info(s"Unresolved $fullKey: $default")
+  protected def unresolved(fullKey: String, default: String): Unit = TranslatorLogger.logger.info(s"Unresolved $fullKey: $default")
 }

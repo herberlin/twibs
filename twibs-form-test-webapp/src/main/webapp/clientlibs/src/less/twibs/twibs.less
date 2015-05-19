@@ -68,7 +68,7 @@
 
         > .actions {
             float: right;
-            padding: 4px 9px 4px 4px;
+            padding: 4px 5px 4px 4px;
         }
 
         .actions {
@@ -83,20 +83,40 @@
         padding: 0 8px 5px 8px;
         border-radius: @border-radius-base;
         border: 1px solid @input-bg;
+        position: relative;
+
+        &.has-actions {
+            padding-right: 59px;
+        } 
+        &.has-sorter {
+            padding-right: 28px;
+
+            > .actions:before {
+                content: @fa-var-reorder;
+                .fa-icon();
+                padding: 3px 7px;
+                color: lighten(@text-color, 40%);
+                cursor: move;
+            }
+        }
+        &.has-actions.has-sorter {
+            padding-right: 79px;
+        }
 
         > .actions {
-            float: right;
-            padding: 4px 0 4px 4px;
-            position: relative;
-            z-index: 1;
+            position: absolute;
+            right: 0;
+            top: 0;
+            padding: 4px;
         }
 
-        & + .entry {
-            margin-top: 2px;
-        }
         &.has-error {
             &:extend(.bg-danger);
         }
+    }
+
+    .entry + .entry, .sortable-placeholder + .entry, .entry + .sortable-placeholder {
+        margin-top: 2px;
     }
 
     .help-block {
@@ -117,6 +137,11 @@
         content: "*";
         position: absolute;
         padding-left: 3px;
+    }
+
+    .html-field {
+        height: auto;
+        .clearfix();
     }
 
     //.emptiable {
@@ -146,6 +171,7 @@
 .sortable-placeholder {
     &:extend(.bg-info);
     border-radius: @border-radius-base;
+    margin-bottom: -1px;
 }
 
 /* Hide the second @ in email address */

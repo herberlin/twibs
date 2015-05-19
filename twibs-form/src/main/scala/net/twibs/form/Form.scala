@@ -4,12 +4,18 @@
 
 package net.twibs.form
 
+import java.nio.charset.StandardCharsets
+
 import com.google.common.net.UrlEscapers
 import net.twibs.util.JavaScript._
-import net.twibs.util.Translator._
 import net.twibs.util.XmlUtils._
 import net.twibs.util._
 import net.twibs.web._
+import org.jsoup.Jsoup
+import org.jsoup.nodes.Document.OutputSettings
+import org.jsoup.nodes.Document.OutputSettings.Syntax
+import org.jsoup.nodes.Entities.EscapeMode
+import org.jsoup.safety.Whitelist
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
@@ -395,7 +401,7 @@ trait Container extends Component {
   }
 
   trait OneControlForAllEntries extends Control with Options {
-    override def controlHtml = <div class="entries">{optionEntries.flatMap(optionHtmlFor)}</div>
+    override def controlHtml = <div class="entries" id={shellId}>{optionEntries.flatMap(optionHtmlFor)}</div>
 
     override def invalidControlIdOption: Option[IdString] = if (isValid) None else Some(id)
 
@@ -410,19 +416,43 @@ trait Container extends Component {
     control =>
 
     override def controlHtml =
-      <div class="entries">{entriesHtml}{controlActions}</div>
-        .addClass(entries.size > 1, "sortable")
+      <div class="entries" id={shellId}>{entriesHtml}{controlActions}</div>
+        .addClass(isSortable, "sortable")
 
     def entriesHtml: NodeSeq = entries match {
       case Seq() => triggerHtml
-      case _ => entries.flatMap(controlHtmlFor)
+      case _ => entries.flatMap(entryHtmlFor)
     }
+
+    def entryHtmlFor(entry: Entry) =
+      <div class="entry">{controlHtmlFor(entry) ++ entryActions(entry) ++ disabledFallback(entry)}</div>
+        .addTooltip(entry.validationMessageOption.filter(_ => validated))
+        .addClass(hasActions, "has-actions")
+        .addClass(hasSorter, "has-sorter")
+
+    def disabledFallback(entry: Entry) = if (isDisabled) renderHidden(entry) else NodeSeq.Empty
+
+    def hasActions = !entryAddButton.isIgnored || !entryRemoveButton.isIgnored
+
+    def entryActions(entry: Entry) = <div class="actions">{entryAddActionHtml(entry)}{entryRemoveActionHtml(entry)}</div>.unwrapIfEmpty
+
+    def entryAddActionHtml(entry: Entry) = entryAddButton.withOption(entry.index)(_.html)
+
+    def entryRemoveActionHtml(entry: Entry) = entryRemoveButton.withOption(entry.index)(_.html)
+
+    def controlHtmlFor(entry: Entry): NodeSeq
 
     def controlActions = <div class="actions">{entryAddActionHtml}</div>
 
     def entryAddActionHtml = entryAddButton.withOption(-1)(_.html)
 
-    def controlHtmlFor(entry: Entry): NodeSeq
+    def hasSorter = isSortable
+
+    def isSortable = sortableCache()
+
+    def computeSortable = true
+
+    private[this] val sortableCache = Memo {isEnabled && entries.size > 1 && computeSortable}
 
     val entryAddButton = new Button("add-entry-button") with DynamicOptions with IntInput with DefaultDisplayType with Floating {
       override def controlCssClasses: Seq[String] = "btn-xs" +: super.controlCssClasses
@@ -435,7 +465,7 @@ trait Container extends Component {
         control.entries.size >= control.maximumNumberOfEntries
 
       override protected def selfIsIgnored: Boolean =
-        control.minimumNumberOfEntries == control.maximumNumberOfEntries && selfIsDisabled
+        control.isDisabled || control.minimumNumberOfEntries == control.maximumNumberOfEntries && selfIsDisabled
     }
 
     val entryRemoveButton = new Button("remove-entry-button") with DynamicOptions with DefaultDisplayType with Floating with IntInput {
@@ -449,7 +479,7 @@ trait Container extends Component {
         control.entries.size <= control.minimumNumberOfEntries
 
       override protected def selfIsIgnored: Boolean =
-        control.minimumNumberOfEntries == control.maximumNumberOfEntries && selfIsDisabled
+        control.isDisabled || control.minimumNumberOfEntries == control.maximumNumberOfEntries && selfIsDisabled
     }
 
     def addEntryBefore(pos: Int): Unit = strings = if (pos == -1) strings :+ "" else strings.patch(pos, Seq(""), 0)
@@ -510,7 +540,7 @@ trait Container extends Component {
   trait MultiLineFieldTrait extends FormControlField with OneControlPerEntry {
     override def translator: Translator = super.translator.kind("MULTI-LINE")
 
-    override def controlHtmlFor(entry: Entry): NodeSeq =
+    override def controlHtmlFor(entry: Entry) =
       <textarea rows={rows.toString} name={name} id={entryId(entry)} placeholder={placeholder} class={controlCssClasses}>{entry.string}</textarea>
         .setIfMissing(isDisabled, "disabled", "disabled")
         .addClass(isDisabled, "disabled")
@@ -523,23 +553,41 @@ trait Container extends Component {
     override def renderHidden(entry: Entry): NodeSeq = <textarea class="concealed" name={name}>{entry.string}</textarea>
   }
 
-  trait HtmlFieldTrait extends MultiLineFieldTrait {
+  trait HtmlFieldTrait extends MultiLineFieldTrait with StringInput {
+    override def convertToValue(string: String): Option[ValueType] =
+      super.convertToValue(string).map(Jsoup.clean(_, "", htmlFieldWhitelist, htmlFieldOutputSettings))
+
+    def htmlFieldWhitelist = FormUtils.htmlFieldWhitelist
+
+    def htmlFieldOutputSettings = FormUtils.htmlFieldOutputSettings
+
     // Remove CKEDITOR instance from previous textarea otherwise a javascript error appears
-    override def replaceContentJs: JsCmd = jQuery(id).call("ckeditorGet").call("destroy")
+    override def replaceContentJs: JsCmd = jQuery(shellId + " .html-field[contenteditable='true']").call("destroyCkeditor")
 
-    override def javascript: JsCmd =
-      jQuery(id).call("ckeditor", ckeditorInit, ckeditorConfig)
+    override def javascript: JsCmd = jQuery(shellId + " .html-field[contenteditable='true']").call("ckeditor", ckeditorInit, ckeditorConfig)
 
-    def ckeditorInit = jQuery(id.toCssId + " +div.cke").call("addClass", "form-control")
+    def ckeditorInit = JsEmpty
 
     def ckeditorConfig: Map[String, Any] =
       Map(
-        "skin" -> "bootstrapck",
-        "resize_enabled" -> false,
-        "removePlugins" -> "elementspath",
-        "toolbar" -> Array(Array("Bold", "Italic", "-", "Smiley")))
+//        "toolbar" -> Array(Array("Bold", "Italic", "-", "Smiley"))
+        )
 
-    override def focusJs: JsCmd = jQuery(firstInvalidEntryOption.fold(id)(entryId)).call("ckeditorGet").call("focus")
+//    override def focusJs: JsCmd = jQuery(firstInvalidEntryOption.fold(id)(entryId)).call("ckeditorGet").call("focus")
+
+    override def translator: Translator = super.translator.kind("HTML")
+
+    override def controlHtmlFor(entry: Entry) =
+      <div data-name={name} id={entryId(entry)} placeholder={placeholder} class={controlCssClasses}>{Unparsed(entry.string)}</div>
+        .setIfMissing(isDisabled, "disabled", "disabled")
+        .addClass(isDisabled, "disabled")
+        .set(isEnabled, "contenteditable", "true")
+        .addClass(!isDisabled, "can-be-disabled")
+        .addClass(submitOnChange && isEnabled, "submit-on-change")
+
+    override def renderHidden(entry: Entry): NodeSeq = <textarea class="concealed" name={name}>{entry.string}</textarea>
+
+    override def controlCssClasses: Seq[String] = "html-field" +: super.controlCssClasses
   }
 
   trait SelectField extends FormControlField with Options {
@@ -556,14 +604,18 @@ trait Container extends Component {
     override def translator: Translator = super.translator.kind("SELECT").kind("SINGLE-SELECT")
 
     override def controlHtmlFor(entry: Entry) =
-      <select name={name} id={entryId(entry)} data-placeholder={placeholder} class={controlCssClasses}>{super.controlHtmlFor(entry)}</select>
+      <select name={name} id={entryId(entry)} data-placeholder={placeholder} class={controlCssClasses}>{emptyOption(entry) ++ super.controlHtmlFor(entry)}</select>
         .setIfMissing(isDisabled, "disabled", "disabled")
         .addClass(isDisabled, "disabled")
         .addClass(!isDisabled, "can-be-disabled")
         .addClass(submitOnChange && isEnabled, "submit-on-change")
 
+    def emptyOption(entry: Entry) =
+      if (required && optionEntries.exists(_.string == entry.string)) NodeSeq.Empty
+      else <option value=""></option>.set(entry.string == "", "selected")
+
     override def optionHtmlFor(entry: Entry, option: Entry): NodeSeq =
-      <option value={ option.string }>{ option.title }</option>.set(option.string == string, "selected")
+      <option value={ option.string }>{ option.title }</option>.set(option.string == entry.string, "selected")
   }
 
   trait MultiSelectFieldTrait extends SelectField with OneControlForAllEntries {
@@ -607,22 +659,20 @@ trait Container extends Component {
   trait RadioFieldTrait extends Field with OneControlPerEntryWithOptions {
     override def translator: Translator = super.translator.kind("RADIO")
 
-    override def minimumNumberOfEntries: Int = 1
-
-    //    override def maximumNumberOfEntries: Int = optionEntries.size
-
     def entryName(entry: Entry) = name + "_" + entry.index
 
-    override def controlHtmlFor(entry: Entry): NodeSeq = entryActions(entry) ++ super.controlHtmlFor(entry) ++ entryTriggerHtml
-
-    def entryActions(entry: Entry) = <div class="actions">{addEntryActionHtml(entry)}{removeEntryActionHtml(entry)}</div>
-
-    def addEntryActionHtml(entry: Entry) = entryAddButton.withOption(entry.index)(_.html)
-
-    def removeEntryActionHtml(entry: Entry) = entryRemoveButton.withOption(entry.index)(_.html)
+    override def controlHtmlFor(entry: Entry): NodeSeq = super.controlHtmlFor(entry) ++ entryTriggerHtml
 
     override def optionHtmlFor(entry: Entry, option: Entry): NodeSeq =
-        <input type="radio" data-fieldName={name} name={entryName(entry)} id={optionId(entry, option)} value={option.string} class={controlCssClasses} />
+      <div class="radio">
+        <label>
+          {inputFieldFor(entry, option)}
+          {option.title}
+        </label>
+      </div>.addClass(isDisabled, "disabled")
+
+    def inputFieldFor(entry: Entry, option: Entry): NodeSeq =
+        <input type="radio" data-name={name} name={entryName(entry)} id={optionId(entry, option)} value={option.string} class={controlCssClasses} />
         .setIfMissing(isDisabled, "disabled", "disabled")
         .addClass(isDisabled, "disabled")
         .addClass(!isDisabled, "can-be-disabled")
@@ -634,12 +684,22 @@ trait Container extends Component {
     private def resolveEntryTriggers(parameterStrings: Seq[String]): Seq[String] = parameterStrings.headOption match {
       case None => Nil
       case Some(v) if v == entryTriggerValue => "" +: resolveEntryTriggers(parameterStrings.tail)
-      case Some(v) => v +: resolveEntryTriggers(parameterStrings.tail.tail)
+      case Some(v) => v +: resolveEntryTriggers(dropEntryTrigger(parameterStrings.tail))
     }
 
-    def entryTriggerHtml = hidden(name, entryTriggerValue)
+    private def dropEntryTrigger(parameterStrings: Seq[String]) = parameterStrings.headOption match {
+      case Some(v) if v == entryTriggerValue => parameterStrings.tail
+      case _ => parameterStrings
+    }
+
+    def entryTriggerHtml = if (isEnabled) hidden(name, entryTriggerValue) else NodeSeq.Empty
 
     def entryTriggerValue = "_ET_"
+  }
+
+  trait RadioInlineLayout extends RadioFieldTrait {
+    override def optionHtmlFor(entry: Entry, option: Entry): NodeSeq =
+      <label class="radio-inline">{inputFieldFor(entry, option)} {option.title}</label>.addClass(isDisabled, "disabled")
   }
 
   /* Buttons */
@@ -720,10 +780,6 @@ trait Container extends Component {
 
   trait SimpleButton extends ButtonTrait with StringInput {
     override def options: Seq[ValueType] = "" :: Nil
-  }
-
-  trait EnabledForm extends ButtonTrait {
-    override def controlCssClasses = "enabled-form" +: super.controlCssClasses
   }
 
   trait NoRefocus extends ButtonTrait {
@@ -868,9 +924,13 @@ object FormUtils {
   val escaper = UrlEscapers.urlFormParameterEscaper()
 
   def toQueryString(parameters: Seq[(String, String)]) = parameters.map(e => escaper.escape(e._1) + "=" + escaper.escape(e._2)).mkString("&")
+
+  val htmlFieldWhitelist = Whitelist.none().addTags("strong", "b", "em", "i", "p", "br")
+
+  val htmlFieldOutputSettings = new OutputSettings().charset(StandardCharsets.UTF_8).escapeMode(EscapeMode.xhtml).prettyPrint(false).syntax(Syntax.xml)
 }
 
-class Form(val ilk: String) extends Container with CancelStateInheritance {
+class Form(val ilk: String) extends Container with CancelStateInheritance with Loggable {
   override final val prefixForChildNames: String = ""
 
   private[form] final val pnId = ilk + FormConstants.PN_FORM_ID_SUFFIX
@@ -1029,7 +1089,7 @@ class Form(val ilk: String) extends Container with CancelStateInheritance {
 
   def formBody = defaultButtonHtml ++ super.enabledComponentHtml
 
-  def javascriptHtml = javascript.toString match {case "" => NodeSeq.Empty case js => <script>{Unparsed("$(function () {" + js + "});")}</script> }
+  def javascriptHtml = javascript.toString match {case "" => NodeSeq.Empty case js => <script>{Unparsed("document.addEventListener('twibs-loaded', function() {"+ js +"}, false)")}</script> }
 
   def defaultButtonHtml: NodeSeq = defaultButtonOption match {
     case Some(b) => b.defaultButtonHtml

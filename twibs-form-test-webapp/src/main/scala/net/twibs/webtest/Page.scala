@@ -51,56 +51,8 @@ class Page extends Responder {
       <body>
         <div class="container">
           {val f = new RadioTestForm()
-          f.singleValue.validate()
+          f.hl.singleValue.validate()
           f.inlineHtml}
-          <div>
-            <p>
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-              Lots of text<br />
-            </p>
-
-            <div class="twibs-notify">
-              <div class="alert alert-danger">This is an error message</div>
-              <div class="alert alert-info">The info text</div>
-              <div class="alert alert-warning">Some more errors</div>
-            </div>
-          </div>
         </div>
       </body>
         {Unparsed( """

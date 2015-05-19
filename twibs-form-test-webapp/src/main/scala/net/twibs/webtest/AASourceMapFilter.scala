@@ -10,14 +10,15 @@ import javax.servlet.{FilterChain, FilterConfig, ServletRequest, ServletResponse
 
 import net.twibs.util.RunMode
 
-@WebFilter(urlPatterns=Array("*.js", "*.css"))
+@WebFilter(urlPatterns = Array("*.js", "*.css"))
 class AASourceMapFilter extends javax.servlet.Filter {
   override def init(filterConfig: FilterConfig): Unit = ()
 
   override def doFilter(request: ServletRequest, response: ServletResponse, chain: FilterChain): Unit = {
     if (RunMode.isDevelopment)
       (request, response) match {
-        case (req: HttpServletRequest, resp: HttpServletResponse) => resp.setHeader("SourceMap", req.getRequestURI + ".map")
+        case (req: HttpServletRequest, resp: HttpServletResponse) if req.getRequestURI.contains("clientlibs") =>
+          resp.setHeader("SourceMap", req.getRequestURI + ".map")
         case _ => ()
       }
     chain.doFilter(request, response)

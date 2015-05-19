@@ -135,11 +135,11 @@ class FormTest extends TwibsTest {
 
     form.process(Map("uploads" -> Seq("e", "b", "c")))
     form.dynamics.validate() shouldBe false
-    form.dynamics.validationMessageOption.get.toString should be("warning: Please provide no more than 2 children")
+    form.dynamics.validationMessageOption.get.toString should be("danger: Please provide no more than 2 children")
 
     form.process(Map("uploads" -> Seq()))
     form.dynamics.validate() shouldBe false
-    form.dynamics.validationMessageOption.get.toString should be("warning: Please provide at least one child")
+    form.dynamics.validationMessageOption.get.toString should be("danger: Please provide at least one child")
 
     form.reset()
     form.dynamics.isValid shouldBe true
@@ -326,7 +326,7 @@ class FormTest extends TwibsTest {
 
 //    println(new PrettyPrinter(2000, 4).format(out.head))
     new PrettyPrinter(2000, 4).format(out.head) should be(
-      """<form id="a_form" name="test" class="twibs-form" action="/forms/net/twibs/form/Form" method="post" enctype="multipart/form-data">
+      """<form id="a_form" name="test" class="twibs-form" action="/" method="post" enctype="multipart/form-data">
         |    <input type="hidden" autocomplete="off" name="test-form-id" value="a"/>
         |    <input type="hidden" autocomplete="off" name="test-form-modal" value="false"/>
         |    <input type="hidden" autocomplete="off" name="application-name" value="default"/>
@@ -352,7 +352,7 @@ class FormTest extends TwibsTest {
         |    <header class="form-header">
         |        <h3>test</h3>
         |    </header>
-        |    <input type="submit" class="concealed" tabindex="-1" name="wait" value="true"/>
+        |    <input type="submit" class="concealed" tabindex="-1" name="wait" value=""/>
         |    <div id="a_shell" name="test" class="form-container-shell">
         |        <div id="a" class="form-container">
         |            <div class="alert alert-warning alert-dismissable">
@@ -420,6 +420,6 @@ class FormTest extends TwibsTest {
     f.field.strings = "1" :: "2" :: Nil
     f.ignored.strings = "5" :: "6" :: Nil
     f.button.strings = "3" :: "4" :: Nil
-    f.link.link(Seq("a" -> "b")) should be("/forms/net/twibs/form/Form?s=1&s=2&a=b")
+    f.link.link(Seq("a" -> "b")) should be("?s=1&s=2&a=b")
   }
 }

@@ -35,6 +35,8 @@ case class Path(parts: Seq[String], suffix: String, absolute: Boolean) {
 
   def startsWith(path: Path) = path.isDir && path.absolute == absolute && currentDir.parts.startsWith(path.parts)
 
+  def noSuffix = copy(suffix = "")
+
   def toURI = new URI(string)
 
   override def toString = string

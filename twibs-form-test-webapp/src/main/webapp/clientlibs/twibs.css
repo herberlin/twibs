@@ -9285,7 +9285,7 @@ html > body > .ui-pnotify {
 }
 .twibs-form .entries > .actions {
   float: right;
-  padding: 4px 9px 4px 4px;
+  padding: 4px 5px 4px 4px;
 }
 .twibs-form .entries .actions .entries {
   display: inline-block;
@@ -9294,14 +9294,39 @@ html > body > .ui-pnotify {
   padding: 0 8px 5px 8px;
   border-radius: 4px;
   border: 1px solid #ffffff;
+  position: relative;
+}
+.twibs-form .entry.has-actions {
+  padding-right: 59px;
+}
+.twibs-form .entry.has-sorter {
+  padding-right: 28px;
+}
+.twibs-form .entry.has-sorter > .actions:before {
+  content: "\f0c9";
+  display: inline-block;
+  font: normal normal normal 14px/1 FontAwesome;
+  font-size: inherit;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transform: translate(0, 0);
+  padding: 3px 7px;
+  color: #999999;
+  cursor: move;
+}
+.twibs-form .entry.has-actions.has-sorter {
+  padding-right: 79px;
 }
 .twibs-form .entry > .actions {
-  float: right;
-  padding: 4px 0 4px 4px;
-  position: relative;
-  z-index: 1;
+  position: absolute;
+  right: 0;
+  top: 0;
+  padding: 4px;
 }
-.twibs-form .entry + .entry {
+.twibs-form .entry + .entry,
+.twibs-form .sortable-placeholder + .entry,
+.twibs-form .entry + .sortable-placeholder {
   margin-top: 2px;
 }
 .twibs-form .help-block {
@@ -9320,8 +9345,28 @@ html > body > .ui-pnotify {
   position: absolute;
   padding-left: 3px;
 }
+.twibs-form .html-field {
+  height: auto;
+}
+.twibs-form .html-field:before,
+.twibs-form .html-field:after {
+  content: " ";
+  display: table;
+}
+.twibs-form .html-field:after {
+  clear: both;
+}
+.twibs-form .html-field:before,
+.twibs-form .html-field:after {
+  content: " ";
+  display: table;
+}
+.twibs-form .html-field:after {
+  clear: both;
+}
 .sortable-placeholder {
   border-radius: 4px;
+  margin-bottom: -1px;
 }
 /* Hide the second @ in email address */
 span.mhost span {

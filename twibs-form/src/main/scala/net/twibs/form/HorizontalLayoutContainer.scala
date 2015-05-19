@@ -103,18 +103,7 @@ trait HorizontalLayoutContainer extends Container {
       </div>.addClass(isDisabled, "disabled")
   }
 
-  trait RadioFieldTrait extends super.RadioFieldTrait with HorizontalControl {
-    override def controlHtmlFor(entry: Entry): NodeSeq =
-      <div class="entry">{super.controlHtmlFor(entry)}</div>.addTooltip(entry.validationMessageOption.filter(_ => validated))
-
-    override def optionHtmlFor(entry: Entry, option: Entry): NodeSeq =
-      <div class="radio">
-        <label>
-          {super.optionHtmlFor(entry, option)}
-          {option.title}
-        </label>
-      </div>.addClass(isDisabled, "disabled")
-  }
+  trait RadioFieldTrait extends super.RadioFieldTrait with HorizontalControl
 
   trait SingleSelectFieldTrait extends super.SingleSelectFieldTrait with HorizontalControl
 

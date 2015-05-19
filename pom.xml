@@ -55,9 +55,9 @@
         <module>twibs-util-test</module>
         <module>twibs-web</module>
         <module>twibs-selenium-test-util</module>
-        <module>twibs-form</module>
         <module>twibs-db</module>
         <module>twibs-core</module>
+        <module>twibs-form</module>
         <module>twibs-form-test-webapp</module>
         <module>twibs-demo</module>
     </modules>

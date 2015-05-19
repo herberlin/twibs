@@ -10,44 +10,118 @@ import net.twibs.util._
 class RadioTestForm extends Form("radio") with HorizontalForm {
   override def formTitleHtml = <h1>{formTitleString}</h1>
 
-//  >> {<h3>With submit on change</h3>}
-//  new RadioField("radio") with StringInput with SubmitOnChange {
-//    override def options = "a" :: "b" :: Nil
-//
-//    override def execute(): Seq[Result] =
-//      if (isSubmittedOnChange) AfterFormDisplay(info"pressed: Radio button changed: $string".showNotification)
-//      else Ignored
-//  }
-//
-  >> {<h3>Can have more than one entry</h3>}
-  val multipleValues = new RadioField("radio-multiple-values") with StringInput with SubmitOnChange {
-    override def options = "a" :: "b" :: Nil
+  val mode = new RadioField("mode") with StringInput with SubmitOnChange with RadioInlineLayout {
+    override def options = "enabled" :: "disabled" :: "hidden" :: "ignored" :: Nil
 
-    override def execute(): Seq[Result] =
-      if (isSubmittedOnChange) AfterFormDisplay(info"pressed: Radio button changed: $string".showNotification)
-      else Ignored
-
-    override def defaults: Seq[ValueType] = "a" :: Nil
-
-    override def minimumNumberOfEntries: Int = 1
-
-    override def maximumNumberOfEntries: Int = 3
+    override def defaults: Seq[ValueType] = "enabled" :: Nil
   }
 
-  val singleValue = new RadioField("radio-single-value") with StringInput with SubmitOnChange {
-    override def options = "a" :: "b" :: Nil
+  val hl = new HorizontalLayout {
+    override protected def selfIsDisabled: Boolean = mode.string == "disabled"
 
-    override def execute(): Seq[Result] =
-      if (isSubmittedOnChange) AfterFormDisplay(info"pressed: Radio button changed: $string".showNotification)
-      else Ignored
+    override protected def selfIsHidden: Boolean = mode.string == "hidden"
 
-    override def defaults: Seq[ValueType] = "a" :: "" :: Nil
+    override protected def selfIsIgnored: Boolean = mode.string == "ignored"
 
-    override def minimumNumberOfEntries: Int = 1
+    >> {<h3>Single Select Fields</h3>}
+    new SingleSelectField("single-select-multiple-values") with StringInput with SubmitOnChange {
+      override def options = "a" :: "b" :: Nil
 
-    override def maximumNumberOfEntries: Int = 1
+      override def execute(): Seq[Result] =
+        if (isSubmittedOnChange) AfterFormDisplay(info"pressed: Single select changed: $string".showNotification)
+        else Ignored
+
+      override def defaults: Seq[ValueType] = "" :: Nil
+
+      override def minimumNumberOfEntries: Int = 1
+
+      override def maximumNumberOfEntries: Int = 3
+    }
+
+    >> {<h3>Chosen select</h3>}
+    new SingleSelectField("chosen-single-select-multiple-values") with StringInput with SubmitOnChange with Chosen {
+      override def options = "a" :: "b" :: Nil
+
+      override def execute(): Seq[Result] =
+        if (isSubmittedOnChange) AfterFormDisplay(info"pressed: Single select changed: $string".showNotification)
+        else Ignored
+
+      override def defaults: Seq[ValueType] = "" :: Nil
+
+      override def minimumNumberOfEntries: Int = 1
+
+      override def maximumNumberOfEntries: Int = 3
+    }
+
+    >> {<h3>Single Line Fields</h3>}
+    new SingleLineField("single-line-multiple-values") with StringInput with SubmitOnChange {
+      override def execute(): Seq[Result] =
+        if (isSubmittedOnChange) AfterFormDisplay(info"pressed: Single select changed: $string".showNotification)
+        else Ignored
+
+      override def defaults: Seq[ValueType] = "" :: Nil
+
+      override def minimumNumberOfEntries: Int = 1
+
+      override def maximumNumberOfEntries: Int = 3
+    }
+
+    >> {<h3>Multi Line Fields</h3>}
+    new MultiLineField("multi-line-multiple-values") with StringInput with SubmitOnChange {
+      override def maximumNumberOfEntries: Int = 3
+    }
+
+    >> {<h3>Html Fields</h3>}
+    new HtmlField("html-multiple-values") with StringInput with SubmitOnChange {
+      override def defaults: Seq[ValueType] = "" :: "" :: Nil
+
+      override def maximumNumberOfEntries: Int = 3
+    }
+
+    >> {<h3>Radio Buttons</h3>}
+    val multipleValues = new RadioField("radio-multiple-values") with StringInput with SubmitOnChange {
+      override def options = "a" :: "b" :: Nil
+
+      override def execute(): Seq[Result] =
+        if (isSubmittedOnChange) AfterFormDisplay(info"pressed: Radio button changed: $string".showNotification)
+        else Ignored
+
+      override def defaults: Seq[ValueType] = "a" :: Nil
+
+      override def minimumNumberOfEntries: Int = 1
+
+      override def maximumNumberOfEntries: Int = 3
+    }
+
+    val singleValue = new RadioField("radio-single-value") with StringInput with SubmitOnChange {
+      override def options = "a" :: "b" :: Nil
+
+      override def execute(): Seq[Result] =
+        if (isSubmittedOnChange) AfterFormDisplay(info"pressed: Radio button changed: $string".showNotification)
+        else Ignored
+
+      override def defaults: Seq[ValueType] = "a" :: "" :: Nil
+
+      override def minimumNumberOfEntries: Int = 1
+
+      override def maximumNumberOfEntries: Int = 1
+    }
+
+    val inlineLayout = new RadioField("radio-single-value-inline") with StringInput with SubmitOnChange with RadioInlineLayout {
+      override def options = "a" :: "b" :: Nil
+
+      override def execute(): Seq[Result] =
+        if (isSubmittedOnChange) AfterFormDisplay(info"pressed: Radio button changed: $string".showNotification)
+        else Ignored
+
+      override def defaults: Seq[ValueType] = "a" :: "" :: Nil
+
+      override def minimumNumberOfEntries: Int = 1
+
+      override def maximumNumberOfEntries: Int = 1
+    }
+
   }
-
   new Button("submit") with SimpleButton with PrimaryDisplayType with ExecuteValidated with DefaultButton
 }
 
