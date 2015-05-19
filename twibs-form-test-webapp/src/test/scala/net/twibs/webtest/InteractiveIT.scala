@@ -18,8 +18,6 @@ class InteractiveIT extends TwibsJettySeleniumTest {
   }
 
   override def init(webAppContext: WebAppContext): Unit = {
-    webAppContext.addFilter(classOf[AASourceMapFilter], "*.css", null)
-    webAppContext.addFilter(classOf[AASourceMapFilter], "*.js", null)
     super.init(webAppContext)
   }
 }

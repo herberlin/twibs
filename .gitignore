@@ -1,7 +1,4 @@
 *.iml
 target
 node_modules
-twibs-form-test-webapp/webroot/META-INF
-twibs-form-test-webapp/webroot/WEB-INF
-*.css.map
-*.js.map
+*/src/main/webappgen/clientlibs
