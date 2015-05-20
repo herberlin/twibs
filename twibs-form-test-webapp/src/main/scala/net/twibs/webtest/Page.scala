@@ -51,7 +51,7 @@ class Page extends Responder {
       <body>
         <div class="container">
           {val f = new RadioTestForm()
-          f.hl.singleValue.validate()
+//          f.hl.singleValue.validate()
           f.inlineHtml}
         </div>
       </body>

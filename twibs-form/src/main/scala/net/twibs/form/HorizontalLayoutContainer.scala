@@ -9,6 +9,9 @@ import net.twibs.util.XmlUtils._
 import scala.xml.{NodeSeq, Unparsed}
 
 trait HorizontalLayoutContainer extends Container {
+
+  import net.twibs.{form => f}
+
   override def containerCssClasses = "form-horizontal" +: super.containerCssClasses
 
   def labelColumns = 3
@@ -57,19 +60,19 @@ trait HorizontalLayoutContainer extends Container {
     override def helpMessageHtml: NodeSeq = helpMessageOption.fold(NodeSeq.Empty)(m => <div class="help-block">{Unparsed(m)}</div>)
   }
 
-//  trait Bs3HlField extends FormControlField with Bs3HlControl {
-    //    def renderEntryMessage(entry: Entry) =
-    //      if (validated)
-    //        entry.messageOption.fold(NodeSeq.Empty)(message => <div class="help-block">{message.text}</div>)
-    //      else NodeSeq.Empty
-    //
-    //    override def renderVisible2(entry: Entry): NodeSeq =
-    //        <div class={cssMessageClass(entry.messageOption)}>
-    //          {renderInputFor(entry)}
-    //          {renderEntryMessage(entry)}
-    //        </div>
-    //
-    //    def renderInputFor(entry: Entry): NodeSeq = NodeSeq.Empty
+  //  trait Bs3HlField extends FormControlField with Bs3HlControl {
+  //    def renderEntryMessage(entry: Entry) =
+  //      if (validated)
+  //        entry.messageOption.fold(NodeSeq.Empty)(message => <div class="help-block">{message.text}</div>)
+  //      else NodeSeq.Empty
+  //
+  //    override def renderVisible2(entry: Entry): NodeSeq =
+  //        <div class={cssMessageClass(entry.messageOption)}>
+  //          {renderInputFor(entry)}
+  //          {renderEntryMessage(entry)}
+  //        </div>
+  //
+  //    def renderInputFor(entry: Entry): NodeSeq = NodeSeq.Empty
   //  }
 
   //  trait CheckboxOrRadioField extends super.CheckboxOrRadioField with FieldWithOptions {
@@ -87,13 +90,15 @@ trait HorizontalLayoutContainer extends Container {
   //      </div>
   //  }
 
-  trait SingleLineFieldTrait extends super.SingleLineFieldTrait with HorizontalControl
+  //  trait Popover extends super.Popover with Bs3HorizontalLayout with ButtonRenderer
 
-  trait MultiLineFieldTrait extends super.MultiLineFieldTrait with HorizontalControl
+  abstract class SingleLineField(ilk: String) extends super.SingleLineField(ilk) with HorizontalControl
 
-  trait HtmlFieldTrait extends super.HtmlFieldTrait with HorizontalControl
+  abstract class MultiLineField(ilk: String) extends super.MultiLineField(ilk) with HorizontalControl
 
-  trait CheckboxFieldTrait extends super.CheckboxFieldTrait with HorizontalControl {
+  abstract class HtmlField(ilk: String) extends super.HtmlField(ilk) with HorizontalControl
+
+  abstract class CheckboxField(ilk: String) extends super.CheckboxField(ilk) with HorizontalControl {
     override def optionHtmlFor(option: Entry): NodeSeq =
       <div class="checkbox">
         <label>
@@ -103,41 +108,18 @@ trait HorizontalLayoutContainer extends Container {
       </div>.addClass(isDisabled, "disabled")
   }
 
-  trait RadioFieldTrait extends super.RadioFieldTrait with HorizontalControl
+  abstract class RadioField(ilk: String) extends super.RadioField(ilk) with HorizontalControl
 
-  trait SingleSelectFieldTrait extends super.SingleSelectFieldTrait with HorizontalControl
+  abstract class SingleSelectField(ilk: String) extends super.SingleSelectField(ilk) with HorizontalControl
 
-  trait MultiSelectFieldTrait extends super.MultiSelectFieldTrait with HorizontalControl
+  abstract class MultiSelectField(ilk: String) extends super.MultiSelectField(ilk) with HorizontalControl
 
-  trait ButtonTrait extends super.ButtonTrait with HorizontalControl
+  abstract class Button(ilk: String) extends super.Button(ilk) with HorizontalControl
 
-  trait ButtonRowTrait extends super.ButtonRowTrait {
+  abstract class ButtonRow extends super.ButtonRow {
     override def enabledTreeHtml = <div class="form-group"><div class={s"col-sm-offset-$labelColumns col-sm-$contentColumns"}>{super.enabledTreeHtml}</div></div>
   }
 
-  //  trait Popover extends super.Popover with Bs3HorizontalLayout with ButtonRenderer
-
-  /* Child constructors (plain copy from Form) */
-
-  abstract class SingleLineField(ilk: String) extends Child(ilk) with SingleLineFieldTrait
-
-  abstract class MultiLineField(ilk: String) extends Child(ilk) with MultiLineFieldTrait
-
-  abstract class HtmlField(ilk: String) extends Child(ilk) with HtmlFieldTrait
-
-  abstract class CheckboxField(ilk: String) extends Child(ilk) with CheckboxFieldTrait
-
-  abstract class RadioField(ilk: String) extends Child(ilk) with RadioFieldTrait
-
-  abstract class SingleSelectField(ilk: String) extends Child(ilk) with SingleSelectFieldTrait
-
-  abstract class MultiSelectField(ilk: String) extends Child(ilk) with MultiSelectFieldTrait
-
-  abstract class Button(ilk: String) extends Child(ilk) with ButtonTrait
-
-  abstract class ChildContainer(ilk: String) extends Child(ilk) with ChildContainerTrait
-
-  abstract class ButtonRow extends Child("br") with ButtonRowTrait
 }
 
 trait HorizontalForm extends Form with HorizontalLayoutContainer {

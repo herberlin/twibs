@@ -420,6 +420,6 @@ class FormTest extends TwibsTest {
     f.field.strings = "1" :: "2" :: Nil
     f.ignored.strings = "5" :: "6" :: Nil
     f.button.strings = "3" :: "4" :: Nil
-    f.link.link(Seq("a" -> "b")) should be("?s=1&s=2&a=b")
+    f.link.link(Seq("a" -> "b")) should be("/?s=1&s=2&a=b")
   }
 }
