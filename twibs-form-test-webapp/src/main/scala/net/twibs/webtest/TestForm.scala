@@ -37,21 +37,21 @@ class RadioTestForm extends Form("radio") with HorizontalForm {
 
       override def maximumNumberOfEntries: Int = 3
     }
-//
-//    >> {<h3>Chosen select</h3>}
-//    new SingleSelectField("chosen-single-select-multiple-values") with StringInput with Chosen with SubmitOnChange  {
-//      override def options = "a" :: "b" :: Nil
-//
-//      override def execute(): Seq[Result] =
-//        if (isSubmittedOnChange) AfterFormDisplay(info"pressed: Single select changed: $string".showNotification)
-//        else Ignored
-//
-//      override def defaults: Seq[ValueType] = "" :: Nil
-//
-//      override def minimumNumberOfEntries: Int = 1
-//
-//      override def maximumNumberOfEntries: Int = 3
-//    }
+
+    >> {<h3>Chosen select</h3>}
+    new SingleSelectField("chosen-single-select-multiple-values") with StringInput with Chosen with SubmitOnChange  {
+      override def options = "a" :: "b" :: Nil
+
+      override def execute(): Seq[Result] =
+        if (isSubmittedOnChange) AfterFormDisplay(info"pressed: Single select changed: $string".showNotification)
+        else Ignored
+
+      override def defaults: Seq[ValueType] = "" :: Nil
+
+      override def minimumNumberOfEntries: Int = 1
+
+      override def maximumNumberOfEntries: Int = 3
+    }
 //
 //    >> {<h3>Single Line Fields</h3>}
 //    new SingleLineField("single-line-multiple-values") with StringInput with SubmitOnChange {

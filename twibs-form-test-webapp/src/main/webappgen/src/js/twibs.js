@@ -38,13 +38,24 @@ $(function () {
             $(this).ckeditor(callback, config);
         };
 
-        $.fn.reloadForm = function (value) {
-            $(this).submitForm("form-change", value, true);
+        $.fn.htmlAndUpdate = function (htmlString) {
+            var ret = this.each(function () {
+                $(this).html(htmlString);
+            });
+            Twibs.updateAfterDomChange();
+            return ret;
         };
 
-        $.fn.submitForm = function (key, value) {
+        $.fn.submitForm = function (reason, actionId, name, value) {
             var data = {};
-            data[key] = value;
+            if (reason) data['form-action-reason'] = reason;
+            if (actionId) data['form-action-id'] = actionId;
+            if (name) {
+                data['form-action-name'] = name;
+                if (value !== undefined) data[name] = value;
+            }
+            var focusedId = $(document.activeElement).attr("id");
+            if (focusedId) data['form-focused-id'] = focusedId;
             var bf = $("html").attr("class");
             if (bf) data["browser-features"] = bf;
             var config = {data: data};
@@ -105,7 +116,7 @@ $(function () {
         $.fn.updateDynamics = function () {
             return this.each(function () {
                 var $this = $(this);
-                $this.find(".twibs-form:visible").submitForm("form-reload", "");
+                $this.find(".twibs-form:visible").submitForm("update-dynamics", "");
                 //$this.closePopoversByScript();
             })
         };
@@ -127,7 +138,7 @@ $(function () {
                 e.stopPropagation();
                 e.preventDefault();
                 var $this = $(this);
-                $this.closest('form').submitForm($this.attr('name'), $this.val());
+                $this.closest('form').submitForm("click", $this.id, $this.attr('name'), $this.val());
             })
             .on('click', '.submit', function (e) {
                 var $this = $(e.target);
@@ -135,7 +146,7 @@ $(function () {
                     e.stopPropagation();
                     e.preventDefault();
                     var $button = $this.closest(".submit");
-                    $button.submitForm($button.attr('name'), $button.attr('value'));
+                    $button.submitForm("click", $button.id, $button.attr('name'), $button.attr('value'));
                 }
             })
             .on('keyup', '.submit-while-typing', function (e) {
@@ -151,7 +162,7 @@ $(function () {
                 var val = $this.val();
                 if (was != val) {
                     $this.data("previous", val);
-                    $this.closest('form').submitForm($this.attr('name') + "-submit-while-typing", val, true);
+                    $this.closest('form').submitForm("submit-while-typing", $this.id, $this.data("name") || $this.attr('name'));
                 }
             })
             .on('click', '.input-clear', function (e) {
@@ -163,7 +174,7 @@ $(function () {
             .on('change', '.twibs-form .submit-on-change', function () {
                 var $this = $(this);
                 window.setTimeout(function () {
-                    $this.reloadForm($this.data("fieldname") || $this.data("name") || $this.attr('name'))
+                    $this.submitForm("submit-on-change", $this.id, $this.data("name") || $this.attr('name'))
                 }, 1);
             })
             .on('click', '[data-dismiss="detachable"]', function (e) {
@@ -203,7 +214,7 @@ $(function () {
                 $('.twibs-form .sortable')
                     .sortable({forcePlaceholderSize: true})
                     .bind('sortupdate', function (e, ui) {
-                        ui.item.reloadForm("");
+                        ui.item.submitForm("sortable", $ui.item.id);
                     });
 
                 $('input.numeric').TouchSpin();
@@ -265,7 +276,6 @@ $(function () {
             var $percent = $modal.find('.transfer-percent');
             var modalTimeout;
             var disableTimeout;
-            var focusedId = $(document.activeElement).attr("id");
 
             function update(percent) {
                 $bar.width(percent + '%').attr("aria-valuenow", percent);
@@ -276,6 +286,7 @@ $(function () {
                 dataType: 'script',
                 error: function (jqxhr, status, error, $form) {
                     clearTimeout(modalTimeout);
+                    clearTimeout(disableTimeout);
                     showAjaxError(jqxhr, error);
                     $form.reenableForm();
                 },
@@ -300,18 +311,6 @@ $(function () {
                 },
                 success: function () {
                     Twibs.updateAfterDomChange();
-                    if (focusedId) {
-                        var e = $(document.activeElement);
-                        if (e.length > 0) {
-                            var n = e.prop("tagName");
-                            if (n != "INPUT" && n != "BUTTON" && n != "TEXTAREA") {
-                                var fe = $("#" + focusedId);
-                                if (!fe.hasClass("no-refocus")) {
-                                    fe.focus();
-                                }
-                            }
-                        }
-                    }
                 }
             }));
         }

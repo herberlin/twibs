@@ -4,9 +4,15 @@
 
 package net.twibs.form
 
+import java.nio.charset.StandardCharsets
+
 import net.twibs.util.Parsers._
 import net.twibs.util._
-import org.owasp.html.PolicyFactory
+import org.jsoup.Jsoup
+import org.jsoup.nodes.Document.OutputSettings
+import org.jsoup.nodes.Document.OutputSettings.Syntax
+import org.jsoup.nodes.Entities.EscapeMode
+import org.jsoup.safety.Whitelist
 
 trait Input extends TranslationSupport {
   type ValueType
@@ -223,11 +229,21 @@ trait WebAddressInput extends SingleLineInput {
 }
 
 trait HtmlInput extends StringInput {
-  def policyFactory: PolicyFactory
+  def whitelist = HtmlInput.whitelist
+
+  def outputSettings = HtmlInput.outputSettings
 
   override def stringProcessors = super.stringProcessors andThen cleanupHtml
 
-  private def cleanupHtml = (entry: Entry) => entry.copy(string = policyFactory.sanitize(entry.string))
+  private def cleanupHtml = (entry: Entry) => entry.copy(string = cleanup(entry.string))
+
+  private def cleanup(string: String) = Jsoup.clean(string, "", whitelist, outputSettings)
+}
+
+object HtmlInput {
+  val whitelist = Whitelist.none().addTags("strong", "b", "em", "i", "p", "br")
+
+  val outputSettings = new OutputSettings().charset(StandardCharsets.UTF_8).escapeMode(EscapeMode.xhtml).prettyPrint(false).syntax(Syntax.xml)
 }
 
 trait BooleanInput extends Input {

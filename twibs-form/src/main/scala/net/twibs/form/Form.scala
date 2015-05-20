@@ -4,18 +4,11 @@
 
 package net.twibs.form
 
-import java.nio.charset.StandardCharsets
-
 import com.google.common.net.UrlEscapers
 import net.twibs.util.JavaScript._
 import net.twibs.util.XmlUtils._
 import net.twibs.util._
 import net.twibs.web._
-import org.jsoup.Jsoup
-import org.jsoup.nodes.Document.OutputSettings
-import org.jsoup.nodes.Document.OutputSettings.Syntax
-import org.jsoup.nodes.Entities.EscapeMode
-import org.jsoup.safety.Whitelist
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
@@ -427,14 +420,7 @@ trait MultiLineFieldTrait extends FormControlField with OneControlPerEntry {
   override def renderHidden(entry: Entry): NodeSeq = <textarea class="concealed" name={name}>{entry.string}</textarea>
 }
 
-trait HtmlFieldTrait extends MultiLineFieldTrait with StringInput {
-  override def convertToValue(string: String): Option[ValueType] =
-    super.convertToValue(string).map(Jsoup.clean(_, "", htmlFieldWhitelist, htmlFieldOutputSettings))
-
-  def htmlFieldWhitelist = FormUtils.htmlFieldWhitelist
-
-  def htmlFieldOutputSettings = FormUtils.htmlFieldOutputSettings
-
+trait HtmlFieldTrait extends MultiLineFieldTrait with HtmlInput {
   // Remove CKEDITOR instance from previous textarea otherwise a javascript error appears
   override def replaceContentJs: JsCmd = jQuery(shellId + " .html-field[contenteditable='true']").call("destroyCkeditor")
 
@@ -473,7 +459,7 @@ trait SelectField extends FormControlField with Options {
 trait Chosen extends SelectField {
   override def controlCssClasses = (if (required) "chosen" else "chosen-optional") +: super.controlCssClasses
 
-  override def focusJs = jQuery(focusId).call("trigger", "chosen:activate")
+  override def focusJs = jQuery(focusId).call("trigger", "chosen:activate.chosen")
 }
 
 trait SingleSelectFieldTrait extends SelectField with OneControlPerEntryWithOptions {
@@ -656,10 +642,6 @@ trait DynamicOptions extends ButtonTrait {
 
 trait SimpleButton extends ButtonTrait with StringInput {
   override def options: Seq[ValueType] = "" :: Nil
-}
-
-trait NoRefocus extends ButtonTrait {
-  override def controlCssClasses = "no-refocus" +: super.controlCssClasses
 }
 
 trait DefaultButton extends ButtonTrait {
@@ -907,10 +889,6 @@ object FormUtils {
   val escaper = UrlEscapers.urlFormParameterEscaper()
 
   def toQueryString(parameters: Seq[(String, String)]) = parameters.map(e => escaper.escape(e._1) + "=" + escaper.escape(e._2)).mkString("&")
-
-  val htmlFieldWhitelist = Whitelist.none().addTags("strong", "b", "em", "i", "p", "br")
-
-  val htmlFieldOutputSettings = new OutputSettings().charset(StandardCharsets.UTF_8).escapeMode(EscapeMode.xhtml).prettyPrint(false).syntax(Syntax.xml)
 }
 
 class Form(val ilk: String) extends Container with CancelStateInheritance with Loggable {
@@ -980,13 +958,17 @@ class Form(val ilk: String) extends Container with CancelStateInheritance with L
 
   def hideModalJs = jQuery(modalId).call("modal", "hide")
 
-  override def replaceContentJs = beforeReplaceContentJs ~ jQuery(formId).call("html", html)
+  override def replaceContentJs = beforeReplaceContentJs ~ jQuery(formId).call("htmlAndUpdate", html)
 
   def beforeReplaceContentJs = descendants.collect { case c if c.isEnabled && c != this => c.replaceContentJs }
 
   override def javascript: JsCmd = if (isDisabled) JsEmpty else descendants.collect { case c if c.isEnabled && c != this => c.javascript }
 
-  def focusJs = descendants.collectFirst({ case f: Focusable if f.needsFocus => f.focusJs }) getOrElse JsEmpty
+  def focusJs = descendants.collectFirst({ case f: Focusable if f.needsFocus => f.focusJs }) getOrElse refocusJs
+
+  def refocusJs = focusedId.fold(JsEmpty)(id => jQuery(id).call("focus"))
+
+  def focusedId = request.parameters.getStringOption("form-focused-id").map(IdString.apply)
 
   def actionLinkWithContextPathAppIdAndParameters(parameters: Seq[(String, String)]): String = actionLink + queryString(addAppIdAndModal(addComponentParameters(parameters)))
 

@@ -4,38 +4,27 @@
 
 package net.twibs.util
 
-import org.owasp.html.HtmlPolicyBuilder
+import java.nio.charset.StandardCharsets
+
 import net.htmlparser.jericho._
+import org.jsoup.Jsoup
+import org.jsoup.nodes.Document.OutputSettings
+import org.jsoup.nodes.Document.OutputSettings.Syntax
+import org.jsoup.nodes.Entities.EscapeMode
+import org.jsoup.safety.Whitelist
 
 object HtmlUtils {
-  private val NOTHING_GOES =
-    new HtmlPolicyBuilder()
-      .allowElements("p", "br", "a")
-      .toFactory
-
-  private val EMAIL_POLICY_FACTORY =
-    new HtmlPolicyBuilder()
-      .allowElements("p", "br", "a")
-      .allowAttributes("href").onElements("a")
-      .allowStandardUrlProtocols()
-      .toFactory
-
-  private val ANYTHING_GOES =
-    new HtmlPolicyBuilder()
-      .allowAttributes("class").globally()
-      .allowCommonInlineFormattingElements()
-      .allowCommonBlockElements()
-      .allowWithoutAttributes("span")
-      .toFactory
-  //  private val ANYTHING_GOES = new HtmlPolicyBuilder().allowCommonInlineFormattingElements().toFactory
-
   def convertEmailHtmlToPlain(html: String): String =
     new Source(html).getRenderer.setNewLine("\n").toString
 
   def convertHtmlToPlain(html: String): String =
     new Source(html).getRenderer.setNewLine("\n").setIncludeHyperlinkURLs(false).toString
 
-  def cleanup(html: String) = ANYTHING_GOES.sanitize(html)
+  private val wl = Whitelist.basicWithImages().addAttributes(":all", "class")
+  private val os = new OutputSettings().charset(StandardCharsets.UTF_8).escapeMode(EscapeMode.xhtml).prettyPrint(false).syntax(Syntax.xml)
 
+  def cleanup(html: String) = Jsoup.clean(html, "", wl, os)
+
+  // Disable logging for jericho
   Config.LoggerProvider = LoggerProvider.DISABLED
 }
