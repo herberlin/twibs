@@ -33,17 +33,90 @@ var Twibs = {
 $(function () {
         var cp = typeof contextPath !== 'undefined' ? contextPath : '';
 
+        // Overwrite jquery focus to support chosen
+        var oFocus = jQuery.fn.focus;
+        jQuery.fn.focus = function () {
+            return this.hasClass('chosen') ? this.trigger('chosen:activate.chosen') : oFocus.apply(this, arguments);
+        };
+
+        $.fn.disableForm = function () {
+            return this.each(function () {
+                var $this = $(this);
+                $this.find('.can-be-disabled').attr('disabled', 'disabled');
+                $this.find('.can-be-disabled-by-class').addClass('disabled');
+                $this.find('select.form-control').trigger("chosen:updated");
+            });
+        };
+
+        $.fn.reenableForm = function () {
+            return this.each(function () {
+                var $this = $(this);
+                $this.find('.can-be-disabled').removeAttr('disabled');
+                $this.find('.can-be-disabled-by-class').removeClass('disabled');
+            })
+        };
+
         $.fn.ckeditor = function (callback, config) {
             $('<script src="' + cp + '/ckeditor/ckeditor.js"></script><script src="' + cp + '/ckeditor/adapters/jquery.js"></script>').appendTo('head');
             $(this).ckeditor(callback, config);
         };
 
-        $.fn.htmlAndUpdate = function (htmlString) {
-            var ret = this.each(function () {
-                $(this).html(htmlString);
+        $.fn.initFormElements = function () {
+            return this.each(function () {
+                var $this = $(this);
+
+                // Init chosen elements
+                $this.find('select.chosen').chosen({
+                    disable_search_threshold: 6,
+                    width: '100%'
+                });
+                $this.find('select.chosen-optional').chosen({
+                    allow_single_deselect: true,
+                    disable_search_threshold: 6,
+                    width: '100%'
+                });
+
+                // Init sortable
+                $this.find('.sortable')
+                    .sortable({forcePlaceholderSize: true})
+                    .bind('sortupdate', function (e, ui) {
+                        ui.item.submitForm("sortable", ui.item.id);
+                    });
+
+                //$('input.numeric').TouchSpin();
+
+                //$('textarea.hidden-print').each(function () {
+                //    var $this = $(this);
+                //    var $next = $this.next("div.textarea-print");
+                //    if ($next.length === 0) {
+                //        $next = $('<div class="textarea-print form-control visible-print"></div>').insertBefore($this);
+                //    }
+                //    $next.html($this.val());
+                //});
             });
-            Twibs.updateAfterDomChange();
-            return ret;
+        };
+
+        $.fn.destroyFormElements = function () {
+            return this.each(function () {
+                var $this = $(this);
+                $this.find('.sortable').sortable('destroy');
+                $this.find('select.chosen').chosen('destroy');
+                $this.find('select.chosen-optional').chosen('destroy');
+
+                /* $x.ckeditorGet().destroy() does not work as it takes only the first ckeditor instance */
+                $this.find('.cke_editable').each(function () {
+                    var $this = $(this);
+                    var ckeditor = $this.data("ckeditorInstance");
+                    if (ckeditor) {
+                        ckeditor.destroy();
+                        $this.data('ckeditorInstance', null);
+                    }
+                });
+            });
+        };
+
+        $.fn.updateFormElements = function (htmlString) {
+            return this.destroyFormElements().html(htmlString).initFormElements();
         };
 
         $.fn.submitForm = function (reason, actionId, name, value) {
@@ -54,7 +127,10 @@ $(function () {
                 data['form-action-name'] = name;
                 if (value !== undefined) data[name] = value;
             }
-            var focusedId = $(document.activeElement).attr("id");
+            // Find focused id (also for chosen elements)
+            var ae = $(document.activeElement);
+            var focusedId = ae.attr("id") || ae.closest(".chosen-container").prev().attr("id");
+
             if (focusedId) data['form-focused-id'] = focusedId;
             var bf = $("html").attr("class");
             if (bf) data["browser-features"] = bf;
@@ -77,31 +153,6 @@ $(function () {
                         $this.find('input:visible,.btn:visible').first().focus();
                         Twibs.updateAfterDomChange();
                     }).modal();
-            })
-        };
-
-        $.fn.disableForm = function () {
-            return this.each(function () {
-                var $this = $(this);
-                $this.find('.can-be-disabled').attr('disabled', 'disabled');
-                $this.find('.can-be-disabled-by-class').addClass('disabled');
-                $this.find('select.form-control').trigger("chosen:updated");
-            });
-        };
-
-        $.fn.reenableForm = function () {
-            return this.each(function () {
-                var $this = $(this);
-                $this.find('.can-be-disabled').removeAttr('disabled');
-                $this.find('.can-be-disabled-by-class').removeClass('disabled');
-            })
-        };
-
-        /* $x.ckeditorGet().destroy() does not work as it takes only the first ckeditor instance */
-        $.fn.destroyCkeditor = function () {
-            return this.each(function () {
-                var ckeditor = $(this).data("ckeditorInstance");
-                if (ckeditor) ckeditor.destroy();
             })
         };
 
@@ -195,38 +246,9 @@ $(function () {
                 //}
             })
             .on("twibs-update-dom", function () {
-                $('.twibs-form select.chosen').chosen({disable_search_threshold: 6, width: '100%'});
-                $('.twibs-form select.chosen-optional').chosen({
-                    allow_single_deselect: true,
-                    disable_search_threshold: 6,
-                    width: '100%'
-                });
-
-                // 'chosen' does not preserve the focus, 'twibs' does.
-                $('.twibs-form select.chosen:focus').each(function () {
-                    $(this).parent().find(".chosen-container .chosen-drop .chosen-search input[type='text']").focus();
-                });
-
                 $('[data-toggle="popover"]').popover();
 
                 $('[data-toggle="tooltip"]').tooltip();
-
-                $('.twibs-form .sortable')
-                    .sortable({forcePlaceholderSize: true})
-                    .bind('sortupdate', function (e, ui) {
-                        ui.item.submitForm("sortable", $ui.item.id);
-                    });
-
-                $('input.numeric').TouchSpin();
-
-                $('textarea.hidden-print').each(function () {
-                    var $this = $(this);
-                    var $next = $this.next("div.textarea-print");
-                    if ($next.length === 0) {
-                        $next = $('<div class="textarea-print form-control visible-print"></div>').insertBefore($this);
-                    }
-                    $next.html($this.val());
-                });
 
                 initFixedContainers();
                 positionFixedContainers();
@@ -237,10 +259,10 @@ $(function () {
             });
 
         $('body')
-            .on("focus", ".show-focus-on-parent", function (e) {
+            .on("focus", ".show-focus-on-parent", function () {
                 $(this).closest(".inherit-focus-from-child").addClass("focused");
             })
-            .on("blur", ".show-focus-on-parent", function (e) {
+            .on("blur", ".show-focus-on-parent", function () {
                 $(this).closest(".inherit-focus-from-child").removeClass("focused");
             })
             .on("click", '[data-call]', function (e) {
@@ -250,10 +272,12 @@ $(function () {
                 $.ajax({
                     url: $this.attr('data-call'),
                     dataType: "script"
-                }).fail(failError).done(function () {
-                    $this.removeClass("disabled");
-                    Twibs.updateAfterDomChange();
-                });
+                })
+                    .fail(failError)
+                    .done(function () {
+                        $this.removeClass("disabled");
+                        Twibs.updateAfterDomChange();
+                    });
             });
 
         $('a[data-toggle="tab"]')
@@ -263,6 +287,8 @@ $(function () {
             .on('show.bs.tab', function (e) {
                 return location.hash = $(e.target).attr('href').substr(1);
             });
+
+        $('.twibs-form').initFormElements();
 
         function hashchange() {
             $('a[href="' + location.hash + '"]').tab('show');
@@ -282,14 +308,12 @@ $(function () {
                 $percent.html(percent);
             }
 
+            // Abort the last request (also abort already finished requests)
+            var jqxhr = $form.data('jqxhr');
+            if (jqxhr) jqxhr.abort();
+
             $form.ajaxSubmit($.extend(config, {
                 dataType: 'script',
-                error: function (jqxhr, status, error, $form) {
-                    clearTimeout(modalTimeout);
-                    clearTimeout(disableTimeout);
-                    showAjaxError(jqxhr, error);
-                    $form.reenableForm();
-                },
                 beforeSend: function () {
                     update(0);
                     modalTimeout = setTimeout(function () {
@@ -298,6 +322,17 @@ $(function () {
                     disableTimeout = setTimeout(function () {
                         $form.disableForm();
                     }, 250);
+                },
+                error: function (jqxhr, status, error, $form) {
+                    clearTimeout(modalTimeout);
+                    clearTimeout(disableTimeout);
+                    $modal.modal("hide");
+                    // Error ignored as myself may have aborted the request
+                    if (error != "abort") {
+                        console.log(error);
+                        showAjaxError(jqxhr, error);
+                        $form.reenableForm();
+                    }
                 },
                 dataFilter: function (d) {
                     update(100);

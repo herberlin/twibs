@@ -314,11 +314,7 @@ trait OneControlPerEntry extends Control {
 
   private[this] val sortableCache = Memo {isEnabled && entries.size > 1 && computeSortable}
 
-  val entryAddButton = new ButtonTrait with DynamicOptions with IntInput with DefaultDisplayType with Floating {
-    override def parent: Container = control.parent
-
-    override def ilk: String = "add-entry-button"
-
+  val entryAddButton = new Child("add-entry-button", control.parent) with ButtonTrait with DynamicOptions with IntInput with DefaultDisplayType with Floating {
     override def controlCssClasses: Seq[String] = "btn-xs" +: super.controlCssClasses
 
     override def buttonUseIconOnly: Boolean = true
@@ -332,11 +328,7 @@ trait OneControlPerEntry extends Control {
       control.isDisabled || control.minimumNumberOfEntries == control.maximumNumberOfEntries && selfIsDisabled
   }
 
-  val entryRemoveButton = new ButtonTrait with DynamicOptions with DefaultDisplayType with Floating with IntInput {
-    override def parent: Container = control.parent
-
-    override def ilk: String = "remove-entry-button"
-
+  val entryRemoveButton = new Child("remove-entry-button", control.parent) with ButtonTrait with DynamicOptions with DefaultDisplayType with Floating with IntInput {
     override def controlCssClasses: Seq[String] = "btn-xs" +: super.controlCssClasses
 
     override def buttonUseIconOnly: Boolean = true
@@ -422,7 +414,8 @@ trait MultiLineFieldTrait extends FormControlField with OneControlPerEntry {
 
 trait HtmlFieldTrait extends MultiLineFieldTrait with HtmlInput {
   // Remove CKEDITOR instance from previous textarea otherwise a javascript error appears
-  override def replaceContentJs: JsCmd = jQuery(shellId + " .html-field[contenteditable='true']").call("destroyCkeditor")
+// TODO: This has moved to javascript - delete this line if successful
+//  override def replaceContentJs: JsCmd = jQuery(shellId + " .html-field[contenteditable='true']").call("destroyCkeditor")
 
   override def javascript: JsCmd = jQuery(shellId + " .html-field[contenteditable='true']").call("ckeditor", ckeditorInit, ckeditorConfig)
 
@@ -458,8 +451,6 @@ trait SelectField extends FormControlField with Options {
 
 trait Chosen extends SelectField {
   override def controlCssClasses = (if (required) "chosen" else "chosen-optional") +: super.controlCssClasses
-
-  override def focusJs = jQuery(focusId).call("trigger", "chosen:activate.chosen")
 }
 
 trait SingleSelectFieldTrait extends SelectField with OneControlPerEntryWithOptions {
@@ -620,6 +611,12 @@ trait ButtonTrait extends OneControlForAllEntries with DisplayType {
 
 }
 
+class Child(val ilk: String, val parent: Container) extends Component {
+  validateSettings()
+
+  parent._children += this
+}
+
 trait DynamicOptions extends ButtonTrait {
   private[this] var options_ : Seq[ValueType] = Nil
 
@@ -757,15 +754,7 @@ trait Container extends Component {
 
   /* Simple children */
 
-  class Child(val ilk: String) extends Component {
-    final val parent = Container.this
-
-    validateSettings()
-
-    parent._children += this
-  }
-
-  class DisplayHtml(visible: => Boolean, renderHtml: => NodeSeq) extends Child("display") {
+  class DisplayHtml(visible: => Boolean, renderHtml: => NodeSeq) extends Child("display", this) {
     def this(html: => NodeSeq) = this(true, html)
 
     override protected def computeIgnored: Boolean = !visible
@@ -777,33 +766,33 @@ trait Container extends Component {
     def this(text: => String) = this(true, text)
   }
 
-  abstract class Hidden(ilk: String) extends Child(ilk: String) with Control with ParametersInLinks {
+  abstract class Hidden(ilk: String) extends Child(ilk: String, this) with Control with ParametersInLinks {
     override protected def selfIsHidden: Boolean = true
   }
 
   /* Child constructors */
 
-  abstract class SingleLineField(ilk: String) extends Child(ilk) with SingleLineFieldTrait
+  abstract class SingleLineField(ilk: String) extends Child(ilk, this) with SingleLineFieldTrait
 
-  abstract class MultiLineField(ilk: String) extends Child(ilk) with MultiLineFieldTrait
+  abstract class MultiLineField(ilk: String) extends Child(ilk, this) with MultiLineFieldTrait
 
-  abstract class HtmlField(ilk: String) extends Child(ilk) with HtmlFieldTrait
+  abstract class HtmlField(ilk: String) extends Child(ilk, this) with HtmlFieldTrait
 
-  abstract class CheckboxField(ilk: String) extends Child(ilk) with CheckboxFieldTrait
+  abstract class CheckboxField(ilk: String) extends Child(ilk, this) with CheckboxFieldTrait
 
-  abstract class RadioField(ilk: String) extends Child(ilk) with RadioFieldTrait
+  abstract class RadioField(ilk: String) extends Child(ilk, this) with RadioFieldTrait
 
-  abstract class SingleSelectField(ilk: String) extends Child(ilk) with SingleSelectFieldTrait
+  abstract class SingleSelectField(ilk: String) extends Child(ilk, this) with SingleSelectFieldTrait
 
-  abstract class MultiSelectField(ilk: String) extends Child(ilk) with MultiSelectFieldTrait
+  abstract class MultiSelectField(ilk: String) extends Child(ilk, this) with MultiSelectFieldTrait
 
-  abstract class Button(ilk: String) extends Child(ilk) with ButtonTrait
+  abstract class Button(ilk: String) extends Child(ilk, this) with ButtonTrait
 
-  abstract class ChildContainer(ilk: String) extends Child(ilk) with Container
+  abstract class ChildContainer(ilk: String) extends Child(ilk, this) with Container
 
-  abstract class ButtonRow extends Child("br") with Container
+  abstract class ButtonRow extends Child("br", this) with Container
 
-  abstract class HorizontalLayout extends Child("hl") with HorizontalLayoutContainer
+  abstract class HorizontalLayout extends Child("hl", this) with HorizontalLayoutContainer
 }
 
 trait DynamicChildren extends Container {
@@ -958,7 +947,7 @@ class Form(val ilk: String) extends Container with CancelStateInheritance with L
 
   def hideModalJs = jQuery(modalId).call("modal", "hide")
 
-  override def replaceContentJs = beforeReplaceContentJs ~ jQuery(formId).call("htmlAndUpdate", html)
+  override def replaceContentJs = beforeReplaceContentJs ~ jQuery(formId).call("updateFormElements", html)
 
   def beforeReplaceContentJs = descendants.collect { case c if c.isEnabled && c != this => c.replaceContentJs }
 

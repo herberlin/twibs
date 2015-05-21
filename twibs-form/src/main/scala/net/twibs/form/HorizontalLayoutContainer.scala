@@ -9,9 +9,6 @@ import net.twibs.util.XmlUtils._
 import scala.xml.{NodeSeq, Unparsed}
 
 trait HorizontalLayoutContainer extends Container {
-
-  import net.twibs.{form => f}
-
   override def containerCssClasses = "form-horizontal" +: super.containerCssClasses
 
   def labelColumns = 3
