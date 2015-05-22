@@ -13,6 +13,8 @@ import org.jsoup.nodes.Document.OutputSettings
 import org.jsoup.nodes.Document.OutputSettings.Syntax
 import org.jsoup.nodes.Entities.EscapeMode
 import org.jsoup.safety.Whitelist
+import org.threeten.bp.format.{DateTimeFormatter, DateTimeParseException}
+import org.threeten.bp.{LocalDateTime, ZonedDateTime}
 
 trait Input extends TranslationSupport {
   type ValueType
@@ -54,7 +56,7 @@ trait Input extends TranslationSupport {
     stringProcessors(Entry(string, None, string, None)) match {
       case e if e.continue => convertToValue(e.string) match {
         case None => e.invalid(danger"format-message: Invalid format for string ''${e.string}''")
-        case valueOption => valueProcessors(valueToEntry(valueOption.get))
+        case Some(value) => valueProcessors(valueToEntry(value))
       }
       case e => e
     }
@@ -123,7 +125,7 @@ trait Input extends TranslationSupport {
 
   final def isModified = _entries.isDefined
 
-  final def valid = validationMessageOption.isEmpty && !firstInvalidEntryOption.isDefined
+  final def valid = validationMessageOption.isEmpty && firstInvalidEntryOption.isEmpty
 
   final def firstInvalidEntryOption = entries.find(!_.valid)
 
@@ -273,13 +275,59 @@ trait IntInput extends Input {
   override def convertToValue(string: String) = string.toIntOption
 }
 
+trait MinMaxInput extends Input {
+  def minimum: Option[ValueType] = None
+
+  def maximum: Option[ValueType] = None
+
+  override def valueProcessors = super.valueProcessors andThen checkMinimum andThen checkMaximum
+
+  protected def isLessOrEqualMaximum(value: ValueType): Boolean
+
+  protected def isGreaterOrEqualMinimum(value: ValueType): Boolean
+
+  private def checkMinimum = (entry: Entry) =>
+    if (entry.continue && minimum.isDefined && entry.valueOption.isDefined)
+      entry.validate(isGreaterOrEqualMinimum(entry.valueOption.get), danger"minimum-message: Must be greater or equal ${titleForValue(minimum.get)}.")
+    else entry
+
+  private def checkMaximum = (entry: Entry) =>
+    if (entry.continue && maximum.isDefined && entry.valueOption.isDefined)
+      entry.validate(isLessOrEqualMaximum(entry.valueOption.get), danger"maximum-message: Must be less or equal  ${titleForValue(maximum.get)}.")
+    else entry
+
+  def titleForValue(value: ValueType) = titleFor(convertToString(value))
+}
+
+trait DateTimeInput extends MinMaxInput {
+  override type ValueType = ZonedDateTime
+
+  override def convertToString(dateTime: ZonedDateTime) = editDateTimeFormat.format(value)
+
+  override def convertToValue(string: String) = try {
+    Some(LocalDateTime.parse(string, editDateTimeFormat).atZone(Request.zoneId))
+  } catch {
+    case e: DateTimeParseException => None
+  }
+
+  def editDateTimeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern(translator.translate("date-time-format", "dd.MM.yyyy HH:mm"), translator.locale.toLocale)
+
+  def displayDateTimeFormat = editDateTimeFormat
+
+  override def titleForValue(value:ValueType) = displayDateTimeFormat.format(value)
+
+  override protected def isLessOrEqualMaximum(value: ValueType): Boolean = maximum.forall(!value.isAfter(_))
+
+  override protected def isGreaterOrEqualMinimum(value: ValueType): Boolean = minimum.forall(!value.isBefore(_))
+}
+
 trait Options extends Input {
   def options: Seq[ValueType]
 
   def optionEntries: Seq[Entry] = reindex(options.map(super.valueToEntry))
 
   override protected def valueToEntry(value: ValueType): Entry =
-    optionEntries.find(_.valueOption == Some(value)) getOrElse invalidate(super.valueToEntry(value))
+    optionEntries.find(_.valueOption.contains(value)) getOrElse invalidate(super.valueToEntry(value))
 
   override protected def stringToEntry(string: String): Entry =
     optionEntries.find(_.string == string) getOrElse invalidate(super.stringToEntry(string))

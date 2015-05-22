@@ -4,57 +4,69 @@
 
 package net.twibs.testutil
 
-import org.openqa.selenium.support.ui.{ExpectedCondition, WebDriverWait}
-import org.openqa.selenium.{NoSuchWindowException, NoSuchElementException, By, WebDriver}
+import org.openqa.selenium.interactions.Actions
+import org.openqa.selenium.support.ui.{ExpectedConditions, ExpectedCondition, WebDriverWait}
+import org.openqa.selenium.{By, NoSuchElementException, NoSuchWindowException, WebDriver}
 
 trait SeleniumTestUtils {
+  implicit def convert(selector: String): By = By.cssSelector(selector)
+
   def baseUrl: String
 
   def driver = SeleniumDriver.driver
 
-  protected def open(path: String): Unit = driver.get(baseUrl + path)
+  def open(path: String): Unit = driver.get(baseUrl + path)
 
-  protected def click(selector: String) = {
-    val elem = find(selector)
-    elem.click()
-    elem
+  def selectChosen(selector: String, entry: Int) = {
+    click(s"$selector + div.chosen-container .chosen-single")
+    findLazy(s"$selector + div.chosen-container .chosen-results > li:nth-child($entry)").click()
   }
 
-  protected def selectChosen(selector: String, entry: Int) = {
-    find(s"$selector + div.chosen-container .chosen-single").click()
-    find(s"$selector + div.chosen-container .chosen-results > li:nth-child($entry)").click()
-  }
-
-  protected def enterAndBlur(selector: String, text: String): Unit = {
-    enter(selector, text)
+  def enterAndBlur(by: By, text: String): Unit = {
+    enter(by, text)
     click("body")
     Thread.sleep(300)
   }
 
-  protected def enter(selector: String, text: String): Unit = {
-    val elem = click(selector)
+  def enter(by: By, text: String) = {
+    val elem = click(by)
     elem.clear()
     elem.sendKeys(text)
+    elem
   }
 
-  protected def find(selector: String) = driver.findElement(By.cssSelector(selector))
+  def upload(by: By, text: String) = {
+    val elem = find(by)
+    elem.sendKeys(text + "\t")
+    elem
+  }
 
-  protected def waitForModal(): Unit =
-    findCompletelyVisible(".modal.in")
+  def find(by: By) = driver.findElement(by)
 
-  protected def findCompletelyVisible(selector: String) = {
+  def findLazy(by: By) = {
+    new WebDriverWait(driver,1).until(ExpectedConditions.visibilityOfElementLocated(by))
+    find(by)
+  }
+
+
+  def click(by: By) = {
+    val elem = find(by)
+    new Actions(driver).moveToElement(elem).click().build().perform()
+    elem
+  }
+
+  def waitForModal(): Unit = findCompletelyVisible(".modal.in")
+
+  def findCompletelyVisible(by: By) = {
     new WebDriverWait(driver, 5).until(
       new ExpectedCondition[Boolean]() {
-        override def apply(webDriver: WebDriver) = find(selector).getCssValue("opacity").equals("1")
+        override def apply(webDriver: WebDriver) = find(by).getCssValue("opacity").equals("1")
       }
     )
-    find(selector)
+    find(by)
   }
 
-  def waitForWindowClosed(): Unit =
-    while (windowIsOpen()) {
-      Thread.sleep(100)
-    }
+  def waitForWindowClosed(): Unit = while (windowIsOpen()) {Thread.sleep(100)}
 
   def windowIsOpen() =
     try {
