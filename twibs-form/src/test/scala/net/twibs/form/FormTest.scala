@@ -15,13 +15,7 @@ class FormTest extends TwibsTest {
         new SingleLineField("ab cd") with StringInput
       }
       intercept[IllegalArgumentException] {
-        new SingleLineField("test-form-id") with StringInput
-      }
-      intercept[IllegalArgumentException] {
-        new SingleLineField("test-form-modal") with StringInput
-      }
-      intercept[IllegalArgumentException] {
-        new SingleLineField("application-name") with StringInput
+        new SingleLineField("t-any") with StringInput
       }
     }
 
@@ -32,13 +26,7 @@ class FormTest extends TwibsTest {
       new Form("ab cd")
     }
     intercept[IllegalArgumentException] {
-      new Form("test-form-id")
-    }
-    intercept[IllegalArgumentException] {
-      new Form("test-form-modal")
-    }
-    intercept[IllegalArgumentException] {
-      new Form("application-name")
+      new Form("t-any")
     }
   }
 
@@ -222,7 +210,7 @@ class FormTest extends TwibsTest {
 
               val password = new SingleLineField("password") with StringInput
 
-              def check2(): Unit = children should have size 2
+              def check2(): Unit = children should have size (2 + 4) // (+4) One add and one remove button per field
             }
 
             type T = UserContainer
@@ -234,7 +222,7 @@ class FormTest extends TwibsTest {
             def check2(): Unit = children should have size 2
           }
 
-          def check(): Unit = children should have size 2
+          def check(): Unit = children should have size (2 + 2) // (+2) One add and one remove button per field
         }
 
         def check(): Unit = children should have size 1
@@ -250,12 +238,12 @@ class FormTest extends TwibsTest {
     form.container.container.check()
     form.container.container.dynamics.check0()
 
-    form.descendants should have size 6
+    form.descendants should have size (6 + 2) // (+2) One add and one remove button per field
 
-    DynamicID.use("a"){form.container.container.dynamics.createChild()}
-    DynamicID.use("b"){form.container.container.dynamics.createChild()}
+    DynamicID.use("a") {form.container.container.dynamics.createChild()}
+    DynamicID.use("b") {form.container.container.dynamics.createChild()}
 
-    form.descendants should have size 12
+    form.descendants should have size (12 + 10) // (+10) One add and one remove button per field
 
     form.container.container.dynamics.dynamics.foreach(_.check2())
     form.container.container.dynamics.check2()
@@ -263,14 +251,14 @@ class FormTest extends TwibsTest {
     form.container.container.dynamics.reset()
     form.container.container.dynamics.check0()
 
-    form.descendants should have size 6
+    form.descendants should have size (6 + 2) // (+2) One add and one remove button per field
 
     form.container.container.check()
   }
 
   test("Focus") {
 
-    val f = Request.copy(parameters = Map("test-form-id" -> Seq("a"), "test-form-modal" -> Seq("false"))).use {
+    val f = Request.copy(parameters = Map("t-id" -> Seq("a"), "t-modal" -> Seq("false"))).use {
       new Form("test") {
         val hl = new HorizontalLayout {
           val f = new SingleLineField("field") with StringInput
@@ -291,7 +279,7 @@ class FormTest extends TwibsTest {
   }
 
   test("Form renderer") {
-    val out = Request.copy(parameters = Map("test-form-id" -> Seq("a"), "test-form-modal" -> Seq("false"))).use {
+    val out = Request.copy(parameters = Map("t-id" -> Seq("a"), "t-modal" -> Seq("false"))).use {
       new Form("test") {
 
         new DisplayText("<h3>Display text</h3>")
@@ -318,18 +306,19 @@ class FormTest extends TwibsTest {
           new Hidden("hidden") with StringInput
         }
 
-        DynamicID.use("admin"){dynamics.createChild()}
+        DynamicID.use("admin") {dynamics.createChild()}
 
-//        override def messages: Seq[Message] = warn"invalid: Fill out form" +: warn"invalid: Fill out form".copy(dismissable = false) +: super.messages
+        //        override def messages: Seq[Message] = warn"invalid: Fill out form" +: warn"invalid: Fill out form".copy(dismissable = false) +: super.messages
       }.html
     }
 
-//    println(new PrettyPrinter(2000, 4).format(out.head))
+        println(new PrettyPrinter(2000, 4).format(out.head))
     new PrettyPrinter(2000, 4).format(out.head) should be(
-      """<form id="a_form" name="test" class="twibs-form" action="/" method="post" enctype="multipart/form-data">
-        |    <input type="hidden" autocomplete="off" name="test-form-id" value="a"/>
-        |    <input type="hidden" autocomplete="off" name="test-form-modal" value="false"/>
-        |    <input type="hidden" autocomplete="off" name="application-name" value="default"/>
+      """<form id="a_form" name="test" class="t-form" action="/" method="post" enctype="multipart/form-data">
+        |    <input type="hidden" autocomplete="off" name="t-ilk" value="test"/>
+        |    <input type="hidden" autocomplete="off" name="t-id" value="a"/>
+        |    <input type="hidden" autocomplete="off" name="t-modal" value="false"/>
+        |    <input type="hidden" autocomplete="off" name="t-context" value="default"/>
         |    <div class="modal transfer-modal">
         |        <div class="modal-dialog">
         |            <div class="modal-content">
@@ -353,35 +342,24 @@ class FormTest extends TwibsTest {
         |        <h3>test</h3>
         |    </header>
         |    <input type="submit" class="concealed" tabindex="-1" name="wait" value=""/>
-        |    <div id="a_shell" name="test" class="form-container-shell">
-        |        <div id="a" class="form-container">
-        |            <div class="alert alert-warning alert-dismissable">
-        |                <button type="button" class="close" data-dismiss="alert">×</button>
-        |                Fill out form
-        |            </div>
-        |            <div class="alert alert-warning">Fill out form</div>
-        |            <h3>Display text</h3>
-        |            <div id="a_users_shell" name="users" class="form-container-shell">
-        |                <div id="a_users" class="form-container">
-        |                    <div id="a_users_user_shell" name="user" class="detachable form-container-shell">
-        |                        <button type="button" class="close" data-toggle="popover" data-html="true" data-placement="auto left" data-title="Delete component?" data-content='<button type="button" class="btn btn-danger" data-dismiss="detachable">Delete</button>'>&times;</button>
-        |                        <div id="a_users_user" class="form-container">
-        |                            <input class="form-control can-be-disabled" type="text" name="adminusername" id="a_users_user_adminusername" placeholder="username" value=""/>
-        |                            <input class="form-control can-be-disabled" type="text" name="adminpassword" id="a_users_user_adminpassword" placeholder="password" value=""/>
-        |                        </div>
-        |                    </div>
-        |                    <input type="hidden" autocomplete="off" name="users" value="admin"/>
-        |                </div>
-        |            </div>
-        |            <div id="a_easy_shell" name="easy" class="detachable form-container-shell">
-        |                <button type="button" class="close" data-toggle="popover" data-html="true" data-placement="auto left" data-title="Delete component?" data-content='<button type="button" class="btn btn-danger" data-dismiss="detachable">Delete</button>'>&times;</button>
-        |                <div id="a_easy" class="form-container">
-        |                    <button type="submit" name="wait" id="a_easy_wait" class="can-be-disabled btn btn-primary" value="true">wait</button>
-        |                    <input type="hidden" autocomplete="off" name="hidden" value=""/>
-        |                </div>
-        |            </div>
+        |    <h3>Display text</h3>
+        |    <div class="entries" id="a_users_user_adminusername_shell">
+        |        <div class="entry">
+        |            <input class="form-control can-be-disabled" type="text" name="adminusername" id="a_users_user_adminusername" placeholder="username" value=""/>
         |        </div>
+        |        <div class="actions"></div>
         |    </div>
+        |    <div class="entries" id="a_users_user_adminpassword_shell">
+        |        <div class="entry">
+        |            <input class="form-control can-be-disabled" type="text" name="adminpassword" id="a_users_user_adminpassword" placeholder="password" value=""/>
+        |        </div>
+        |        <div class="actions"></div>
+        |    </div>
+        |    <input type="hidden" autocomplete="off" name="users" value="admin"/>
+        |    <div class="entries" id="a_easy_wait_shell">
+        |        <button type="submit" name="wait" id="a_easy_wait" class="can-be-disabled btn btn-primary" value="">wait</button>
+        |    </div>
+        |    <input type="hidden" autocomplete="off" name="hidden" value=""/>
         |</form>""".stripMargin)
   }
 

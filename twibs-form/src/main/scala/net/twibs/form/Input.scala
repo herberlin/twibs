@@ -238,6 +238,9 @@ trait HtmlInput extends StringInput {
   private def cleanupHtml = (entry: Entry) => entry.copy(string = cleanup(entry.string))
 
   private def cleanup(string: String) = Jsoup.clean(string, "", whitelist, outputSettings)
+
+  override protected def trim(string: String): String =
+    if (HtmlUtils.convertHtmlToPlain(string).trim.isEmpty) "" else super.trim(string)
 }
 
 object HtmlInput {

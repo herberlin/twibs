@@ -10,7 +10,7 @@ import java.net.{InetAddress, UnknownHostException}
 import com.ibm.icu.util.{Currency, ULocale}
 import com.typesafe.config.{Config, ConfigFactory, ConfigParseOptions}
 import org.apache.tika.Tika
-import org.threeten.bp.{LocalDateTime, ZoneId}
+import org.threeten.bp.{ZoneId, ZonedDateTime}
 
 import scala.collection.convert.wrapAsScala._
 import scala.concurrent.duration._
@@ -34,8 +34,7 @@ case class SystemSettings(startedAt: Long,
                           locale: ULocale,
                           fullVersion: String,
                           runMode: RunMode,
-                          os: OperatingSystem,
-                          zoneId: ZoneId) {
+                          os: OperatingSystem) {
   @transient
   private[util] lazy val configUnresolved = {
     ConfigFactory.invalidateCaches()
@@ -101,8 +100,7 @@ object SystemSettings extends UnwrapCurrent[SystemSettings] with Loggable {
       case None if isCalledFromTestClass => RunMode.TEST
       case _ => RunMode.PRODUCTION
     },
-    os = OperatingSystem(System.getProperty("os.name").toLowerCase),
-    zoneId = ZoneId.systemDefault()
+    os = OperatingSystem(System.getProperty("os.name").toLowerCase)
   )
 
   logger.info(s"Run mode is '${default.runMode.name}'")
@@ -183,7 +181,7 @@ case class ApplicationSettings(name: String, systemSettings: SystemSettings) {
 }
 
 object ApplicationSettings extends UnwrapCurrent[ApplicationSettings] {
-  val PN_NAME = "application-name"
+  val PN_NAME = "t-context"
 
   val DEFAULT_NAME = "default"
 
@@ -255,7 +253,7 @@ case class Request private(applicationSettings: ApplicationSettings,
                            session: Session = new SimpleSession(),
                            cookies: CookieContainer = new SimpleCookieContainer(),
                            attributes: AttributeContainer = new SimpleAttributeContainer(),
-                           timestamp: LocalDateTime = LocalDateTime.now(),
+                           timestamp: ZonedDateTime = ZonedDateTime.now(),
                            method: RequestMethod = GetMethod,
                            protocol: String = "http",
                            domain: String = "localhost",
@@ -271,7 +269,8 @@ case class Request private(applicationSettings: ApplicationSettings,
                            desiredLocale: ULocale,
                            doesClientSupportGzipEncoding: Boolean = true,
                            accept: List[String] = Nil,
-                           useCache: Boolean = true) {
+                           useCache: Boolean = true,
+                           zoneId: ZoneId = ZoneId.systemDefault()) {
   @transient
   lazy val locale = applicationSettings.lookupLocale(desiredLocale)
 
@@ -282,7 +281,7 @@ case class Request private(applicationSettings: ApplicationSettings,
   lazy val translator: Translator = applicationSettings.translators(locale)
 
   @transient
-  lazy val formatters = new Formatters(translator, locale, Currency.getInstance("EUR"), applicationSettings.systemSettings.zoneId)
+  lazy val formatters = new Formatters(translator, locale, Currency.getInstance("EUR"), zoneId)
 
   def use[T](f: => T) = Request.use(this)(f)
 

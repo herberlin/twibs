@@ -4,21 +4,20 @@
 
 package net.twibs.web
 
+import javax.servlet.http.{HttpServletRequest, HttpServletResponse}
+
 import com.google.common.base.Charsets
 import com.google.common.io.ByteStreams
-import javax.servlet.http.{HttpServletRequest, HttpServletResponse}
 import net.twibs.util.Predef._
 import net.twibs.util.Request
-import org.threeten.bp.LocalDateTime
+import org.threeten.bp.ZonedDateTime
 
 class HttpResponseRenderer(request: Request, response: Response, httpRequest: HttpServletRequest, httpResponse: HttpServletResponse) {
-  private val currentDateTime = LocalDateTime.now()
+  private val currentDateTime = ZonedDateTime.now()
 
-  private def currentDateTimeInMillis = currentDateTime.toSystemEpochMillis
+  private def expires = currentDateTime.plus(expiresAfter)
 
-  private def expiresInMillis = currentDateTimeInMillis + expiresAfterInMillis
-
-  private def expiresAfterInMillis = response.expiresOnClientAfter.toMillis
+  private def expiresAfter = response.expiresOnClientAfter
 
   def render(): Unit =
     response match {
@@ -33,7 +32,7 @@ class HttpResponseRenderer(request: Request, response: Response, httpRequest: Ht
 
   private def respond(): Unit =
     if (response.lastModified == ifModifiedSince) {
-      httpResponse.setDateHeader("Expires", expiresInMillis)
+      httpResponse.setDateHeader("Expires", expires.toInstant.toEpochMilli)
       httpResponse.sendError(HttpServletResponse.SC_NOT_MODIFIED)
     } else
       transfer()
@@ -42,8 +41,8 @@ class HttpResponseRenderer(request: Request, response: Response, httpRequest: Ht
     httpResponse.setStatus(status(response))
     //httpResponse.setHeader("Cache-Control", "private, max-age=0")
     httpResponse.setHeader("Vary", "Accept-Encoding")
-    httpResponse.setDateHeader("Date", currentDateTimeInMillis)
-    httpResponse.setDateHeader("Expires", expiresInMillis)
+    httpResponse.setDateHeader("Date", currentDateTime.toInstant.toEpochMilli)
+    httpResponse.setDateHeader("Expires", expires.toInstant.toEpochMilli)
 
     response match {
       case r: AsAttachment => httpResponse.setHeader("Content-Disposition", """attachment; filename="""" + r.attachmentFileName + '"')

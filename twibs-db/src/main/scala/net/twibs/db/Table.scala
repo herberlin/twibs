@@ -6,14 +6,17 @@ package net.twibs.db
 
 import java.sql._
 
-import net.twibs.util.{TableData, SqlUtils, Translator, Loggable}
+import com.google.common.base.Stopwatch
 import net.twibs.util.Predef._
 import net.twibs.util.SortOrder.SortOrder
+import net.twibs.util._
+import org.threeten.bp.{LocalDate, LocalDateTime, ZoneId, ZonedDateTime}
 
-import com.google.common.base.Stopwatch
-import org.threeten.bp.{LocalDate, LocalDateTime}
+object Sql extends Loggable {
+  val ZonedDateTimeMin = ZonedDateTime.of(LocalDateTime.MIN.plusDays(2), ZoneId.systemDefault())
 
-object Sql extends Loggable
+  val timestampCalendar = ZonedDateTime.now().toCalendar
+}
 
 case class Table(tableName: String) {
   protected implicit def table: Table = this
@@ -102,18 +105,18 @@ case class Table(tableName: String) {
     override def asVarChar: String = s"$fullName::varchar"
   }
 
-  case class LocalDateTimeColumn(name: String, default: LocalDateTime = LocalDateTime.MIN) extends Column[LocalDateTime] {
-    def get(rs: ResultSet, pos: Int) = Option(rs.getTimestamp(pos)).fold(default)(_.toLocalDateTime)
+  case class ZonedDateTimeColumn(name: String, default: ZonedDateTime = Sql.ZonedDateTimeMin) extends Column[ZonedDateTime] {
+    def get(rs: ResultSet, pos: Int) = Option(rs.getTimestamp(pos, Sql.timestampCalendar)).fold(default)(_.toZonedDateTime)
 
-    def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setTimestamp(pos, value.asInstanceOf[LocalDateTime].toTimestamp)
+    def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setTimestamp(pos, value.asInstanceOf[ZonedDateTime].toTimestamp, value.asInstanceOf[ZonedDateTime].toCalendar)
 
     override def asVarChar: String = s"to_char($fullName, '${Translator.translate("date-time-format-sql", "DD.MM.YYYY HH24:MI:SS")}')"
   }
 
-  case class LocalDateTimeOptionColumn(name: String) extends Column[Option[LocalDateTime]] with OptionalColumn {
-    def get(rs: ResultSet, pos: Int) = Option(rs.getTimestamp(pos)).map(_.toLocalDateTime)
+  case class ZonedDateTimeOptionColumn(name: String) extends Column[Option[ZonedDateTime]] with OptionalColumn {
+    def get(rs: ResultSet, pos: Int) = Option(rs.getTimestamp(pos, Sql.timestampCalendar)).map(_.toZonedDateTime)
 
-    def set(ps: PreparedStatement, pos: Int, valueOption: Any) = valueOption.asInstanceOf[Option[LocalDateTime]] match {
+    def set(ps: PreparedStatement, pos: Int, valueOption: Any) = valueOption.asInstanceOf[Option[ZonedDateTime]] match {
       case Some(value) => ps.setTimestamp(pos, value.toTimestamp)
       case None => ps.setNull(pos, Types.TIMESTAMP)
     }
@@ -141,7 +144,7 @@ case class Table(tableName: String) {
   }
 
   case class EnumColumn[T <: Enumeration](name: String, enum: T, defaultIndex: Int = 0) extends Column[T#Value] {
-    def get(rs: ResultSet, pos: Int) = enum(rs.getInt(pos) match { case r if rs.wasNull() => defaultIndex case r => r})
+    def get(rs: ResultSet, pos: Int) = enum(rs.getInt(pos) match { case r if rs.wasNull() => defaultIndex case r => r })
 
     def set(ps: PreparedStatement, pos: Int, value: Any) = ps.setInt(pos, value.asInstanceOf[T#Value].id)
 
@@ -330,14 +333,14 @@ private case class Statement(sql: String, parameters: Seq[(Column[_], Any)] = Ni
 
   def select(connection: Connection): ResultSet = timed {preparedStatement(connection).executeQuery()}
 
-  def size(connection: Connection) = timed {preparedStatement(connection).useAndClose {_.executeQuery().useAndClose { rs => rs.next(); rs.getLong(1)}}}
+  def size(connection: Connection) = timed {preparedStatement(connection).useAndClose {_.executeQuery().useAndClose { rs => rs.next(); rs.getLong(1) }}}
 
   private def preparedStatement(connection: Connection) = setParameters(connection.prepareStatement(sql))
 
   private def returningStatement(connection: Connection) = setParameters(connection.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS))
 
   private def setParameters(ps: PreparedStatement) = {
-    parameters.view.zipWithIndex.foreach { case ((column, value), index) => column.set(ps, index + 1, value)}
+    parameters.view.zipWithIndex.foreach { case ((column, value), index) => column.set(ps, index + 1, value) }
     ps
   }
 

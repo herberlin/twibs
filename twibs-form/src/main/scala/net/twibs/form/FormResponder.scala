@@ -8,10 +8,10 @@ import net.twibs.util.{Request, PostMethod, GetMethod}
 import net.twibs.web.{Responder, Response}
 
 class FormResponder(makeForm: () => Form) extends Responder {
-  lazy val pnId = enhance(makeForm().pnId)
+  lazy val formIlk = enhance(makeForm().ilk)
 
   def respond(request: Request): Option[Response] =
-    request.parameters.getStringOption(pnId).flatMap(x => process(request))
+    request.parameters.getStringOption(FormConstants.PN_ILK).filter(_ == formIlk).flatMap(_ => process(request))
 
   def process(request: Request): Option[Response] =
     request.method match {

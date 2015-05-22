@@ -4,19 +4,19 @@
 
 package net.twibs.web
 
-import org.threeten.bp.{LocalDateTime, Duration}
-import net.twibs.util.{Request, Loggable}
 import net.twibs.util.Formatters._
+import net.twibs.util.{Loggable, Request}
+import org.threeten.bp.{Duration, ZonedDateTime}
 
 class LoggingResponder(delegate: Responder) extends Responder with Loggable {
   def respond(request: Request) = {
     val responseOption = delegate.respond(request)
-    responseOption.map(response => log(request, response))
+    responseOption.foreach(response => log(request, response))
     responseOption
   }
 
   def log(request: Request, response: Response): Unit = {
-    def elapsed = Duration.between(timestamp, LocalDateTime.now()).toMillis
+    def elapsed = Duration.between(timestamp, ZonedDateTime.now()).toMillis
 
     def timestamp = request.timestamp
 

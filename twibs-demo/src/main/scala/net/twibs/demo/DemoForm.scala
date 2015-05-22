@@ -225,9 +225,9 @@ class DemoForm extends Form("demo") {
   //  }
   //
   //  val next = new Field("next") with DateTimeField {
-  //    override def minimum = LocalDateTime.of(2013, 6, 12, 13, 14)
+  //    override def minimum = ZonedDateTime.of(2013, 6, 12, 13, 14)
   //
-  //    override def maximum = LocalDateTime.of(2013, 6, 13, 14, 15)
+  //    override def maximum = ZonedDateTime.of(2013, 6, 13, 14, 15)
   //  }
   //
   //  val birthday = new Field("birthday") with DateField {

@@ -22,20 +22,9 @@ trait Component extends TranslationSupport {
 
   def form: Form = parent.form
 
-  lazy val name: String = computeName
+  def name: String
 
   def id: IdString = parent.id ~ name
-
-  private[form] def computeName = {
-    val names = form.descendants.map(_.name).toSet
-    @tailrec
-    def recursive(n: String, i: Int): String = {
-      val ret = n + (if (i == 0) "" else i)
-      if (!names.contains(ret)) ret
-      else recursive(n, i + 1)
-    }
-    recursive(parent.prefixForChildNames + ilk, 0)
-  }
 
   def shellId = id ~ "shell"
 
@@ -162,9 +151,7 @@ trait Component extends TranslationSupport {
   private[form] def validateSettings(): Unit = {
     require(!ilk.isEmpty, "Empty ilk is not allowed")
     require(ilk matches "\\w+[\\w0-9-]*", "Ilk must start with character and contain only characters, numbers and -")
-    require(!name.endsWith(FormConstants.PN_FORM_ID_SUFFIX), s"Suffix '${FormConstants.PN_FORM_ID_SUFFIX}' is reserved")
-    require(!name.endsWith(FormConstants.PN_FORM_MODAL_SUFFIX), s"Suffix '${FormConstants.PN_FORM_MODAL_SUFFIX}' is reserved")
-    require(name != ApplicationSettings.PN_NAME, s"'${ApplicationSettings.PN_NAME}' is reserved")
+    require(!(ilk startsWith "t-"), "Ilk must not start with the reserved 't-'")
   }
 
   implicit class Bs3RichElem(elem: Elem) {
@@ -198,6 +185,7 @@ trait Component extends TranslationSupport {
 
     def toBsMessageAttribute: String = toBsMessage.toString()
   }
+
 }
 
 trait ExecuteValidated extends Component {
@@ -375,7 +363,7 @@ trait FormControlField extends Field {
 trait SubmitOnChange extends Field {
   override def submitOnChange = true
 
-  def isSubmittedOnChange = form.request.parameters.getString("form-change", "") == name
+  def isSubmittedOnChange = form.actionName == name && form.isSubmittedOnChange
 }
 
 trait OneControlPerEntryWithOptions extends OneControlPerEntry with Options {
@@ -392,7 +380,7 @@ trait SingleLineFieldTrait extends FormControlField with OneControlPerEntry {
         .setIfMissing(isDisabled, "disabled", "disabled")
       .addClass(isDisabled, "disabled")
       .addClass(!isDisabled, "can-be-disabled")
-      .addClass(submitOnChange && isEnabled, "submit-on-change")
+      .addClass(submitOnChange && isEnabled, FormConstants.ACTION_SUBMIT_ON_CHANGE)
       .set(maximumLength < Int.MaxValue, "maxlength", maximumLength.toString)
 }
 
@@ -404,7 +392,7 @@ trait MultiLineFieldTrait extends FormControlField with OneControlPerEntry {
         .setIfMissing(isDisabled, "disabled", "disabled")
       .addClass(isDisabled, "disabled")
       .addClass(!isDisabled, "can-be-disabled")
-      .addClass(submitOnChange && isEnabled, "submit-on-change")
+      .addClass(submitOnChange && isEnabled, FormConstants.ACTION_SUBMIT_ON_CHANGE)
       .set(maximumLength < Int.MaxValue, "maxlength", maximumLength.toString)
 
   def rows = 6
@@ -414,8 +402,8 @@ trait MultiLineFieldTrait extends FormControlField with OneControlPerEntry {
 
 trait HtmlFieldTrait extends MultiLineFieldTrait with HtmlInput {
   // Remove CKEDITOR instance from previous textarea otherwise a javascript error appears
-// TODO: This has moved to javascript - delete this line if successful
-//  override def replaceContentJs: JsCmd = jQuery(shellId + " .html-field[contenteditable='true']").call("destroyCkeditor")
+  // TODO: This has moved to javascript - delete this line if successful
+  //  override def replaceContentJs: JsCmd = jQuery(shellId + " .html-field[contenteditable='true']").call("destroyCkeditor")
 
   override def javascript: JsCmd = jQuery(shellId + " .html-field[contenteditable='true']").call("ckeditor", ckeditorInit, ckeditorConfig)
 
@@ -436,7 +424,7 @@ trait HtmlFieldTrait extends MultiLineFieldTrait with HtmlInput {
       .addClass(isDisabled, "disabled")
       .set(isEnabled, "contenteditable", "true")
       .addClass(!isDisabled, "can-be-disabled")
-      .addClass(submitOnChange && isEnabled, "submit-on-change")
+      .addClass(submitOnChange && isEnabled, FormConstants.ACTION_SUBMIT_ON_CHANGE)
 
   override def renderHidden(entry: Entry): NodeSeq = <textarea class="concealed" name={name}>{entry.string}</textarea>
 
@@ -461,7 +449,7 @@ trait SingleSelectFieldTrait extends SelectField with OneControlPerEntryWithOpti
         .setIfMissing(isDisabled, "disabled", "disabled")
       .addClass(isDisabled, "disabled")
       .addClass(!isDisabled, "can-be-disabled")
-      .addClass(submitOnChange && isEnabled, "submit-on-change")
+      .addClass(submitOnChange && isEnabled, FormConstants.ACTION_SUBMIT_ON_CHANGE)
 
   def emptyOption(entry: Entry) =
     if (required && optionEntries.exists(_.string == entry.string)) NodeSeq.Empty
@@ -479,7 +467,7 @@ trait MultiSelectFieldTrait extends SelectField with OneControlForAllEntries {
         .setIfMissing(isDisabled, "disabled", "disabled")
       .addClass(isDisabled, "disabled")
       .addClass(!isDisabled, "can-be-disabled")
-      .addClass(submitOnChange && isEnabled, "submit-on-change")
+      .addClass(submitOnChange && isEnabled, FormConstants.ACTION_SUBMIT_ON_CHANGE)
 
   override def optionHtmlFor(option: Entry): NodeSeq =
     <option value={ option.string }>{ option.title }</option>.set(option.string == stringOrEmpty, "selected")
@@ -495,7 +483,7 @@ trait CheckboxFieldTrait extends Field with OneControlForAllEntries {
         .setIfMissing(isDisabled, "disabled", "disabled")
       .addClass(isDisabled, "disabled")
       .addClass(!isDisabled, "can-be-disabled")
-      .addClass(submitOnChange && isEnabled, "submit-on-change")
+      .addClass(submitOnChange && isEnabled, FormConstants.ACTION_SUBMIT_ON_CHANGE)
       .set(values.contains(option.valueOption.get), "checked")
 }
 
@@ -529,7 +517,7 @@ trait RadioFieldTrait extends Field with OneControlPerEntryWithOptions {
         .setIfMissing(isDisabled, "disabled", "disabled")
       .addClass(isDisabled, "disabled")
       .addClass(!isDisabled, "can-be-disabled")
-      .addClass(submitOnChange && isEnabled, "submit-on-change")
+      .addClass(submitOnChange && isEnabled, FormConstants.ACTION_SUBMIT_ON_CHANGE)
       .set(entry.valueOption == option.valueOption, "checked")
 
   override def parse(parameterStrings: Seq[String]): Unit = super.parse(resolveEntryTriggers(parameterStrings))
@@ -613,6 +601,19 @@ trait ButtonTrait extends OneControlForAllEntries with DisplayType {
 
 class Child(val ilk: String, val parent: Container) extends Component {
   validateSettings()
+
+  val name: String = computeName
+
+  private[form] def computeName = {
+    val names = form.descendants.map(_.name).toSet
+    @tailrec
+    def recursive(n: String, i: Int): String = {
+      val ret = n + (if (i == 0) "" else i)
+      if (!names.contains(ret)) ret
+      else recursive(n, i + 1)
+    }
+    recursive(parent.prefixForChildNames + ilk, 0)
+  }
 
   parent._children += this
 }
@@ -793,6 +794,7 @@ trait Container extends Component {
   abstract class ButtonRow extends Child("br", this) with Container
 
   abstract class HorizontalLayout extends Child("hl", this) with HorizontalLayoutContainer
+
 }
 
 trait DynamicChildren extends Container {
@@ -869,9 +871,14 @@ trait UseLastParameterOnly extends Component {
 trait Detachable extends Container
 
 object FormConstants {
-  val PN_FORM_ID_SUFFIX = "-form-id"
+  val PN_ID = "t-id"
+  val PN_ILK = "t-ilk"
+  val PN_MODAL = "t-modal"
+  val PN_ACTION_REASON = "t-action-reason"
+  val PN_ACTION_ID = "t-action-id"
+  val PN_ACTION_NAME = "t-action-name"
 
-  val PN_FORM_MODAL_SUFFIX = "-form-modal"
+  val ACTION_SUBMIT_ON_CHANGE = "submit-on-change"
 }
 
 object FormUtils {
@@ -881,11 +888,10 @@ object FormUtils {
 }
 
 class Form(val ilk: String) extends Container with CancelStateInheritance with Loggable {
+
+  import FormConstants._
+
   override final val prefixForChildNames: String = ""
-
-  private[form] final val pnId = ilk + FormConstants.PN_FORM_ID_SUFFIX
-
-  private[form] final val pnModal = ilk + FormConstants.PN_FORM_MODAL_SUFFIX
 
   override final def form: Form = this
 
@@ -895,17 +901,23 @@ class Form(val ilk: String) extends Container with CancelStateInheritance with L
 
   final val request: Request = Request
 
-  override final val id: IdString = request.parameters.getString(pnId, IdGenerator.next())
-
-  final val modal = request.parameters.getBoolean(pnModal, default = false)
+  override final val id: IdString = request.parameters.getString(FormConstants.PN_ID, IdGenerator.next())
 
   final val formId = id ~ "form"
 
   final val modalId = id ~ "modal"
 
+  final val modal = request.parameters.getBoolean(FormConstants.PN_MODAL, default = false)
+
+  lazy val actionName = request.parameters.getString(PN_ACTION_NAME, "")
+
+  lazy val actionReason = request.parameters.getString(PN_ACTION_REASON, "")
+
   override def translator = Request.current.translator.usage("FORM").usage(ilk)
 
   def hidden(name: String, value: String): NodeSeq = <input type="hidden" autocomplete="off" name={name} value={value} />
+
+  def isSubmittedOnChange: Boolean = actionReason == ACTION_SUBMIT_ON_CHANGE
 
   //  override def renderMessage(message: Message): NodeSeq = <div>{message.text}</div>
 
@@ -957,7 +969,7 @@ class Form(val ilk: String) extends Container with CancelStateInheritance with L
 
   def refocusJs = focusedId.fold(JsEmpty)(id => jQuery(id).call("focus"))
 
-  def focusedId = request.parameters.getStringOption("form-focused-id").map(IdString.apply)
+  def focusedId = request.parameters.getStringOption("t-focused-id").map(IdString.apply)
 
   def actionLinkWithContextPathAppIdAndParameters(parameters: Seq[(String, String)]): String = actionLink + queryString(addAppIdAndModal(addComponentParameters(parameters)))
 
@@ -968,7 +980,7 @@ class Form(val ilk: String) extends Container with CancelStateInheritance with L
   def queryString(parameters: Seq[(String, String)]) = "?" + FormUtils.toQueryString(parameters)
 
   def addAppIdAndModal(parameters: Seq[(String, String)]) = {
-    val keyValues = (pnId -> id.string) +: (pnModal -> modal.toString) +: addComponentParameters(parameters)
+    val keyValues = (FormConstants.PN_ILK -> ilk) +: (FormConstants.PN_ID -> id.string) +: (FormConstants.PN_MODAL -> modal.toString) +: addComponentParameters(parameters)
     if (ApplicationSettings.name != ApplicationSettings.DEFAULT_NAME) (ApplicationSettings.PN_NAME -> ApplicationSettings.name) +: keyValues else keyValues
   }
 
@@ -996,11 +1008,11 @@ class Form(val ilk: String) extends Container with CancelStateInheritance with L
 
   def surround(content: NodeSeq, modalValue: String = modal.toString) =
     <form id={formId} name={name} class={formCssClasses} action={actionLink} method="post" enctype="multipart/form-data">
-      {hidden(pnId, id) ++ hidden(pnModal, modalValue) ++ hidden(ApplicationSettings.PN_NAME, Request.applicationSettings.name)}
+      {hidden(FormConstants.PN_ILK, ilk) ++ hidden(FormConstants.PN_ID, id) ++ hidden(FormConstants.PN_MODAL, modalValue) ++ hidden(ApplicationSettings.PN_NAME, Request.applicationSettings.name)}
       {content}
     </form>
 
-  def formCssClasses: Seq[String] = "twibs-form" :: Nil
+  def formCssClasses: Seq[String] = "t-form" :: Nil
 
   def modalContent: NodeSeq =
     <div class="modal-content">
@@ -1045,7 +1057,7 @@ class Form(val ilk: String) extends Container with CancelStateInheritance with L
 
   def formBody = defaultButtonHtml ++ super.enabledComponentHtml
 
-  def javascriptHtml = javascript.toString match {case "" => NodeSeq.Empty case js => <script>{Unparsed("document.addEventListener('twibs-loaded', function() {"+ js +"}, false)")}</script> }
+  def javascriptHtml = javascript.toString match {case "" => NodeSeq.Empty case js => <script>{Unparsed("document.addEventListener('twibs-loaded', function() {" + js + "}, false)")}</script> }
 
   def defaultButtonHtml: NodeSeq = defaultButtonOption match {
     case Some(b) => b.defaultButtonHtml

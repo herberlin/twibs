@@ -25,7 +25,7 @@ class Page extends Responder {
 
   def doctype = "<!DOCTYPE html>"
 
-  val modified = Instant.ofEpochMilli(ClassUtils.getCompilationTime(getClass)).toLocalDateTime
+  val modified = Instant.ofEpochMilli(ClassUtils.getCompilationTime(getClass)).toZonedDateTime
 
   def yearString = modified.getYear.toString
 

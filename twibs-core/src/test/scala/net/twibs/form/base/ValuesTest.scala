@@ -6,7 +6,7 @@ package net.twibs.form.base
 
 import net.twibs.testutil.TwibsTest
 import net.twibs.util.XmlUtils._
-import net.twibs.util.{Message, Translator}
+import net.twibs.util.{Request, Message, Translator}
 
 import org.threeten.bp.LocalDateTime
 
@@ -90,9 +90,9 @@ class ValuesTest extends TwibsTest {
 
   test("Long validation") {
     val field = new TestField with LongValues {
-      override def minimum = 0L
+      override def minimum = Some(0L)
 
-      override def maximum = 9
+      override def maximum = Some(9)
     }
 
     field.strings = "a" :: "-1" :: "1" :: "10" :: "9" :: Nil
@@ -102,9 +102,9 @@ class ValuesTest extends TwibsTest {
 
   test("Date time validation") {
     val field = new TestField with DateTimeValues {
-      override def minimum = LocalDateTime.of(2000, 12, 1, 12, 12)
+      override def minimum = Some(LocalDateTime.of(2000, 12, 1, 12, 12).atZone(Request.zoneId))
 
-      override def maximum = LocalDateTime.of(2000, 12, 24, 12, 12)
+      override def maximum = Some(LocalDateTime.of(2000, 12, 24, 12, 12).atZone(Request.zoneId))
     }
 
     field.strings = "01.12.2000 12:11:00" :: "01.12.2000 12:12:00" :: "xx" :: "24.12.2000 12:12:00" :: "24.12.2000 12:13:00" :: Nil

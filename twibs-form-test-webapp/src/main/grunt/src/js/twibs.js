@@ -121,19 +121,19 @@ $(function () {
 
         $.fn.submitForm = function (reason, actionId, name, value) {
             var data = {};
-            if (reason) data['form-action-reason'] = reason;
-            if (actionId) data['form-action-id'] = actionId;
+            if (reason) data['t-action-reason'] = reason;
+            if (actionId) data['t-action-id'] = actionId;
             if (name) {
-                data['form-action-name'] = name;
+                data['t-action-name'] = name;
                 if (value !== undefined) data[name] = value;
             }
             // Find focused id (also for chosen elements)
             var ae = $(document.activeElement);
             var focusedId = ae.attr("id") || ae.closest(".chosen-container").prev().attr("id");
 
-            if (focusedId) data['form-focused-id'] = focusedId;
+            if (focusedId) data['t-focused-id'] = focusedId;
             var bf = $("html").attr("class");
-            if (bf) data["browser-features"] = bf;
+            if (bf) data["t-browser-features"] = bf;
             var config = {data: data};
             $(this).each(function () {
                 ajaxSubmitForm($(this).closest('form'), config);
@@ -167,7 +167,7 @@ $(function () {
         $.fn.updateDynamics = function () {
             return this.each(function () {
                 var $this = $(this);
-                $this.find(".twibs-form:visible").submitForm("update-dynamics", "");
+                $this.find(".t-form:visible").submitForm("update-dynamics", "");
                 //$this.closePopoversByScript();
             })
         };
@@ -185,7 +185,7 @@ $(function () {
             .scroll(positionFixedContainers);
 
         $(document)
-            .on('click', '.twibs-form button[type="submit"],.twibs-form input[type="submit"]', function (e) {
+            .on('click', '.t-form button[type="submit"],.t-form input[type="submit"]', function (e) {
                 e.stopPropagation();
                 e.preventDefault();
                 var $this = $(this);
@@ -222,7 +222,7 @@ $(function () {
                 $prev.focus();
                 $prev.trigger("change");
             })
-            .on('change', '.twibs-form .submit-on-change', function () {
+            .on('change', '.t-form .submit-on-change', function () {
                 var $this = $(this);
                 window.setTimeout(function () {
                     $this.submitForm("submit-on-change", $this.id, $this.data("name") || $this.attr('name'))
@@ -256,7 +256,7 @@ $(function () {
                 $('.click-on-appear').removeClass('.click-on-appear').filter("[data-call]").appear(function () {
                     $(this).trigger("click");
                 });
-            });
+            })
 
         $('body')
             .on("focus", ".show-focus-on-parent", function () {
@@ -288,7 +288,7 @@ $(function () {
                 return location.hash = $(e.target).attr('href').substr(1);
             });
 
-        $('.twibs-form').initFormElements();
+        $('.t-form').initFormElements();
 
         function hashchange() {
             $('a[href="' + location.hash + '"]').tab('show');
@@ -438,6 +438,8 @@ $(function () {
                 this.selected = this.hasAttribute("selected");
             });
         }
+
+        //document.cookie = "client-time-zone='" + jstz.determine().name() + "'; path=/";
 
         // Fire an event that twibs (and jquery) loading is complete
         var event = document.createEvent("Event");

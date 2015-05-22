@@ -8,15 +8,14 @@ import java.io.File
 import java.text.ParseException
 import java.util.concurrent.TimeUnit
 
-import net.twibs.util.XmlUtils._
-import net.twibs.util._
-
 import com.google.common.cache.{Cache, CacheBuilder}
 import com.ibm.icu.text.NumberFormat
 import com.ibm.icu.util.ULocale
+import net.twibs.util.XmlUtils._
+import net.twibs.util._
 import org.apache.commons.io.FilenameUtils
 import org.threeten.bp.format.{DateTimeFormatter, DateTimeParseException}
-import org.threeten.bp.{LocalDate, LocalDateTime}
+import org.threeten.bp.{LocalDateTime, LocalDate, ZonedDateTime}
 
 trait Values extends TranslationSupport {
   type ValueType
@@ -57,7 +56,7 @@ trait Values extends TranslationSupport {
           values.map(validateValue)
         case None => defaultInputs
       }
-    }).zipWithIndex.map { case (i, index) => i.withIndex(index)}
+    }).zipWithIndex.map { case (i, index) => i.withIndex(index) }
   }
 
   def defaultInputs = {
@@ -106,7 +105,7 @@ trait Values extends TranslationSupport {
 
   private def format(i: Int) = Formatters.integerFormat.format(i)
 
-  def messageDisplayTypeOption = if (validated) inputsMessageOption.map(_.displayTypeString) orElse inputs.collectFirst({ case Input(_, _, _, Some(message), _, _) => message.displayTypeString}) else None
+  def messageDisplayTypeOption = if (validated) inputsMessageOption.map(_.displayTypeString) orElse inputs.collectFirst({ case Input(_, _, _, Some(message), _, _) => message.displayTypeString }) else None
 
   def computeIsValid = areInputsValid && isNumberOfInputsValid
 
@@ -188,7 +187,7 @@ trait Values extends TranslationSupport {
   /* Convenience methods */
   final def isChanged = values != defaultValues
 
-  final def values = inputs.collect { case Input(_, _, Some(value), _, _, _) => value}
+  final def values = inputs.collect { case Input(_, _, Some(value), _, _, _) => value }
 
   final def input = inputs.head
 
@@ -200,7 +199,7 @@ trait Values extends TranslationSupport {
 
   final def string_=(string: String) = strings = string :: Nil
 
-  final def validValues = inputs.collect { case Input(_, _, Some(value), None, _, _) => value}
+  final def validValues = inputs.collect { case Input(_, _, Some(value), None, _, _) => value }
 
   final def validValue = validValues.head
 
@@ -283,13 +282,13 @@ trait BooleanValues extends Values {
 }
 
 trait MinMaxValues extends Values {
-  def checkMinimum(input: Input) = input.validate(isGreaterOrEqualMinimum(input.value), t"minimum-message: Must be greater or equal ${computeTitleForValue(minimum)}.")
+  def checkMinimum(input: Input) = input.validate(isGreaterOrEqualMinimum(input.value), t"minimum-message: Must be greater or equal ${computeTitleForValue(minimum.get)}.")
 
-  def checkMaximum(input: Input) = input.validate(isLessOrEqualMaximum(input.value), t"maximum-message: Must be less or equal ${computeTitleForValue(maximum)}.")
+  def checkMaximum(input: Input) = input.validate(isLessOrEqualMaximum(input.value), t"maximum-message: Must be less or equal ${computeTitleForValue(maximum.get)}.")
 
-  def minimum: ValueType
+  def minimum: Option[ValueType] = None
 
-  def maximum: ValueType
+  def maximum: Option[ValueType] = None
 
   protected def isGreaterOrEqualMinimum(value: ValueType): Boolean
 
@@ -325,13 +324,9 @@ trait IntValues extends NumberValues {
 
   protected def parseString(string: String): ValueType = editNumberFormat.parse(string).intValue
 
-  protected def isGreaterOrEqualMinimum(value: ValueType) = value >= minimum
+  protected def isGreaterOrEqualMinimum(value: ValueType) = minimum.forall(value >= _)
 
-  protected def isLessOrEqualMaximum(value: ValueType) = value <= maximum
-
-  override def minimum: ValueType = Int.MinValue
-
-  override def maximum: ValueType = Int.MaxValue
+  protected def isLessOrEqualMaximum(value: ValueType) = maximum.forall(value <= _)
 
   abstract override def translator: Translator = super.translator.kind("INT")
 }
@@ -343,13 +338,9 @@ trait LongValues extends NumberValues {
 
   protected def parseString(string: String): ValueType = editNumberFormat.parse(string).longValue
 
-  protected def isGreaterOrEqualMinimum(value: ValueType) = value >= minimum
+  protected def isGreaterOrEqualMinimum(value: ValueType) = minimum.forall(value >= _)
 
-  protected def isLessOrEqualMaximum(value: ValueType) = value <= maximum
-
-  override def minimum: ValueType = Long.MinValue
-
-  override def maximum: ValueType = Long.MaxValue
+  protected def isLessOrEqualMaximum(value: ValueType) = maximum.forall(value <= _)
 
   abstract override def translator: Translator = super.translator.kind("LONG")
 }
@@ -361,13 +352,9 @@ trait DoubleValues extends NumberValues {
 
   protected def parseString(string: String): ValueType = editNumberFormat.parse(string).doubleValue
 
-  protected def isGreaterOrEqualMinimum(value: ValueType) = value >= minimum
+  protected def isGreaterOrEqualMinimum(value: ValueType) = minimum.forall(value >= _)
 
-  protected def isLessOrEqualMaximum(value: ValueType) = value <= maximum
-
-  override def minimum: ValueType = Double.MinValue
-
-  override def maximum: ValueType = Double.MaxValue
+  protected def isLessOrEqualMaximum(value: ValueType) = maximum.forall(value <= _)
 
   abstract override def translator: Translator = super.translator.kind("DOUBLE")
 }
@@ -381,13 +368,13 @@ trait PercentValues extends NumberValues {
 
   protected def parseString(string: String): ValueType = editNumberFormat.parse(string).doubleValue
 
-  protected def isGreaterOrEqualMinimum(value: ValueType) = value >= minimum
+  protected def isGreaterOrEqualMinimum(value: ValueType) = minimum.forall(value >= _)
 
-  protected def isLessOrEqualMaximum(value: ValueType) = value <= maximum
+  protected def isLessOrEqualMaximum(value: ValueType) = maximum.forall(value <= _)
 
-  override def minimum: ValueType = 0D
+  override def minimum = Some(0D)
 
-  override def maximum: ValueType = 100D
+  override def maximum = Some(100D)
 
   abstract override def translator: Translator = super.translator.kind("PERCENT")
 }
@@ -405,24 +392,20 @@ trait UploadValues extends Values {
 }
 
 trait DateTimeValues extends MinMaxValues {
-  type ValueType = LocalDateTime
+  type ValueType = ZonedDateTime
 
   def editDateTimeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern(translator.translate("date-time-format", "dd.MM.yyyy HH:mm"), translator.locale.toLocale)
 
   def displayDateTimeFormat = editDateTimeFormat
 
-  def minimum = LocalDateTime.MIN
+  override protected def isLessOrEqualMaximum(value: ValueType): Boolean = maximum.forall(!value.isAfter(_))
 
-  def maximum = LocalDateTime.MAX
-
-  override protected def isLessOrEqualMaximum(value: ValueType): Boolean = !value.isAfter(maximum)
-
-  override protected def isGreaterOrEqualMinimum(value: ValueType): Boolean = !value.isBefore(minimum)
+  override protected def isGreaterOrEqualMinimum(value: ValueType): Boolean = minimum.forall(!value.isBefore(_))
 
   override def valueToString(value: ValueType) = editDateTimeFormat.format(value)
 
   override def stringToValueOption(string: String) = try {
-    Some(LocalDateTime.parse(string, editDateTimeFormat))
+    Some(LocalDateTime.parse(string, editDateTimeFormat).atZone(Request.zoneId))
   } catch {
     case e: DateTimeParseException => None
   }
@@ -437,13 +420,9 @@ trait DateValues extends MinMaxValues {
 
   def displayDateFormat = editDateFormat
 
-  def minimum = LocalDate.MIN
+  override protected def isLessOrEqualMaximum(value: ValueType): Boolean = maximum.forall(!value.isAfter(_))
 
-  def maximum = LocalDate.MAX
-
-  override protected def isLessOrEqualMaximum(value: ValueType): Boolean = !value.isAfter(maximum)
-
-  override protected def isGreaterOrEqualMinimum(value: ValueType): Boolean = !value.isBefore(minimum)
+  override protected def isGreaterOrEqualMinimum(value: ValueType): Boolean = minimum.forall(!value.isBefore(_))
 
   override def valueToString(value: ValueType) = editDateFormat.format(value)
 
@@ -525,7 +504,7 @@ trait Options extends Values {
 
   final def optionStrings: List[String] = options.map(_.string)
 
-  private val _options = Memo(computeOptions.zipWithIndex.map { case (o, index) => o.withIndex(index)})
+  private val _options = Memo(computeOptions.zipWithIndex.map { case (o, index) => o.withIndex(index) })
 
   def computeOptions: List[OptionI]
 

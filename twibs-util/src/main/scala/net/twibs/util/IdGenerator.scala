@@ -4,7 +4,7 @@
 
 package net.twibs.util
 
-import org.threeten.bp.LocalDateTime
+import org.threeten.bp.ZonedDateTime
 
 /**
  * Generates Unique ids using a counter and a random part of
@@ -13,7 +13,7 @@ import org.threeten.bp.LocalDateTime
 object IdGenerator extends RandomStringGenerator("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ") {
   def next() = {
     val sb = new StringBuilder()
-    val dateTime = LocalDateTime.now()
+    val dateTime = ZonedDateTime.now()
     appendChar(dateTime.getYear - 2000, sb)
     appendChar(dateTime.getMonthValue, sb)
     appendChar(dateTime.getDayOfMonth, sb)

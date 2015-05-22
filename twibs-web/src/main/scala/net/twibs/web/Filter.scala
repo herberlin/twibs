@@ -14,7 +14,8 @@ import org.apache.commons.fileupload.disk.DiskFileItemFactory
 import org.apache.commons.fileupload.servlet.ServletFileUpload
 import org.apache.commons.fileupload.{FileItem, FileItemFactory}
 import org.apache.commons.io.FileUtils
-import org.threeten.bp.LocalDateTime
+import org.threeten.bp.{DateTimeException, ZoneId, ZonedDateTime}
+
 import scala.collection.convert.wrapAsScala._
 
 abstract class AbstractFilter extends javax.servlet.Filter {
@@ -88,27 +89,35 @@ trait HttpServletUtils {
 }
 
 object HttpServletRequestBase extends HttpServletUtils {
-  def apply(httpServletRequest: HttpServletRequest, httpServletResponse: HttpServletResponse): Request =
+  def apply(httpServletRequest: HttpServletRequest, httpServletResponse: HttpServletResponse): Request = {
+    val cookieContainer = new CookieContainer {
+      def getCookie(name: String) = Option(httpServletRequest.getCookies).flatMap(_.find(_.getName.equalsIgnoreCase(name))).map(_.getValue)
+
+      def removeCookie(name: String) = {
+        val cookie: Cookie = new Cookie(name, "empty")
+        cookie.setMaxAge(0)
+        cookie.setPath("/")
+        httpServletResponse.addCookie(cookie)
+      }
+
+      def setCookie(name: String, value: String) = {
+        val cookie: Cookie = new Cookie(name, value)
+        cookie.setMaxAge(5 * 365 * 24 * 60 * 60)
+        cookie.setPath("/")
+        httpServletResponse.addCookie(cookie)
+      }
+    }
+
+    val zoneId = cookieContainer.getCookie("client-time-zone").fold(Request.zoneId) { z =>
+      try {ZoneId.of(z)} catch {
+        case e: DateTimeException => Request.zoneId
+      }
+    }
+
     Request.copy(
       session = new HttpSession(httpServletRequest),
 
-      cookies = new CookieContainer {
-        def getCookie(name: String) = Option(httpServletRequest.getCookies).flatMap(_.find(_.getName.equalsIgnoreCase(name))).map(_.getValue)
-
-        def removeCookie(name: String) = {
-          val cookie: Cookie = new Cookie(name, "empty")
-          cookie.setMaxAge(0)
-          cookie.setPath("/")
-          httpServletResponse.addCookie(cookie)
-        }
-
-        def setCookie(name: String, value: String) = {
-          val cookie: Cookie = new Cookie(name, value)
-          cookie.setMaxAge(5 * 365 * 24 * 60 * 60)
-          cookie.setPath("/")
-          httpServletResponse.addCookie(cookie)
-        }
-      },
+      cookies = cookieContainer,
 
       attributes = new AttributeContainer {
         def setAttribute(name: String, value: Any): Unit = httpServletRequest.setAttribute(name, value)
@@ -118,7 +127,8 @@ object HttpServletRequestBase extends HttpServletUtils {
         def removeAttribute(name: String): Unit = httpServletRequest.removeAttribute(name)
       },
 
-      timestamp = LocalDateTime.now(),
+      // The timestamp is created in the zone of the system, not the client
+      timestamp = ZonedDateTime.now(),
 
       method = httpServletRequest.getMethod match {
         case "GET" => GetMethod
@@ -148,7 +158,9 @@ object HttpServletRequestBase extends HttpServletUtils {
 
       accept = Option(httpServletRequest.getHeader("Accept")).map(_.split(",").toList) getOrElse Nil,
 
-      useCache = !(RunMode.isPrivate && httpServletRequest.getHeader("Cache-Control") == "no-cache" && httpServletRequest.getHeader("If-Modified-Since") == null)
+      useCache = !(RunMode.isPrivate && httpServletRequest.getHeader("Cache-Control") == "no-cache" && httpServletRequest.getHeader("If-Modified-Since") == null),
+
+      zoneId = zoneId
 
       //  def uri = httpServletRequest.getRequestURI
 
@@ -158,6 +170,7 @@ object HttpServletRequestBase extends HttpServletUtils {
 
       //  def remoteUserOption = Option(httpServletRequest.getRemoteUser)
     )
+  }
 }
 
 object HttpServletRequestWithCommonsFileUpload extends HttpServletUtils {
