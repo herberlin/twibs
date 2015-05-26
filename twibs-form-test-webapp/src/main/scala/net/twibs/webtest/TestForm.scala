@@ -24,6 +24,21 @@ class RadioTestForm extends Form("radio") with HorizontalForm {
     override protected def selfIsIgnored: Boolean = mode.string == "ignored"
 
     >> {<h3>Date Time Field</h3>}
+    new IntField("int-values") with SubmitOnChange {
+      override def execute(): Seq[Result] =
+        if (isSubmittedOnChange) AfterFormDisplay(info"pressed: Date time changed: $string".showNotification)
+        else Ignored
+
+      override def minimumNumberOfEntries: Int = 1
+
+      override def maximumNumberOfEntries: Int = 3
+
+      override def minimum: Option[Int] = Some(3)
+
+      override def maximum: Option[Int] = Some(8)
+    }
+
+    >> {<h3>Date Time Field</h3>}
     new DateTimeField("date-time-values") with SubmitOnChange {
       override def execute(): Seq[Result] =
         if (isSubmittedOnChange) AfterFormDisplay(info"pressed: Date time changed: $string".showNotification)

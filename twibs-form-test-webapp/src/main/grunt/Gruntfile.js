@@ -17,10 +17,13 @@ module.exports = function (grunt) {
             ],
             dest: 'clientlibs/twibs.js'
         },
-        {src: ['src/js/twibs-form.js'], dest: 'clientlibs/twibs-form.js'},
-        {src: ['src/js/jquery-2.1.3.js'], dest: 'clientlibs/jquery.js'},
-        {src: ['src/js/bootstrap-datetimepicker-locales/bootstrap-datetimepicker.de.js'], dest: 'clientlibs/de.js'},
-        {src: ['src/js/bootstrap-datetimepicker-locales/bootstrap-datetimepicker.uk.js'], dest: 'clientlibs/en.js'}
+        {
+            src: ['src/js/twibs-form.js',
+                'src/js/bootstrap-datetimepicker-locales/bootstrap-datetimepicker.de.js',
+                'src/js/bootstrap-datetimepicker-locales/bootstrap-datetimepicker.en.js'
+            ], dest: 'clientlibs/twibs-form.js'
+        },
+        {src: ['src/js/jquery-2.1.3.js'], dest: 'clientlibs/jquery.js'}
     ];
 
     var lessFiles = [

@@ -14,7 +14,7 @@ class InputTest extends TwibsTest {
     override final val translator: Translator = Translator.current.kind(IdGenerator.next())
   }
 
-  trait TestLongInput extends LongInput with CleanTranslator
+  trait TestLongInput extends CleanTranslator with LongInput
 
   def createInput = new TestLongInput {
     override def maximumNumberOfEntries = 2
@@ -149,8 +149,8 @@ class InputTest extends TwibsTest {
   test("Untrimmed") {
     val input = new TestLongInput with Untrimmed
 
-    input.string = " 1 "
-    input.string should be(" 1 ")
+    input.string = " X "
+    input.string should be(" X ")
   }
 
   test("Single line input does not contain line breaks") {
@@ -212,6 +212,16 @@ class InputTest extends TwibsTest {
     input.values should be(-1 :: 1 :: 10 :: 9 :: Nil)
   }
 
+  test("Double value format") {
+    val field = new DoubleInput with CleanTranslator
+
+    field.string = "3,0"
+    field.string should be("3,00")
+
+    field.strings = "3,0" :: "4,0" :: Nil
+    field.string should be("3,00")
+  }
+
   test("Email address validation") {
     val input = new EmailAddressInput with CleanTranslator
 
@@ -237,11 +247,9 @@ class InputTest extends TwibsTest {
       override def maximum = Some(LocalDateTime.of(2000, 12, 24, 12, 12).atZone(Request.zoneId))
     }
 
-    input.strings = "01.12.2000 12:11:00" :: "01.12.2000 12:12:00" :: "xx" :: "24.12.2000 12:12:00" :: "24.12.2000 12:13:00" :: Nil
+    input.strings = "2000-12-01 12:11" :: "2000-12-01 12:12" :: "xx" :: "2000-12-24 12:12" :: "2000-12-24 12:13" :: Nil
     input.values should have size 4
     input.entries.filter(_.valid) should have size 2
-    input.strings should be("01.12.2000 12:11:00" :: "01.12.2000 12:12:00" :: "xx" :: "24.12.2000 12:12:00" :: "24.12.2000 12:13:00" :: Nil)
+    input.strings should be("2000-12-01 12:11" :: "2000-12-01 12:12" :: "xx" :: "2000-12-24 12:12" :: "2000-12-24 12:13" :: Nil)
   }
-
-
 }

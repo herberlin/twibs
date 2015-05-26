@@ -67,6 +67,5 @@ class Page extends Responder {
                    """)}
         <script src="/clientlibs/twibs.js"></script>
         <script src="/clientlibs/twibs-form.js"></script>
-        <script src={s"/clientlibs/${Request.locale.getLanguage}.js"}></script>
     </html>
 }

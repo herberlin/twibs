@@ -273,10 +273,12 @@ trait OneControlPerEntry extends Control {
   }
 
   def entryHtmlFor(entry: Entry) =
-    <div class="entry">{controlHtmlFor(entry) ++ entryActions(entry) ++ disabledFallback(entry)}</div>
+    <div class={entryCssClasses}>{controlHtmlFor(entry) ++ entryActions(entry) ++ disabledFallback(entry)}</div>
         .addTooltip(entry.validationMessageOption.filter(_ => validated))
       .addClass(hasActions, "has-actions")
       .addClass(hasSorter, "has-sorter")
+
+  def entryCssClasses: Seq[String] = "entry" :: Nil
 
   def disabledFallback(entry: Entry) = if (isDisabled) renderHidden(entry) else NodeSeq.Empty
 
@@ -340,7 +342,6 @@ trait OneControlPerEntry extends Control {
     entryRemoveButton.reset()
   }
 }
-
 
 trait Field extends Control with Focusable with ParametersInLinks {
   override def translator: Translator = super.translator.kind("FIELD")
@@ -409,8 +410,6 @@ trait HtmlFieldTrait extends MultiLineFieldTrait with HtmlInput {
     Map(
       //        "toolbar" -> Array(Array("Bold", "Italic", "-", "Smiley"))
     )
-
-  //    override def focusJs: JsCmd = jQuery(firstInvalidEntryOption.fold(id)(entryId)).call("ckeditorGet").call("focus")
 
   override def translator: Translator = super.translator.kind("HTML")
 
@@ -496,6 +495,8 @@ trait BooleanCheckboxField extends CheckboxFieldTrait with BooleanInput {
 trait RadioFieldTrait extends Field with OneControlPerEntryWithOptions {
   override def translator: Translator = super.translator.kind("RADIO")
 
+  override def entryCssClasses: Seq[String] = "with-msg-bg" +: super.entryCssClasses
+
   def entryName(entry: Entry) = name + "_" + entry.index
 
   override def controlHtmlFor(entry: Entry): NodeSeq = super.controlHtmlFor(entry) ++ entryTriggerHtml
@@ -539,8 +540,8 @@ trait RadioInlineLayout extends RadioFieldTrait {
     <label class="radio-inline">{inputFieldFor(entry, option)} {option.title}</label>.addClass(isDisabled, "disabled")
 }
 
-trait AbstractDateTimeFieldTrait extends FormControlField with OneControlPerEntry {
-  override def controlHtmlFor(entry: Entry): NodeSeq = if( isEnabled) inputGroupHtmlFor(entry) else realControlHtmlFor(entry)
+trait AbstractDateTimeFieldTrait extends FormControlField with OneControlPerEntry with AbstractDateTimeInput {
+  override def controlHtmlFor(entry: Entry): NodeSeq = if (isEnabled) inputGroupHtmlFor(entry) else realControlHtmlFor(entry)
 
   private def inputGroupHtmlFor(entry: Entry): NodeSeq =
     <div class="input-group date-time-picker date" data-link-field={entryId(entry)}>
@@ -548,16 +549,16 @@ trait AbstractDateTimeFieldTrait extends FormControlField with OneControlPerEntr
       {clearButtonAddon}
       {calendarAddon}
     </div>
-      .setIfMissing("data-date-startdate", minimumFormatted)
-      .setIfMissing("data-date-enddate", maximumFormatted)
+      .setNotEmpty("data-date-startdate", minimumString)
+      .setNotEmpty("data-date-enddate", maximumString)
 
-  private def realControlHtmlFor(entry:Entry) =
-     <input type="text" name={name} id={entryId(entry)} placeholder={placeholder} value={entry.string} class={controlCssClasses}/>
+  private def realControlHtmlFor(entry: Entry) =
+      <input type="text" name={name} id={entryId(entry)} placeholder={placeholder} value={entry.string} class={controlCssClasses}/>
         .setIfMissing(isDisabled, "disabled", "disabled")
-        .addClass(isDisabled, "disabled")
-        .addClass(!isDisabled, "can-be-disabled")
-        .addClass(submitOnChange && isEnabled, FormConstants.ACTION_SUBMIT_ON_CHANGE)
-        .set(maximumLength < Int.MaxValue, "maxlength", maximumLength.toString)
+      .addClass(isDisabled, "disabled")
+      .addClass(!isDisabled, "can-be-disabled")
+      .addClass(submitOnChange && isEnabled, FormConstants.ACTION_SUBMIT_ON_CHANGE)
+      .set(maximumLength < Int.MaxValue, "maxlength", maximumLength.toString)
 
   override def javascript: JsCmd =
     if (isEnabled) jQuery(shellId + " .date-time-picker").call("datetimepicker", datePickerOptions)
@@ -582,10 +583,6 @@ trait AbstractDateTimeFieldTrait extends FormControlField with OneControlPerEntr
 
   def formatPatternForBrowser: String
 
-  def minimumFormatted: String
-
-  def maximumFormatted: String
-
   def todayButton = "false"
 
   def todayHighlight = false
@@ -595,10 +592,6 @@ trait DateTimeFieldTrait extends AbstractDateTimeFieldTrait with DateTimeInput {
   override def translator: Translator = super.translator.kind("DATE-TIME")
 
   def formatPatternForBrowser: String = translator.translate("browser-format", "yyyy-mm-dd hh:ii")
-
-  def minimumFormatted: String = minimum.fold("")(editFormat.format)
-
-  def maximumFormatted: String = maximum.fold("")(editFormat.format)
 }
 
 trait DateFieldTrait extends AbstractDateTimeFieldTrait with DateInput {
@@ -607,10 +600,37 @@ trait DateFieldTrait extends AbstractDateTimeFieldTrait with DateInput {
   def formatPatternForBrowser: String = translator.translate("browser-format", "yyyy-mm-dd")
 
   override def datePickerOptions = super.datePickerOptions ++ Map("minView" -> 2, "startView" -> 2)
+}
 
-  def minimumFormatted: String = minimum.fold("")(editFormat.format)
+trait NumberFieldTrait extends FormControlField with OneControlPerEntry with NumberInput {
+  override def translator: Translator = super.translator.kind("NUMBER")
 
-  def maximumFormatted: String = maximum.fold("")(editFormat.format)
+  override def controlHtmlFor(entry: Entry) =
+    <input type="text" name={name} id={entryId(entry)} placeholder={placeholder} value={entry.string} class={controlCssClasses}/>
+      .setIfMissing(isDisabled, "disabled", "disabled")
+      .addClass(isDisabled, "disabled")
+      .addClass(!isDisabled, "can-be-disabled")
+      .addClass(!isDisabled, "numeric")
+      .addClass(submitOnChange && isEnabled, FormConstants.ACTION_SUBMIT_ON_CHANGE)
+      .set(maximumLength < Int.MaxValue, "maxlength", maximumLength.toString)
+      .setNotEmpty("data-min", minimumString)
+      .setNotEmpty("data-max", maximumString)
+}
+
+trait IntFieldTrait extends NumberFieldTrait with IntInput {
+  override def translator: Translator = super.translator.kind("INT")
+}
+
+trait LongFieldTrait extends NumberFieldTrait with LongInput {
+  override def translator: Translator = super.translator.kind("LONG")
+}
+
+trait DoubleFieldTrait extends NumberFieldTrait with DoubleInput {
+  override def translator: Translator = super.translator.kind("DOUBLE")
+}
+
+trait PercentFieldTrait extends NumberFieldTrait with PercentInput {
+  override def translator: Translator = super.translator.kind("PERCENT")
 }
 
 /* Buttons */
@@ -860,6 +880,14 @@ trait Container extends Component {
   abstract class DateTimeField(ilk: String) extends Child(ilk, this) with DateTimeFieldTrait
 
   abstract class DateField(ilk: String) extends Child(ilk, this) with DateFieldTrait
+
+  abstract class IntField(ilk: String) extends Child(ilk, this) with IntFieldTrait
+
+  abstract class LongField(ilk: String) extends Child(ilk, this) with LongFieldTrait
+
+  abstract class DoubleField(ilk: String) extends Child(ilk, this) with DoubleFieldTrait
+
+  abstract class PercentField(ilk: String) extends Child(ilk, this) with PercentFieldTrait
 
   abstract class Button(ilk: String) extends Child(ilk, this) with ButtonTrait
 

@@ -84,6 +84,7 @@ $(function () {
                     });
 
                 $this.find('.date-time-picker').datetimepicker("remove");
+                $this.find('input.numeric').TouchSpin();
 
                 //$('input.numeric').TouchSpin();
 
@@ -105,6 +106,7 @@ $(function () {
                 $this.find('select.chosen').chosen('destroy');
                 $this.find('select.chosen-optional').chosen('destroy');
                 $this.find('.date-time-picker').datetimepicker("remove");
+                $this.find('input.numeric').TouchSpin("destroy");
 
                 /* $x.ckeditorGet().destroy() does not work as it takes only the first ckeditor instance */
                 $this.find('.cke_editable').each(function () {

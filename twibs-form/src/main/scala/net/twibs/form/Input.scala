@@ -5,8 +5,9 @@
 package net.twibs.form
 
 import java.nio.charset.StandardCharsets
+import java.text.ParseException
 
-import net.twibs.util.Parsers._
+import com.ibm.icu.text.NumberFormat
 import net.twibs.util._
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document.OutputSettings
@@ -259,22 +260,6 @@ trait BooleanInput extends Input {
   override def convertToValue(string: String) = Some("true" == string)
 }
 
-trait LongInput extends Input {
-  override type ValueType = Long
-
-  override def convertToString(l: Long) = l.toString
-
-  override def convertToValue(string: String) = string.toLongOption
-}
-
-trait IntInput extends Input {
-  override type ValueType = Int
-
-  override def convertToString(i: Int) = i.toString
-
-  override def convertToValue(string: String) = string.toIntOption
-}
-
 trait MinMaxInput extends Input {
   def minimum: Option[ValueType] = None
 
@@ -297,6 +282,10 @@ trait MinMaxInput extends Input {
     else entry
 
   def titleForValue(value: ValueType) = titleFor(convertToString(value))
+
+  def minimumString: String = minimum.fold("")(convertToString)
+
+  def maximumString: String = maximum.fold("")(convertToString)
 }
 
 trait AbstractDateTimeInput extends MinMaxInput {
@@ -345,6 +334,78 @@ trait DateInput extends AbstractDateTimeInput {
   override protected def isLessOrEqualMaximum(value: ValueType): Boolean = maximum.forall(!value.isAfter(_))
 
   override protected def isGreaterOrEqualMinimum(value: ValueType): Boolean = minimum.forall(!value.isBefore(_))
+}
+
+trait NumberInput extends MinMaxInput {
+  def editFormat: NumberFormat
+
+  def displayFormat: NumberFormat = editFormat
+
+  override def convertToString(value: ValueType) = editFormat.format(value)
+
+  override def convertToValue(string: String) = try {
+    Some(parseString(string))
+  } catch {
+    case e: ParseException => None
+  }
+
+  protected def parseString(string: String): ValueType
+
+  override def titleForValue(value: ValueType): String = displayFormat.format(value)
+}
+
+trait IntInput extends NumberInput {
+  type ValueType = Int
+
+  def editFormat = Formatters.integerFormat
+
+  protected def parseString(string: String): ValueType = editFormat.parse(string).intValue
+
+  protected def isGreaterOrEqualMinimum(value: ValueType) = minimum.forall(value >= _)
+
+  protected def isLessOrEqualMaximum(value: ValueType) = maximum.forall(value <= _)
+}
+
+trait LongInput extends NumberInput {
+  type ValueType = Long
+
+  def editFormat = Formatters.integerFormat
+
+  protected def parseString(string: String): ValueType = editFormat.parse(string).longValue
+
+  protected def isGreaterOrEqualMinimum(value: ValueType) = minimum.forall(value >= _)
+
+  protected def isLessOrEqualMaximum(value: ValueType) = maximum.forall(value <= _)
+}
+
+trait DoubleInput extends NumberInput {
+  type ValueType = Double
+
+  def editFormat = Formatters.decimalFormat
+
+  protected def parseString(string: String): ValueType = editFormat.parse(string).doubleValue
+
+  protected def isGreaterOrEqualMinimum(value: ValueType) = minimum.forall(value >= _)
+
+  protected def isLessOrEqualMaximum(value: ValueType) = maximum.forall(value <= _)
+}
+
+trait PercentInput extends NumberInput {
+  type ValueType = Double
+
+  def editFormat = Formatters.percentFormatWithoutSuffix
+
+  override def displayFormat = Formatters.percentFormat
+
+  protected def parseString(string: String): ValueType = editFormat.parse(string).doubleValue
+
+  protected def isGreaterOrEqualMinimum(value: ValueType) = minimum.forall(value >= _)
+
+  protected def isLessOrEqualMaximum(value: ValueType) = maximum.forall(value <= _)
+
+  override def minimum = Some(0D)
+
+  override def maximum = Some(100D)
 }
 
 trait Options extends Input {

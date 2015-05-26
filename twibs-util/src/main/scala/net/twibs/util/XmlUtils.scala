@@ -30,6 +30,8 @@ trait XmlUtils {
 
     def merge(cssClasses: Seq[String]) = cssClasses.filterNot(_.isEmpty).distinct.mkString(" ")
 
+    def setNotEmpty(name: String, value: String): Elem = set(!value.isEmpty, name, value)
+
     def set(name: String, value: String): Elem = elem % Attribute(name, Text(value), Null)
 
     def set(name: String): Elem = set(name, name)
