@@ -111,6 +111,9 @@ trait HorizontalLayoutContainer extends Container {
 
   abstract class MultiSelectField(ilk: String) extends super.MultiSelectField(ilk) with HorizontalControl
 
+  abstract class DateTimeField(ilk: String) extends super.DateTimeField(ilk) with HorizontalControl
+  abstract class DateField(ilk: String) extends super.DateField(ilk) with HorizontalControl
+
   abstract class Button(ilk: String) extends super.Button(ilk) with HorizontalControl
 
   abstract class ButtonRow extends super.ButtonRow {

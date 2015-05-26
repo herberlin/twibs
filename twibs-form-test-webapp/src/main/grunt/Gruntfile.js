@@ -18,7 +18,9 @@ module.exports = function (grunt) {
             dest: 'clientlibs/twibs.js'
         },
         {src: ['src/js/twibs-form.js'], dest: 'clientlibs/twibs-form.js'},
-        {src: ['src/js/jquery-2.1.3.js'], dest: 'clientlibs/jquery.js'}
+        {src: ['src/js/jquery-2.1.3.js'], dest: 'clientlibs/jquery.js'},
+        {src: ['src/js/bootstrap-datetimepicker-locales/bootstrap-datetimepicker.de.js'], dest: 'clientlibs/de.js'},
+        {src: ['src/js/bootstrap-datetimepicker-locales/bootstrap-datetimepicker.uk.js'], dest: 'clientlibs/en.js'}
     ];
 
     var lessFiles = [
@@ -88,14 +90,14 @@ module.exports = function (grunt) {
         watch: {
             styles: {
                 files: ['src/css/**/*.less'],
-                tasks: ['less', 'copy'],
+                tasks: ['less:development', 'copy:development'],
                 options: {
                     nospawn: true
                 }
             },
             uglify: {
                 files: ['src/js/**/*.js'],
-                tasks: ['uglify', 'copy'],
+                tasks: ['uglify:development', 'copy:development'],
                 options: {
                     nospawn: true
                 }

@@ -83,6 +83,8 @@ $(function () {
                         ui.item.submitForm("sortable", ui.item.id);
                     });
 
+                $this.find('.date-time-picker').datetimepicker("remove");
+
                 //$('input.numeric').TouchSpin();
 
                 //$('textarea.hidden-print').each(function () {
@@ -102,6 +104,7 @@ $(function () {
                 $this.find('.sortable').sortable('destroy');
                 $this.find('select.chosen').chosen('destroy');
                 $this.find('select.chosen-optional').chosen('destroy');
+                $this.find('.date-time-picker').datetimepicker("remove");
 
                 /* $x.ckeditorGet().destroy() does not work as it takes only the first ckeditor instance */
                 $this.find('.cke_editable').each(function () {
@@ -114,6 +117,27 @@ $(function () {
                 });
             });
         };
+
+        //$.fn.dateTimePickerSubmitOnChange = function () {
+        //    var $this = $(this);
+        //    var entryId = $this.data("link-field");
+        //    var field = $this.find("#" + entryId).trigger("submit-on-change");
+        //
+        //
+        //    window.setTimeout(function () {
+        //
+        //
+        //
+        //        $this.submitForm("submit-on-change", $this.id, $this.data("name") || $this.attr('name'))
+        //    }, 1);
+        //
+        //
+        //    return this.destroyFormElements().html(htmlString).initFormElements();
+        //};
+        //
+        //
+        //$this.submitForm("submit-on-change", $this.id, $this.data("name") || $this.attr('name'))
+
 
         $.fn.updateFormElements = function (htmlString) {
             return this.destroyFormElements().html(htmlString).initFormElements();
@@ -235,7 +259,7 @@ $(function () {
                     $parent.detach();
                 });
             })
-            .on("click", function (e) {
+            .on('click', function (e) {
                 //var $target = $(e.target);
                 //if ($target.closest('.popover').length == 0) {
                 //    $('[data-toggle=popover],.popover-by-script').not($target.closest('[data-toggle=popover]')).popover('hide');
@@ -245,7 +269,11 @@ $(function () {
                 //    }, 400)
                 //}
             })
-            .on("twibs-update-dom", function () {
+            // Triggered by data-time-picker. Send forward to control element
+            .on('changeDate', '.date-time-picker', function() {
+                $(this).find(".form-control").trigger('change');
+            })
+            .on('twibs-update-dom', function () {
                 $('[data-toggle="popover"]').popover();
 
                 $('[data-toggle="tooltip"]').tooltip();
@@ -253,19 +281,19 @@ $(function () {
                 initFixedContainers();
                 positionFixedContainers();
 
-                $('.click-on-appear').removeClass('.click-on-appear').filter("[data-call]").appear(function () {
-                    $(this).trigger("click");
+                $('.click-on-appear').removeClass('.click-on-appear').filter('[data-call]').appear(function () {
+                    $(this).trigger('click');
                 });
-            })
+            });
 
         $('body')
-            .on("focus", ".show-focus-on-parent", function () {
-                $(this).closest(".inherit-focus-from-child").addClass("focused");
+            .on('focus', '.show-focus-on-parent', function () {
+                $(this).closest('.inherit-focus-from-child').addClass('focused');
             })
-            .on("blur", ".show-focus-on-parent", function () {
-                $(this).closest(".inherit-focus-from-child").removeClass("focused");
+            .on('blur', '.show-focus-on-parent', function () {
+                $(this).closest('.inherit-focus-from-child').removeClass('focused');
             })
-            .on("click", '[data-call]', function (e) {
+            .on('click', '[data-call]', function (e) {
                 e.preventDefault();
                 var $this = $(this);
                 $this.addClass("disabled");

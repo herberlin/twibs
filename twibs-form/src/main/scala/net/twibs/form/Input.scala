@@ -14,7 +14,7 @@ import org.jsoup.nodes.Document.OutputSettings.Syntax
 import org.jsoup.nodes.Entities.EscapeMode
 import org.jsoup.safety.Whitelist
 import org.threeten.bp.format.{DateTimeFormatter, DateTimeParseException}
-import org.threeten.bp.{LocalDateTime, ZonedDateTime}
+import org.threeten.bp.{LocalDate, LocalDateTime, ZonedDateTime}
 
 trait Input extends TranslationSupport {
   type ValueType
@@ -299,22 +299,48 @@ trait MinMaxInput extends Input {
   def titleForValue(value: ValueType) = titleFor(convertToString(value))
 }
 
-trait DateTimeInput extends MinMaxInput {
+trait AbstractDateTimeInput extends MinMaxInput {
+  def formatPattern: String
+
+  lazy val editFormat: DateTimeFormatter = DateTimeFormatter.ofPattern(formatPattern, translator.locale.toLocale)
+
+  def displayFormat = editFormat
+}
+
+trait DateTimeInput extends AbstractDateTimeInput {
   override type ValueType = ZonedDateTime
 
-  override def convertToString(dateTime: ZonedDateTime) = editDateTimeFormat.format(value)
+  override def convertToString(value: ZonedDateTime) = editFormat.format(value)
 
   override def convertToValue(string: String) = try {
-    Some(LocalDateTime.parse(string, editDateTimeFormat).atZone(Request.zoneId))
+    Some(LocalDateTime.parse(string, editFormat).atZone(Request.zoneId))
   } catch {
     case e: DateTimeParseException => None
   }
 
-  def editDateTimeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern(translator.translate("date-time-format", "dd.MM.yyyy HH:mm"), translator.locale.toLocale)
+  override def titleForValue(value:ValueType) = displayFormat.format(value)
 
-  def displayDateTimeFormat = editDateTimeFormat
+  override protected def isLessOrEqualMaximum(value: ValueType): Boolean = maximum.forall(!value.isAfter(_))
 
-  override def titleForValue(value:ValueType) = displayDateTimeFormat.format(value)
+  override protected def isGreaterOrEqualMinimum(value: ValueType): Boolean = minimum.forall(!value.isBefore(_))
+
+  def formatPattern: String = translator.translate("format-pattern", "yyyy-MM-dd HH:mm")
+}
+
+trait DateInput extends AbstractDateTimeInput {
+  override type ValueType = LocalDate
+
+  override def convertToString(value: LocalDate) = editFormat.format(value)
+
+  override def convertToValue(string: String) = try {
+    Some(LocalDate.parse(string, editFormat))
+  } catch {
+    case e: DateTimeParseException => None
+  }
+
+  def formatPattern: String = translator.translate("format-pattern", "yyyy-MM-dd")
+
+  override def titleForValue(value:ValueType) = displayFormat.format(value)
 
   override protected def isLessOrEqualMaximum(value: ValueType): Boolean = maximum.forall(!value.isAfter(_))
 

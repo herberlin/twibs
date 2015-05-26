@@ -401,10 +401,6 @@ trait MultiLineFieldTrait extends FormControlField with OneControlPerEntry {
 }
 
 trait HtmlFieldTrait extends MultiLineFieldTrait with HtmlInput {
-  // Remove CKEDITOR instance from previous textarea otherwise a javascript error appears
-  // TODO: This has moved to javascript - delete this line if successful
-  //  override def replaceContentJs: JsCmd = jQuery(shellId + " .html-field[contenteditable='true']").call("destroyCkeditor")
-
   override def javascript: JsCmd = jQuery(shellId + " .html-field[contenteditable='true']").call("ckeditor", ckeditorInit, ckeditorConfig)
 
   def ckeditorInit = JsEmpty
@@ -541,6 +537,80 @@ trait RadioFieldTrait extends Field with OneControlPerEntryWithOptions {
 trait RadioInlineLayout extends RadioFieldTrait {
   override def optionHtmlFor(entry: Entry, option: Entry): NodeSeq =
     <label class="radio-inline">{inputFieldFor(entry, option)} {option.title}</label>.addClass(isDisabled, "disabled")
+}
+
+trait AbstractDateTimeFieldTrait extends FormControlField with OneControlPerEntry {
+  override def controlHtmlFor(entry: Entry): NodeSeq = if( isEnabled) inputGroupHtmlFor(entry) else realControlHtmlFor(entry)
+
+  private def inputGroupHtmlFor(entry: Entry): NodeSeq =
+    <div class="input-group date-time-picker date" data-link-field={entryId(entry)}>
+      {realControlHtmlFor(entry)}
+      {clearButtonAddon}
+      {calendarAddon}
+    </div>
+      .setIfMissing("data-date-startdate", minimumFormatted)
+      .setIfMissing("data-date-enddate", maximumFormatted)
+
+  private def realControlHtmlFor(entry:Entry) =
+     <input type="text" name={name} id={entryId(entry)} placeholder={placeholder} value={entry.string} class={controlCssClasses}/>
+        .setIfMissing(isDisabled, "disabled", "disabled")
+        .addClass(isDisabled, "disabled")
+        .addClass(!isDisabled, "can-be-disabled")
+        .addClass(submitOnChange && isEnabled, FormConstants.ACTION_SUBMIT_ON_CHANGE)
+        .set(maximumLength < Int.MaxValue, "maxlength", maximumLength.toString)
+
+  override def javascript: JsCmd =
+    if (isEnabled) jQuery(shellId + " .date-time-picker").call("datetimepicker", datePickerOptions)
+    else JsEmpty
+
+  def datePickerOptions = Map("fontAwesome" -> true,
+    "autoclose" -> autoClose,
+    "pickerPosition" -> "bottom-left",
+    "language" -> Request.locale.getLanguage,
+    "todayBtn" -> todayButton,
+    "todayHighlight" -> todayHighlight,
+    "linkFormat" -> formatPatternForBrowser
+  )
+
+  def autoClose = true
+
+  def withClearButton = false
+
+  def clearButtonAddon = if (withClearButton && isEnabled) <span class="input-group-addon"><span class="fa fa-times"></span></span> else NodeSeq.Empty
+
+  def calendarAddon = if (isEnabled) <span class="input-group-addon"><span class="fa fa-calendar"></span></span> else NodeSeq.Empty
+
+  def formatPatternForBrowser: String
+
+  def minimumFormatted: String
+
+  def maximumFormatted: String
+
+  def todayButton = "false"
+
+  def todayHighlight = false
+}
+
+trait DateTimeFieldTrait extends AbstractDateTimeFieldTrait with DateTimeInput {
+  override def translator: Translator = super.translator.kind("DATE-TIME")
+
+  def formatPatternForBrowser: String = translator.translate("browser-format", "yyyy-mm-dd hh:ii")
+
+  def minimumFormatted: String = minimum.fold("")(editFormat.format)
+
+  def maximumFormatted: String = maximum.fold("")(editFormat.format)
+}
+
+trait DateFieldTrait extends AbstractDateTimeFieldTrait with DateInput {
+  override def translator: Translator = super.translator.kind("DATE")
+
+  def formatPatternForBrowser: String = translator.translate("browser-format", "yyyy-mm-dd")
+
+  override def datePickerOptions = super.datePickerOptions ++ Map("minView" -> 2, "startView" -> 2)
+
+  def minimumFormatted: String = minimum.fold("")(editFormat.format)
+
+  def maximumFormatted: String = maximum.fold("")(editFormat.format)
 }
 
 /* Buttons */
@@ -786,6 +856,10 @@ trait Container extends Component {
   abstract class SingleSelectField(ilk: String) extends Child(ilk, this) with SingleSelectFieldTrait
 
   abstract class MultiSelectField(ilk: String) extends Child(ilk, this) with MultiSelectFieldTrait
+
+  abstract class DateTimeField(ilk: String) extends Child(ilk, this) with DateTimeFieldTrait
+
+  abstract class DateField(ilk: String) extends Child(ilk, this) with DateFieldTrait
 
   abstract class Button(ilk: String) extends Child(ilk, this) with ButtonTrait
 

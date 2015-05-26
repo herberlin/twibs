@@ -323,8 +323,8 @@
 			if (
 				this.forceParse &&
 				(
-				this.isInput && this.element.val() ||
-				this.hasInput && this.element.find('input').val()
+					this.isInput && this.element.val() ||
+					this.hasInput && this.element.find('input').val()
 				)
 			)
 				this.setValue();

@@ -40,6 +40,8 @@ trait XmlUtils {
 
     def setIfMissing(name: String, value: String): Elem = if (elem.attribute(name).isEmpty) elem % Attribute(name, Text(value), Null) else elem
 
+    def setIfMissing(name: String, value: Option[String]): Elem = setIfMissing(value.isDefined, name, value.get)
+
     def setIfMissing(condition: Boolean, name: => String, value: => String): Elem = if (condition) setIfMissing(name, value) else elem
 
     def removeAttribute(name: String): Elem = elem.copy(attributes = elem.attributes.filter(_.key != name))

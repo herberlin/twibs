@@ -5,7 +5,8 @@
 package net.twibs.form
 
 import net.twibs.testutil.TwibsTest
-import net.twibs.util.{IdGenerator, Translator}
+import net.twibs.util.{IdGenerator, Request, Translator}
+import org.threeten.bp.LocalDateTime
 
 class InputTest extends TwibsTest {
 
@@ -188,7 +189,7 @@ class InputTest extends TwibsTest {
   }
 
   test("Regex") {
-    val input = new SingleLineInput() with CleanTranslator {
+    val input = new SingleLineInput with CleanTranslator {
       override def regex = "[0-9]+"
     }
 
@@ -212,7 +213,7 @@ class InputTest extends TwibsTest {
   }
 
   test("Email address validation") {
-    val input = new Input with EmailAddressInput with CleanTranslator
+    val input = new EmailAddressInput with CleanTranslator
 
     input.strings = " info @example.com " :: "mb@example.com" :: "noemail" :: Nil
     input.strings should be("info @example.com" :: "mb@example.com" :: "noemail" :: Nil)
@@ -221,12 +222,26 @@ class InputTest extends TwibsTest {
   }
 
   test("Web address validation") {
-    val input = new Object with WebAddressInput with CleanTranslator
+    val input = new WebAddressInput with CleanTranslator
 
     input.strings = "http://www.example.com" :: "http://www" :: Nil
     input.strings should be("http://www.example.com" :: "http://www" :: Nil)
     input.values should be("http://www.example.com" :: Nil)
     input.entries(1).validationMessageOption.get.toString should be("danger: 'http://www' is not a valid web address")
   }
+
+  test("Date time validation") {
+    val input = new DateTimeInput with CleanTranslator {
+      override def minimum = Some(LocalDateTime.of(2000, 12, 1, 12, 12).atZone(Request.zoneId))
+
+      override def maximum = Some(LocalDateTime.of(2000, 12, 24, 12, 12).atZone(Request.zoneId))
+    }
+
+    input.strings = "01.12.2000 12:11:00" :: "01.12.2000 12:12:00" :: "xx" :: "24.12.2000 12:12:00" :: "24.12.2000 12:13:00" :: Nil
+    input.values should have size 4
+    input.entries.filter(_.valid) should have size 2
+    input.strings should be("01.12.2000 12:11:00" :: "01.12.2000 12:12:00" :: "xx" :: "24.12.2000 12:12:00" :: "24.12.2000 12:13:00" :: Nil)
+  }
+
 
 }
