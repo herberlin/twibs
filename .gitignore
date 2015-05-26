@@ -1,4 +1,4 @@
 *.iml
 target
 node_modules
-*/src/main/webappgen/clientlibs
+*/src/main/grunt/clientlibs
