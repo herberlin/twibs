@@ -37,15 +37,13 @@ class SlingFilter extends Filter {
 object HttpServletRequestWithSlingUpload extends HttpServletUtils {
   def apply(httpServletRequest: SlingHttpServletRequest, httpServletResponse: HttpServletResponse) = {
     lazy val allRequestParameters: Seq[(String, RequestParameter)] =
-      httpServletRequest.getRequestParameterMap.flatMap(e => e._2.map(e._1 ->).toList).toSeq
+      CollectionUtils.ungroupArray(httpServletRequest.getRequestParameterMap.toMap)
 
-    def parameters: Parameters = removeUnderscoreParameterSetByJQuery(urlParameters ++ multiPartParameters)
+    def parameters: Parameters = removeUnderscoreParameterSetByJQuery(slingParameters)
 
-    def urlParameters: Map[String, Seq[String]] = httpServletRequest.asInstanceOf[HttpServletRequest].getParameterMap.map(entry => (entry._1, entry._2.toSeq)).toMap
+    def slingParameters: Map[String, Seq[String]] = CollectionUtils.group(formFields.map(e => (e._1, e._2.getString(Charsets.UTF_8.name))))
 
-    def multiPartParameters: Map[String, Seq[String]] = CollectionUtils.zipToMap(formFieldsFromMultipartRequest.map(e => (e._1, e._2.getString(Charsets.UTF_8.name))))
-
-    def uploads: Map[String, Seq[Upload]] = CollectionUtils.zipToMap(fileItemsFromMultipartRequest.map(e => (e._1, toUpload(e._1, e._2))))
+    def uploads: Map[String, Seq[Upload]] = CollectionUtils.group(fileItems.map(e => (e._1, toUpload(e._1, e._2))))
 
     def toUpload(nameArg: String, requestParameterArg: RequestParameter) = new Upload() {
       val requestParameter = requestParameterArg
@@ -57,9 +55,9 @@ object HttpServletRequestWithSlingUpload extends HttpServletUtils {
       def stream = requestParameter.getInputStream
     }
 
-    def formFieldsFromMultipartRequest: Seq[(String, RequestParameter)] = allRequestParameters.filter(_._2.isFormField)
+    def formFields: Seq[(String, RequestParameter)] = allRequestParameters.filter(_._2.isFormField)
 
-    def fileItemsFromMultipartRequest: Seq[(String, RequestParameter)] = allRequestParameters.filter(e => isValidFileItem(e._2))
+    def fileItems: Seq[(String, RequestParameter)] = allRequestParameters.filter(e => isValidFileItem(e._2))
 
     def isValidFileItem(requestParameter: RequestParameter) = !requestParameter.isFormField && (requestParameter.getSize > 0 || !requestParameter.getFileName.isEmpty)
 

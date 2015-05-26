@@ -55,7 +55,7 @@ case class Parameters(parameterMap: Map[String, Seq[String]] = Map()) extends Se
 }
 
 object Parameters {
-  implicit def convertToParameters(parameterMap: Map[String, Seq[String]]) = new Parameters(parameterMap)
+  implicit def convertToParameters(parameterMap: Map[String, Seq[String]]): Parameters = new Parameters(parameterMap)
 
   implicit def convertToParameters() = new Parameters()
 }
