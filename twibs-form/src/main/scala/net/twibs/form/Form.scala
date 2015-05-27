@@ -264,10 +264,10 @@ trait OneControlPerEntry extends Control {
   control =>
 
   override def controlHtml =
-    <div class="entries" id={shellId}>{entriesHtml}{controlActions}</div>
+    <div class="entries" id={shellId}>{controlsHtml}{controlActions}</div>
         .addClass(isSortable, "sortable")
 
-  def entriesHtml: NodeSeq = entries match {
+  def controlsHtml: NodeSeq = entries match {
     case Seq() => triggerHtml
     case _ => entries.flatMap(entryHtmlFor)
   }

@@ -31,8 +31,6 @@ class Page extends Responder {
 
   def dateString = modified.formatAsIso
 
-  //          {new TestForm().inlineHtml}
-
   def html =
     <html lang="de" class="no-js">
       <head>
@@ -50,9 +48,7 @@ class Page extends Responder {
       </head>
       <body>
         <div class="container">
-          {val f = new RadioTestForm()
-//          f.hl.singleValue.validate()
-          f.inlineHtml}
+          {new TestForm().inlineHtml}
         </div>
       </body>
         {Unparsed( """
