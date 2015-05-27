@@ -44,8 +44,6 @@ trait HorizontalLayoutContainer extends Container {
           .set("data-html", "true")
     }
 
-    override def controlHtml = super.controlHtml.addTooltip(validationMessageOption.filter(_ => validated), "top")
-
     //    override def infoMessageHtml: NodeSeq =
     //      infoMessageOption.fold(NodeSeq.Empty) { m =>
     //        val title = infoMessageTitle
@@ -95,15 +93,7 @@ trait HorizontalLayoutContainer extends Container {
 
   abstract class HtmlField(ilk: String) extends super.HtmlField(ilk) with HorizontalControl
 
-  abstract class CheckboxField(ilk: String) extends super.CheckboxField(ilk) with HorizontalControl {
-    override def optionHtmlFor(option: Entry): NodeSeq =
-      <div class="checkbox">
-        <label>
-          {super.optionHtmlFor(option)}
-          {option.title}
-        </label>
-      </div>.addClass(isDisabled, "disabled")
-  }
+  abstract class CheckboxField(ilk: String) extends super.CheckboxField(ilk) with HorizontalControl
 
   abstract class RadioField(ilk: String) extends super.RadioField(ilk) with HorizontalControl
 

@@ -7,14 +7,14 @@ package net.twibs.util
 import net.twibs.testutil.TwibsTest
 
 class CollectionUtilsTest extends TwibsTest {
-  test("Group to map") {
-    val x = CollectionUtils.group(List(("1", "1"), ("1", "1")))
+  test("Seq to map") {
+    val x = CollectionUtils.seqToMap(List(("1", "1"), ("1", "1")))
     val y = Map("1" -> Seq("1", "1"))
     x should equal(y)
   }
 
-  test("Ungroup") {
-    val x = CollectionUtils.ungroup(Map("1" -> Seq("1", "2")))
+  test("Map to seq") {
+    val x = CollectionUtils.mapToSeq(Map("1" -> Seq("1", "2")))
     val y = Seq("1" -> "1", "1" -> "2")
     x should equal(y)
   }

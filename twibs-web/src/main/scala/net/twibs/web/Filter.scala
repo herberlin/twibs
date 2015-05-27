@@ -190,13 +190,13 @@ object HttpServletRequestWithCommonsFileUpload extends HttpServletUtils {
     def urlParameters: Map[String, Seq[String]] = httpServletRequest.getParameterMap.map(entry => (entry._1, entry._2.toSeq)).toMap
 
     def multiPartParameters: Map[String, Seq[String]] =
-      if (isMultiPart) CollectionUtils.group(formFieldsFromMultipartRequest.map(fileItem => (fileItem.getFieldName, fileItem.getString(Charsets.UTF_8.name))))
+      if (isMultiPart) CollectionUtils.seqToMap(formFieldsFromMultipartRequest.map(fileItem => (fileItem.getFieldName, fileItem.getString(Charsets.UTF_8.name))))
       else Map()
 
     def formFieldsFromMultipartRequest: Seq[FileItem] = allFileItems.filter(_.isFormField)
 
     def uploads: Map[String, Seq[Upload]] =
-      if (isMultiPart) CollectionUtils.group(fileItemsFromMultipartRequest.map(fileItem => (fileItem.getFieldName, toUpload(fileItem))))
+      if (isMultiPart) CollectionUtils.seqToMap(fileItemsFromMultipartRequest.map(fileItem => (fileItem.getFieldName, toUpload(fileItem))))
       else Map()
 
     def isMultiPart = ServletFileUpload.isMultipartContent(httpServletRequest)

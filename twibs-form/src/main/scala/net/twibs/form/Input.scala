@@ -105,6 +105,8 @@ trait Input extends TranslationSupport {
 
   def trim = true
 
+  def minimumNumberOfDefaultEntries = minimumNumberOfEntries
+
   def minimumNumberOfEntries = 1
 
   def maximumNumberOfEntries = 1
@@ -115,7 +117,7 @@ trait Input extends TranslationSupport {
 
   def computeDefaultEntries = {
     val ret = defaults.map(valueToEntry)
-    val pad = minimumNumberOfEntries - ret.size
+    val pad = minimumNumberOfDefaultEntries - ret.size
     reindex(if (pad > 0) ret ++ List.fill(pad)(stringToEntry("")) else ret)
   }
 
@@ -145,7 +147,7 @@ trait Input extends TranslationSupport {
 
   final def string = strings.head
 
-  final def stringOrEmpty = strings.headOption getOrElse ""
+//  final def stringOrEmpty = strings.headOption getOrElse ""
 
   final def string_=(string: String) = strings = string :: Nil
 

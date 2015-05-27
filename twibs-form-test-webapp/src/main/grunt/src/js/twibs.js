@@ -36,7 +36,7 @@ $(function () {
         // Overwrite jquery focus to support chosen
         var oFocus = jQuery.fn.focus;
         jQuery.fn.focus = function () {
-            return this.hasClass('chosen') ? this.trigger('chosen:activate.chosen') : oFocus.apply(this, arguments);
+            return this.hasClass('chosen') ? this.trigger('chosen:open.chosen') : oFocus.apply(this, arguments);
         };
 
         $.fn.disableForm = function () {

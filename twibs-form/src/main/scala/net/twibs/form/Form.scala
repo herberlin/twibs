@@ -218,9 +218,14 @@ trait Control extends Component with Input {
 
   def controlCssClasses: Seq[String] = Nil
 
-  override def enabledComponentHtml: NodeSeq = controlHtml ++ helpMessageHtml
+  override def enabledComponentHtml: NodeSeq = shellHtml ++ helpMessageHtml
 
-  def controlHtml: Elem = <span></span>
+  def shellHtml: Elem = <div class="control-shell" id={shellId}>{controlHtml}</div>
+      .addTooltip(shellMessageOption.filter(_ => validated), "top")
+
+  def shellMessageOption = validationMessageOption
+
+  def controlHtml: NodeSeq
 
   def controlTitle = t"control-title: #$ilk"
 
@@ -249,25 +254,33 @@ trait ParametersInLinks extends Control {
 }
 
 trait OneControlForAllEntries extends Control with Options {
-  override def controlHtml = <div class="entries" id={shellId}>{optionEntries.flatMap(optionHtmlFor)}</div>
+  def controlHtml = optionEntries.flatMap(optionHtmlFor)
 
   override def invalidControlIdOption: Option[IdString] = if (isValid) None else Some(id)
 
   def optionHtmlFor(option: Entry): NodeSeq
 
+  override def minimumNumberOfDefaultEntries = 0
+
   override def minimumNumberOfEntries: Int = if (required) 1 else 0
 
   override def maximumNumberOfEntries: Int = optionEntries.size
+
+  override def shellMessageOption = validationMessageOption orElse entries.flatMap(_.validationMessageOption).headOption
+}
+
+trait OneControlForAllEntriesTriggered extends OneControlForAllEntries {
+  override def controlHtml: NodeSeq = super.controlHtml ++ triggerHtml
 }
 
 trait OneControlPerEntry extends Control {
   control =>
 
-  override def controlHtml =
-    <div class="entries" id={shellId}>{controlsHtml}{controlActions}</div>
-        .addClass(isSortable, "sortable")
+  override def shellHtml = super.shellHtml.addClass(isSortable, "sortable")
 
-  def controlsHtml: NodeSeq = entries match {
+  def controlHtml = entriesHtml ++ controlShellActions
+
+  private def entriesHtml: NodeSeq = entries match {
     case Seq() => triggerHtml
     case _ => entries.flatMap(entryHtmlFor)
   }
@@ -292,7 +305,7 @@ trait OneControlPerEntry extends Control {
 
   def controlHtmlFor(entry: Entry): NodeSeq
 
-  def controlActions = <div class="actions">{entryAddActionHtml}</div>
+  def controlShellActions = <div class="actions">{entryAddActionHtml}</div>
 
   def entryAddActionHtml = entryAddButton.withOption(-1)(_.html)
 
@@ -343,6 +356,12 @@ trait OneControlPerEntry extends Control {
   }
 }
 
+trait OneControlPerEntryWithOptions extends OneControlPerEntry with Options {
+  def controlHtmlFor(entry: Entry) = optionEntries.flatMap(option => optionHtmlFor(entry, option))
+
+  def optionHtmlFor(entry: Entry, option: Entry): NodeSeq
+}
+
 trait Field extends Control with Focusable with ParametersInLinks {
   override def translator: Translator = super.translator.kind("FIELD")
 
@@ -367,18 +386,12 @@ trait SubmitOnChange extends Field {
   def isSubmittedOnChange = form.actionName == name && form.isSubmittedOnChange
 }
 
-trait OneControlPerEntryWithOptions extends OneControlPerEntry with Options {
-  def controlHtmlFor(entry: Entry) = optionEntries.flatMap(option => optionHtmlFor(entry, option))
-
-  def optionHtmlFor(entry: Entry, option: Entry): NodeSeq
-}
-
 trait SingleLineFieldTrait extends FormControlField with OneControlPerEntry {
   override def translator: Translator = super.translator.kind("SINGLE-LINE")
 
   override def controlHtmlFor(entry: Entry): NodeSeq =
       <input type="text" name={name} id={entryId(entry)} placeholder={placeholder} value={entry.string} class={controlCssClasses}/>
-        .setIfMissing(isDisabled, "disabled", "disabled")
+        .setIfMissing(isDisabled, "disabled")
       .addClass(isDisabled, "disabled")
       .addClass(!isDisabled, "can-be-disabled")
       .addClass(submitOnChange && isEnabled, FormConstants.ACTION_SUBMIT_ON_CHANGE)
@@ -390,7 +403,7 @@ trait MultiLineFieldTrait extends FormControlField with OneControlPerEntry {
 
   override def controlHtmlFor(entry: Entry) =
     <textarea rows={rows.toString} name={name} id={entryId(entry)} placeholder={placeholder} class={controlCssClasses}>{entry.string}</textarea>
-        .setIfMissing(isDisabled, "disabled", "disabled")
+        .setIfMissing(isDisabled, "disabled")
       .addClass(isDisabled, "disabled")
       .addClass(!isDisabled, "can-be-disabled")
       .addClass(submitOnChange && isEnabled, FormConstants.ACTION_SUBMIT_ON_CHANGE)
@@ -415,7 +428,7 @@ trait HtmlFieldTrait extends MultiLineFieldTrait with HtmlInput {
 
   override def controlHtmlFor(entry: Entry) =
     <div data-name={name} id={entryId(entry)} placeholder={placeholder} class={controlCssClasses}>{Unparsed(entry.string)}</div>
-        .setIfMissing(isDisabled, "disabled", "disabled")
+        .setIfMissing(isDisabled, "disabled")
       .addClass(isDisabled, "disabled")
       .set(isEnabled, "contenteditable", "true")
       .addClass(!isDisabled, "can-be-disabled")
@@ -426,11 +439,7 @@ trait HtmlFieldTrait extends MultiLineFieldTrait with HtmlInput {
   override def controlCssClasses: Seq[String] = "html-field" +: super.controlCssClasses
 }
 
-trait SelectField extends FormControlField with Options {
-  override def optionEntries: Seq[Entry] =
-    if (required) super.optionEntries
-    else Entry("", None, "", None) +: super.optionEntries
-}
+trait SelectField extends FormControlField with Options
 
 trait Chosen extends SelectField {
   override def controlCssClasses = (if (required) "chosen" else "chosen-optional") +: super.controlCssClasses
@@ -439,9 +448,13 @@ trait Chosen extends SelectField {
 trait SingleSelectFieldTrait extends SelectField with OneControlPerEntryWithOptions {
   override def translator: Translator = super.translator.kind("SELECT").kind("SINGLE-SELECT")
 
+  override def optionEntries: Seq[Entry] =
+    if (required) super.optionEntries
+    else Entry("", None, "", None) +: super.optionEntries
+
   override def controlHtmlFor(entry: Entry) =
     <select name={name} id={entryId(entry)} data-placeholder={placeholder} class={controlCssClasses}>{emptyOption(entry) ++ super.controlHtmlFor(entry)}</select>
-        .setIfMissing(isDisabled, "disabled", "disabled")
+        .setIfMissing(isDisabled, "disabled")
       .addClass(isDisabled, "disabled")
       .addClass(!isDisabled, "can-be-disabled")
       .addClass(submitOnChange && isEnabled, FormConstants.ACTION_SUBMIT_ON_CHANGE)
@@ -454,32 +467,45 @@ trait SingleSelectFieldTrait extends SelectField with OneControlPerEntryWithOpti
     <option value={ option.string }>{ option.title }</option>.set(option.string == entry.string, "selected")
 }
 
-trait MultiSelectFieldTrait extends SelectField with OneControlForAllEntries {
+trait MultiSelectFieldTrait extends SelectField with OneControlForAllEntriesTriggered {
   override def translator: Translator = super.translator.kind("SELECT").kind("MULTI-SELECT")
 
   override def controlHtml =
-    <select name={name} id={id} data-placeholder={placeholder} class={controlCssClasses}>{super.controlHtml}</select>
-        .setIfMissing(isDisabled, "disabled", "disabled")
+    <select name={name} id={id} data-placeholder={placeholder} class={controlCssClasses} multiple="multiple">{super.controlHtml}</select>
+      .setIfMissing(isDisabled, "disabled")
       .addClass(isDisabled, "disabled")
       .addClass(!isDisabled, "can-be-disabled")
       .addClass(submitOnChange && isEnabled, FormConstants.ACTION_SUBMIT_ON_CHANGE)
 
   override def optionHtmlFor(option: Entry): NodeSeq =
-    <option value={ option.string }>{ option.title }</option>.set(option.string == stringOrEmpty, "selected")
+    <option value={ option.string }>{ option.title }</option>.set(entries.exists(_.string == option.string), "selected")
 }
 
-trait CheckboxFieldTrait extends Field with OneControlForAllEntries {
+trait CheckboxFieldTrait extends Field with OneControlForAllEntriesTriggered {
   override def translator: Translator = super.translator.kind("CHECKBOX")
 
-  //    override def required: Boolean = false
+  override def optionHtmlFor(option: Entry): NodeSeq =
+    <div class="checkbox">
+      <label>
+        {inputFieldFor(option)}
+        {option.title}
+      </label>
+    </div>.addClass(isDisabled, "disabled")
 
-  def optionHtmlFor(option: Entry): NodeSeq =
+  def inputFieldFor(option: Entry): NodeSeq =
       <input type="checkbox" name={name} id={optionId(option)} value={option.string} class={controlCssClasses} />
-        .setIfMissing(isDisabled, "disabled", "disabled")
+        .setIfMissing(isDisabled, "disabled")
       .addClass(isDisabled, "disabled")
       .addClass(!isDisabled, "can-be-disabled")
       .addClass(submitOnChange && isEnabled, FormConstants.ACTION_SUBMIT_ON_CHANGE)
       .set(values.contains(option.valueOption.get), "checked")
+
+  override def shellHtml: Elem = super.shellHtml.addClass("with-control-bg")
+}
+
+trait CheckboxInlineLayout extends CheckboxFieldTrait {
+  override def optionHtmlFor(option: Entry): NodeSeq =
+    <label class="checkbox-inline">{inputFieldFor(option)} {option.title}</label>.addClass(isDisabled, "disabled")
 }
 
 trait BooleanCheckboxField extends CheckboxFieldTrait with BooleanInput {
@@ -489,13 +515,15 @@ trait BooleanCheckboxField extends CheckboxFieldTrait with BooleanInput {
 
   override protected def titleFor(string: String): String = translator.translate("field-title", super.titleFor(string))
 
+  override def required: Boolean = false
+
   def isChecked = valueOption.isDefined
 }
 
 trait RadioFieldTrait extends Field with OneControlPerEntryWithOptions {
   override def translator: Translator = super.translator.kind("RADIO")
 
-  override def entryCssClasses: Seq[String] = "with-msg-bg" +: super.entryCssClasses
+  override def entryCssClasses: Seq[String] = "with-control-bg" +: super.entryCssClasses
 
   def entryName(entry: Entry) = name + "_" + entry.index
 
@@ -503,15 +531,15 @@ trait RadioFieldTrait extends Field with OneControlPerEntryWithOptions {
 
   override def optionHtmlFor(entry: Entry, option: Entry): NodeSeq =
     <div class="radio">
-        <label>
-          {inputFieldFor(entry, option)}
-          {option.title}
-        </label>
-      </div>.addClass(isDisabled, "disabled")
+      <label>
+        {inputFieldFor(entry, option)}
+        {option.title}
+      </label>
+    </div>.addClass(isDisabled, "disabled")
 
   def inputFieldFor(entry: Entry, option: Entry): NodeSeq =
       <input type="radio" data-name={name} name={entryName(entry)} id={optionId(entry, option)} value={option.string} class={controlCssClasses} />
-        .setIfMissing(isDisabled, "disabled", "disabled")
+        .setIfMissing(isDisabled, "disabled")
       .addClass(isDisabled, "disabled")
       .addClass(!isDisabled, "can-be-disabled")
       .addClass(submitOnChange && isEnabled, FormConstants.ACTION_SUBMIT_ON_CHANGE)
@@ -554,7 +582,7 @@ trait AbstractDateTimeFieldTrait extends FormControlField with OneControlPerEntr
 
   private def realControlHtmlFor(entry: Entry) =
       <input type="text" name={name} id={entryId(entry)} placeholder={placeholder} value={entry.string} class={controlCssClasses}/>
-        .setIfMissing(isDisabled, "disabled", "disabled")
+        .setIfMissing(isDisabled, "disabled")
       .addClass(isDisabled, "disabled")
       .addClass(!isDisabled, "can-be-disabled")
       .addClass(submitOnChange && isEnabled, FormConstants.ACTION_SUBMIT_ON_CHANGE)
@@ -606,8 +634,8 @@ trait NumberFieldTrait extends FormControlField with OneControlPerEntry with Num
   override def translator: Translator = super.translator.kind("NUMBER")
 
   override def controlHtmlFor(entry: Entry) =
-    <input type="text" name={name} id={entryId(entry)} placeholder={placeholder} value={entry.string} class={controlCssClasses}/>
-      .setIfMissing(isDisabled, "disabled", "disabled")
+      <input type="text" name={name} id={entryId(entry)} placeholder={placeholder} value={entry.string} class={controlCssClasses}/>
+      .setIfMissing(isDisabled, "disabled")
       .addClass(isDisabled, "disabled")
       .addClass(!isDisabled, "can-be-disabled")
       .addClass(!isDisabled, "numeric")
@@ -631,6 +659,12 @@ trait DoubleFieldTrait extends NumberFieldTrait with DoubleInput {
 
 trait PercentFieldTrait extends NumberFieldTrait with PercentInput {
   override def translator: Translator = super.translator.kind("PERCENT")
+}
+
+trait HiddenTrait extends Control with ParametersInLinks {
+  override protected def selfIsHidden: Boolean = true
+
+  override def controlHtml: NodeSeq = <span/>
 }
 
 /* Buttons */
@@ -857,11 +891,7 @@ trait Container extends Component {
     def this(text: => String) = this(true, text)
   }
 
-  abstract class Hidden(ilk: String) extends Child(ilk: String, this) with Control with ParametersInLinks {
-    override protected def selfIsHidden: Boolean = true
-  }
-
-  /* Child constructors */
+  abstract class Hidden(ilk: String) extends Child(ilk: String, this) with HiddenTrait
 
   abstract class SingleLineField(ilk: String) extends Child(ilk, this) with SingleLineFieldTrait
 

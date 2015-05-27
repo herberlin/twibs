@@ -25,6 +25,24 @@ class TestForm extends Form("test") with HorizontalForm {
 
     override protected def selfIsIgnored: Boolean = mode.string == "ignored"
 
+    >> {<h3>Multiselect Fields</h3>}
+
+    new MultiSelectField("multi-select-chosen") with StringInput with Chosen {
+      override def options: Seq[ValueType] = "Dear" :: "Bear" :: "Lion" :: Nil
+    }
+
+    new MultiSelectField("multi-select") with StringInput {
+      override def options: Seq[ValueType] = "Dear" :: "Bear" :: "Lion" :: Nil
+    }
+
+    new MultiSelectField("multi-select-optional-chosen") with StringInput with Chosen with Optional {
+      override def options: Seq[ValueType] = "Dear" :: "Bear" :: "Lion" :: Nil
+    }
+
+    new MultiSelectField("multi-select-optional") with StringInput with Optional {
+      override def options: Seq[ValueType] = "Dear" :: "Bear" :: "Lion" :: Nil
+    }
+
     >> {<h3>Integer Field</h3>}
     new IntField("int-values") with SubmitOnChange {
       override def execute(): Seq[Result] =
@@ -160,17 +178,7 @@ class TestForm extends Form("test") with HorizontalForm {
       override def maximumNumberOfEntries: Int = 1
     }
 
-    >> {<h3>Multiselect Fields</h3>}
-
-    new MultiSelectField("multi-select") with StringInput with Chosen {
-      override def options: Seq[ValueType] = "Dear" :: "Bear" :: "Lion" :: Nil
-    }
-
-    new MultiSelectField("multi-select-optional") with StringInput with Chosen with Optional {
-      override def options: Seq[ValueType] = "Dear" :: "Bear" :: "Lion" :: Nil
-    }
-
-    >> {<h4>Checkboxes</h4>}
+    >> {<h3>Checkboxes</h3>}
     >> {<p>Simple boolean checkbox with submit on change</p>}
     new CheckboxField("boolean-checkbox") with BooleanCheckboxField with SubmitOnChange
 

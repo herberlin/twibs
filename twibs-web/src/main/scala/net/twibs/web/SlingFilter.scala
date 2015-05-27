@@ -37,13 +37,13 @@ class SlingFilter extends Filter {
 object HttpServletRequestWithSlingUpload extends HttpServletUtils {
   def apply(httpServletRequest: SlingHttpServletRequest, httpServletResponse: HttpServletResponse) = {
     lazy val allRequestParameters: Seq[(String, RequestParameter)] =
-      CollectionUtils.ungroupArray(httpServletRequest.getRequestParameterMap.toMap)
+      CollectionUtils.mapArrayToSeq(httpServletRequest.getRequestParameterMap.toMap)
 
     def parameters: Parameters = removeUnderscoreParameterSetByJQuery(slingParameters)
 
-    def slingParameters: Map[String, Seq[String]] = CollectionUtils.group(formFields.map(e => (e._1, e._2.getString(Charsets.UTF_8.name))))
+    def slingParameters: Map[String, Seq[String]] = CollectionUtils.seqToMap(formFields.map(e => (e._1, e._2.getString(Charsets.UTF_8.name))))
 
-    def uploads: Map[String, Seq[Upload]] = CollectionUtils.group(fileItems.map(e => (e._1, toUpload(e._1, e._2))))
+    def uploads: Map[String, Seq[Upload]] = CollectionUtils.seqToMap(fileItems.map(e => (e._1, toUpload(e._1, e._2))))
 
     def toUpload(nameArg: String, requestParameterArg: RequestParameter) = new Upload() {
       val requestParameter = requestParameterArg
