@@ -39,7 +39,7 @@ class XmlUtilsTest extends TwibsTest {
   }
 
   test("Delete if empty") {
-    <div a="a"><div></div></div>.unwrapIfEmpty should be( <div a="a"><div></div></div>)
-    <div a="a"></div>.unwrapIfEmpty should be(NodeSeq.Empty)
+    <div a="a"><div></div></div>.removeIfEmpty should be( <div a="a"><div></div></div>)
+    <div a="a"></div>.removeIfEmpty should be(NodeSeq.Empty)
   }
 }

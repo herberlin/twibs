@@ -17,8 +17,6 @@ trait HorizontalLayoutContainer extends Container {
 
   def ->>(nodeSeq: => NodeSeq) = new DisplayHtml(<div class="form-group"><div class={s"col-sm-offset-$labelColumns col-sm-$contentColumns"}>{nodeSeq}</div></div>)
 
-  /* Fields */
-
   trait HorizontalControl extends Control {
     override def treeHtml: NodeSeq = <div class="form-group">{formGroupContent}</div>.addClass(required, "required")
 
@@ -33,9 +31,8 @@ trait HorizontalLayoutContainer extends Container {
     def infoIcon = infoMessageOption match {
       case None => NodeSeq.Empty
       case Some(string) =>
-        val title = infoMessageOption.fold("")(_ => infoMessageTitle)
         <span class="info-icon fa fa-info-circle"></span>
-          .set(!title.isEmpty, "data-title", title)
+          .set("data-title", infoMessageTitle)
           .set("data-toggle", "popover")
           .set("data-content", string)
           .set("data-placement", "auto")
@@ -44,48 +41,8 @@ trait HorizontalLayoutContainer extends Container {
           .set("data-html", "true")
     }
 
-    //    override def infoMessageHtml: NodeSeq =
-    //      infoMessageOption.fold(NodeSeq.Empty) { m =>
-    //        val title = infoMessageTitle
-    //        <span class="info-message" data-toggle="popover" data-trigger="hover click focus" data-placement="right" data-content={m} data-html="true"><span class="fa fa-info-circle"></span></span>
-    //          .setIfMissing(!title.isEmpty, "title", title)
-    //          .setIfMissing(!title.isEmpty, "data-title", title)
-    //      }
-
     override def helpMessageHtml: NodeSeq = helpMessageOption.fold(NodeSeq.Empty)(m => <div class="help-block">{Unparsed(m)}</div>)
   }
-
-  //  trait Bs3HlField extends FormControlField with Bs3HlControl {
-  //    def renderEntryMessage(entry: Entry) =
-  //      if (validated)
-  //        entry.messageOption.fold(NodeSeq.Empty)(message => <div class="help-block">{message.text}</div>)
-  //      else NodeSeq.Empty
-  //
-  //    override def renderVisible2(entry: Entry): NodeSeq =
-  //        <div class={cssMessageClass(entry.messageOption)}>
-  //          {renderInputFor(entry)}
-  //          {renderEntryMessage(entry)}
-  //        </div>
-  //
-  //    def renderInputFor(entry: Entry): NodeSeq = NodeSeq.Empty
-  //  }
-
-  //  trait CheckboxOrRadioField extends super.CheckboxOrRadioField with FieldWithOptions {
-  //    override def renderOptions: NodeSeq =
-  //      <div class="form-group">
-  //        <div class={labelCssMessageClass :: s"col-sm-$labelColumns" :: Nil}><label class="control-label">{fieldTitle}</label></div>
-  //        <div class={s"col-sm-$contentColumns"}>{renderMessages ++ super.renderOptions}</div>
-  //      </div>.addClass(required, "required")
-  //
-  //    override def renderOption(option: Entry): NodeSeq =
-  //      <div class="checkbox">
-  //        <label>
-  //          {super.renderOption(option)} {option.title}
-  //        </label>
-  //      </div>
-  //  }
-
-  //  trait Popover extends super.Popover with Bs3HorizontalLayout with ButtonRenderer
 
   abstract class SingleLineField(ilk: String) extends super.SingleLineField(ilk) with HorizontalControl
 
@@ -116,9 +73,8 @@ trait HorizontalLayoutContainer extends Container {
   abstract class Button(ilk: String) extends super.Button(ilk) with HorizontalControl
 
   abstract class ButtonRow extends super.ButtonRow {
-    override def enabledTreeHtml = <div class="form-group"><div class={s"col-sm-offset-$labelColumns col-sm-$contentColumns"}>{super.enabledTreeHtml}</div></div>
+    override def treeHtml = <div class="form-group"><div class={s"col-sm-offset-$labelColumns col-sm-$contentColumns"}>{super.treeHtml}</div></div>
   }
-
 }
 
 trait HorizontalForm extends Form with HorizontalLayoutContainer {

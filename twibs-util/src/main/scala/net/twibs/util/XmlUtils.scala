@@ -36,6 +36,8 @@ trait XmlUtils {
 
     def set(name: String): Elem = set(name, name)
 
+    def set(name: => String, value: => Option[String]): Elem = set(value.isDefined, name, value.get)
+
     def set(condition: Boolean, name: => String, value: => String): Elem = if (condition) set(name, value) else elem
 
     def set(condition: Boolean, name: => String): Elem = set(condition, name, name)
@@ -54,7 +56,7 @@ trait XmlUtils {
 
     def surround(ns: NodeSeq) = ns match {case NodeSeq.Empty => ns case _ => elem.copy(child = ns) }
 
-    def unwrapIfEmpty: NodeSeq = if(elem.child.isEmpty) NodeSeq.Empty else elem
+    def removeIfEmpty: NodeSeq = if(elem.child.isEmpty) NodeSeq.Empty else elem
   }
 
   implicit def cssClassesToAttributeValue(cssClasses: Seq[String]): Seq[Node] = Text(cssClasses.map(_.trim).filterNot(_.isEmpty).distinct.mkString(" "))

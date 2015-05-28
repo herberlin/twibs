@@ -25,6 +25,18 @@ class TestForm extends Form("test") with HorizontalForm {
 
     override protected def selfIsIgnored: Boolean = mode.string == "ignored"
 
+    >> {<h3>Dynamic Container</h3>}
+    new ChildContainer("dynamic") with DynamicChildren {
+      override type T = DynamicContainer
+
+      override def minimumNumberOfDynamics: Int = 2
+
+      override def createChild(): T = new HorizontalLayout with DynamicContainer {
+        new SingleLineField("first-name") with StringInput
+        new SingleLineField("last-name") with StringInput
+      }
+    }
+
     >> {<h3>Multiselect Fields</h3>}
 
     new MultiSelectField("multi-select-chosen") with StringInput with Chosen {
@@ -96,7 +108,7 @@ class TestForm extends Form("test") with HorizontalForm {
     }
 
     >> {<h3>Chosen select</h3>}
-    new SingleSelectField("chosen-single-select-multiple-values") with StringInput with Chosen with SubmitOnChange  {
+    new SingleSelectField("chosen-single-select-multiple-values") with StringInput with Chosen with SubmitOnChange {
       override def options = "Dear" :: "Bear" :: "Lion" :: Nil
 
       override def execute(): Seq[Result] =
@@ -231,11 +243,16 @@ class TestForm extends Form("test") with HorizontalForm {
     >> {<p>First Button with value 1 {floatingButton.withOption("1")(_.html)}. Second {floatingButton.withOption("2")(_.html)} has value 2</p>}
 
   }
+
   new Button("submit") with SimpleButton with PrimaryDisplayType with ExecuteValidated with DefaultButton
 
   val openModal = new Button("open-modal") with OpenModalLinkButton with PrimaryDisplayType
 
   >> {<h3>Modal</h3>}
   >> {<h4>Open a copy of this form in a modal dialog</h4>}
-  >> {new TestForm().openModal.html}
+  >> {
+    Request.copy(parameters = Request.parameters.copy(parameterMap = Request.parameters.parameterMap)).use {
+      new TestForm().openModal.html
+    }
+  }
 }

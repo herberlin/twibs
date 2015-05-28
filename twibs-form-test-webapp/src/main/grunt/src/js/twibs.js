@@ -78,7 +78,10 @@ $(function () {
 
                 // Init sortable
                 $this.find('.sortable')
-                    .sortable({forcePlaceholderSize: true})
+                    .sortable({
+                        forcePlaceholderSize: true,
+                        handle: ".sort-handle"
+                    })
                     .bind('sortupdate', function (e, ui) {
                         ui.item.submitForm("sortable", ui.item.id);
                     });
@@ -272,7 +275,7 @@ $(function () {
                 //}
             })
             // Triggered by data-time-picker. Send forward to control element
-            .on('changeDate', '.date-time-picker', function() {
+            .on('changeDate', '.date-time-picker', function () {
                 $(this).find(".form-control").trigger('change');
             })
             .on('twibs-update-dom', function () {

@@ -8,14 +8,10 @@
 @import "bootstrap-chosen.less";
 @import "jquery.bootstrap-touchspin.less";
 
-//.chosen-container-multi .chosen-choices .search-field:first-child {
-//    margin-left: 8px;
-//}
-
 .t-form {
-    //select.chosen[multiple] {
-    //    height: @input-height-base;
-    //}
+    .chosen-container-single .chosen-default, .chosen-container-multi .chosen-choices .search-field .default {
+        color: #999;
+    }
 
     //.controls .alert:last-child {
     //    margin-bottom: 0;
@@ -61,7 +57,7 @@
         border-radius: 4px;
         display: inline-block;
 
-        /* Control shell can have a message specific background */
+        // Control shell can have a message specific background
         &.has-error {
             &:extend(.bg-danger);
             min-height: 36px;
@@ -83,25 +79,28 @@
         display: block;
     }
 
-    /* Prepare entry to receive a background in case of a message */
-    .entry {
+    .dynamic-container-shell > .form-container {
+        padding: @padding-base-vertical @padding-base-horizontal;
+        border: 1px solid @input-border;
+        border-radius: @input-border-radius;
+        .box-shadow(inset 0 1px 1px rgba(0, 0, 0, .075));
+        margin-bottom: @form-group-margin-bottom;
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+    }
+
+    .entry, .dynamic-container-shell {
         position: relative;
 
         &.has-actions {
             padding-right: 59px;
         }
-        &.has-sorter {
+        &.has-sort-handle {
             padding-right: 28px;
-
-            > .actions:before {
-                content: @fa-var-reorder;
-                .fa-icon();
-                padding: 3px 7px;
-                color: lighten(@text-color, 40%);
-                cursor: move;
-            }
         }
-        &.has-actions.has-sorter {
+        &.has-actions.has-sort-handle {
             padding-right: 79px;
         }
 
@@ -111,6 +110,12 @@
             top: 0;
             padding: 4px;
         }
+    }
+
+    .sort-handle {
+        padding: 3px 7px;
+        color: lighten(@text-color, 40%);
+        cursor: move;
     }
 
     .with-control-bg {
@@ -153,6 +158,9 @@
         .clearfix();
     }
 
+    .btn + .btn {
+        margin-left: 6px;
+    }
     //.emptiable {
     //    position: relative;
     //    display: block;
@@ -188,7 +196,7 @@
     margin-bottom: -1px;
 }
 
-/* Hide the second @ in email address */
+// Hide the second @ in email address
 span.mhost span {
     display: none;
 }
@@ -202,7 +210,7 @@ span.mhost span {
     height: 1px;
 }
 
-/** Enhancements for choosen */
+// Enhancements for choosen
 .has-error {
     @border-color: @state-danger-text;
     .chosen-container {

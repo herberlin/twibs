@@ -93,24 +93,18 @@ trait Component extends TranslationSupport {
   final def html: NodeSeq =
     if (isIgnored) ignoredHtml
     else if (isHidden) hiddenHtml
-    else if (isFloating) componentHtml
+    else if (isFloating) floatingHtml
     else treeHtml
 
   def ignoredHtml: NodeSeq = NodeSeq.Empty
 
   def hiddenHtml: NodeSeq = ignoredHtml
 
-  def treeHtml: NodeSeq = if (isEnabled) enabledTreeHtml else disabledTreeHtml
+  def treeHtml: NodeSeq = componentHtml
 
-  def disabledTreeHtml: NodeSeq = disabledComponentHtml
+  def floatingHtml: NodeSeq = componentHtml
 
-  def enabledTreeHtml: NodeSeq = enabledComponentHtml
-
-  def componentHtml: NodeSeq = if (isEnabled) enabledComponentHtml else disabledComponentHtml
-
-  def disabledComponentHtml: NodeSeq = enabledComponentHtml
-
-  def enabledComponentHtml: NodeSeq = hiddenHtml
+  def componentHtml: NodeSeq = hiddenHtml
 
   // Execution with result
   implicit def toResultSeq(unit: Unit): Seq[Result] = Ignored :: Nil
@@ -218,10 +212,14 @@ trait Control extends Component with Input {
 
   def controlCssClasses: Seq[String] = Nil
 
-  override def enabledComponentHtml: NodeSeq = shellHtml ++ helpMessageHtml
+  override def treeHtml: NodeSeq = super.treeHtml ++ helpMessageHtml
 
-  def shellHtml: Elem = <div class="control-shell" id={shellId}>{controlHtml}</div>
+  override def componentHtml: NodeSeq = shellHtml
+
+  def shellHtml: Elem = <div class={controlShellCssClasses} id={shellId}>{controlHtml}</div>
       .addTooltip(shellMessageOption.filter(_ => validated), "top")
+
+  def controlShellCssClasses: Seq[String] = "control-shell" :: Nil
 
   def shellMessageOption = validationMessageOption
 
@@ -289,15 +287,17 @@ trait OneControlPerEntry extends Control {
     <div class={entryCssClasses}>{controlHtmlFor(entry) ++ entryActions(entry) ++ disabledFallback(entry)}</div>
         .addTooltip(entry.validationMessageOption.filter(_ => validated))
       .addClass(hasActions, "has-actions")
-      .addClass(hasSorter, "has-sorter")
+      .addClass(hasSorter, "has-sort-handle")
 
   def entryCssClasses: Seq[String] = "entry" :: Nil
 
   def disabledFallback(entry: Entry) = if (isDisabled) renderHidden(entry) else NodeSeq.Empty
 
-  def hasActions = !entryAddButton.isIgnored || !entryRemoveButton.isIgnored
+  def hasActions = !entryAddButton.isHidden || !entryRemoveButton.isHidden
 
-  def entryActions(entry: Entry) = <div class="actions">{entryAddActionHtml(entry)}{entryRemoveActionHtml(entry)}</div>.unwrapIfEmpty
+  def entryActions(entry: Entry) = <div class="actions">{sortHandleHtml}{entryAddActionHtml(entry)}{entryRemoveActionHtml(entry)}</div>.removeIfEmpty
+
+  def sortHandleHtml = if (hasSorter) <span class="sort-handle fa fa-reorder"></span> else NodeSeq.Empty
 
   def entryAddActionHtml(entry: Entry) = entryAddButton.withOption(entry.index)(_.html)
 
@@ -305,7 +305,7 @@ trait OneControlPerEntry extends Control {
 
   def controlHtmlFor(entry: Entry): NodeSeq
 
-  def controlShellActions = <div class="actions">{entryAddActionHtml}</div>
+  def controlShellActions = <div class="actions">{entryAddActionHtml}</div>.removeIfEmpty
 
   def entryAddActionHtml = entryAddButton.withOption(-1)(_.html)
 
@@ -317,11 +317,7 @@ trait OneControlPerEntry extends Control {
 
   private[this] val sortableCache = Memo {isEnabled && entries.size > 1 && computeSortable}
 
-  val entryAddButton = new Child("add-entry-button", control.parent) with ButtonTrait with DynamicOptions with IntInput with DefaultDisplayType with Floating {
-    override def controlCssClasses: Seq[String] = "btn-xs" +: super.controlCssClasses
-
-    override def buttonUseIconOnly: Boolean = true
-
+  val entryAddButton = new Child("add-entry-button", control.parent) with IconButtonXs with DynamicOptions with IntInput with DefaultDisplayType with Floating {
     override def execute(): Seq[Result] = addEntryBefore(value)
 
     override protected def selfIsDisabled: Boolean =
@@ -331,11 +327,7 @@ trait OneControlPerEntry extends Control {
       control.isDisabled || control.minimumNumberOfEntries == control.maximumNumberOfEntries && selfIsDisabled
   }
 
-  val entryRemoveButton = new Child("remove-entry-button", control.parent) with ButtonTrait with DynamicOptions with DefaultDisplayType with Floating with IntInput {
-    override def controlCssClasses: Seq[String] = "btn-xs" +: super.controlCssClasses
-
-    override def buttonUseIconOnly: Boolean = true
-
+  val entryRemoveButton = new Child("remove-entry-button", control.parent) with IconButtonXs with DynamicOptions with DefaultDisplayType with Floating with IntInput {
     override def execute(): Seq[Result] = removeEntryAt(value)
 
     override protected def selfIsDisabled: Boolean =
@@ -686,6 +678,9 @@ trait ButtonTrait extends OneControlForAllEntries with DisplayType {
 
   override def validateInTree(): Unit = ()
 
+  // Buttons do not use the surrounding control shell
+  override def componentHtml: NodeSeq = controlHtml
+
   class OptionRenderer(option: Entry) {
     def html = if (isEnabled) enabledHtml else disabledHtml
 
@@ -721,6 +716,12 @@ trait ButtonTrait extends OneControlForAllEntries with DisplayType {
     def displayTypeString = translator.translate("display-type", ButtonTrait.this.displayTypeString)
   }
 
+}
+
+trait IconButtonXs extends ButtonTrait {
+  override def controlCssClasses: Seq[String] = "btn-xs" +: super.controlCssClasses
+
+  override def buttonUseIconOnly: Boolean = true
 }
 
 class Child(val ilk: String, val parent: Container) extends Component {
@@ -828,32 +829,32 @@ trait Container extends Component {
 
   override def hiddenHtml = childrenHtml
 
-  override def enabledComponentHtml = validationMessageHtml ++ childrenHtml
+  override def componentHtml = validationMessageHtml ++ shellHtml
 
-  def validationMessageHtml = validationMessageOption.fold(NodeSeq.Empty)(_.text)
-
-  def childrenHtml: NodeSeq = children.flatMap(child => if (child.isFloating) NodeSeq.Empty else renderChild(child))
+  def validationMessageHtml = validationMessageOption.fold(NodeSeq.Empty)(_.toBsMessage)
 
   def containerCssClasses: Seq[String] = "form-container" +: Nil
 
+  def shellCssClasses: Seq[String] = "form-container-shell" :: Nil
+
   def renderChild(child: Component) = child.html
 
-  def isDetachable = isInstanceOf[Detachable]
+  def shellHtml: Elem =
+    <div id={shellId} name={name} class={shellCssClasses}>{containerHtml ++ actionsHtml}</div>
 
-  override def componentHtml: NodeSeq =
-    <div id={shellId} name={name} class={("form-container-shell" :: Nil).addClass(isDetachable, "detachable")}>
-      {if (isDetachable) closeButton else NodeSeq.Empty}
-      <div id={id} class={containerCssClasses}>
-        {super.componentHtml}
-      </div>
-    </div>
+  def containerHtml: Elem =
+    <div id={id} class={containerCssClasses}>{childrenHtml}</div>
 
-  def closeButton = {
-    def dismissButton: NodeSeq = <button type="button" class="btn btn-danger" data-dismiss="detachable">{t"delete-component.button-title: Delete"}</button>
+  def childrenHtml: NodeSeq = children.flatMap(child => if (child.isFloating) NodeSeq.Empty else renderChild(child))
 
-    if (isEnabled) <button type="button" class="close" data-toggle="popover" data-html="true" data-placement="auto left" data-title={t"delete-component.popover-title: Delete component?"} data-content={dismissButton}>&times;</button>
-    else NodeSeq.Empty
-  }
+  def actionsHtml: NodeSeq = NodeSeq.Empty
+
+  //  def closeButton = {
+  //    def dismissButton: NodeSeq = <button type="button" class="btn btn-danger" data-dismiss="detachable">{t"delete-component.button-title: Delete"}</button>
+  //
+  //    if (isEnabled) <button type="button" class="close" data-toggle="popover" data-html="true" data-placement="auto left" data-title={t"delete-component.popover-title: Delete component?"} data-content={dismissButton}>&times;</button>
+  //    else NodeSeq.Empty
+  //  }
 
   //  override def renderMessage(message: Message): NodeSeq =
   //    if (message.dismissable)
@@ -884,7 +885,7 @@ trait Container extends Component {
 
     override protected def computeIgnored: Boolean = !visible
 
-    override def enabledComponentHtml = renderHtml
+    override def componentHtml = renderHtml
   }
 
   class DisplayText(visible: => Boolean, text: => String) extends DisplayHtml(visible, Unparsed(text)) {
@@ -930,10 +931,13 @@ trait Container extends Component {
 }
 
 trait DynamicChildren extends Container {
+  control =>
+
   type T <: DynamicContainer
 
   override def reset(): Unit = {
     super.reset()
+    sortableCache.reset()
     _children --= dynamics
   }
 
@@ -956,7 +960,7 @@ trait DynamicChildren extends Container {
 
   def numberOfDynamicsValid = !parsed || numberOfDynamicsInRange
 
-  def numberOfDynamicsInRange = Range(minimumNumberOfDynamics, maximumNumberOfDynamics).contains(children.size)
+  def numberOfDynamicsInRange = Range(minimumNumberOfDynamics, maximumNumberOfDynamics).contains(dynamics.size)
 
   def minimumNumberOfDynamics = 0
 
@@ -966,6 +970,30 @@ trait DynamicChildren extends Container {
     if (numberOfDynamicsValid) super.validationMessageOption
     else if (dynamics.size < minimumNumberOfDynamics) Some(danger"minimum-number-of-children-message: Please provide at least {$minimumNumberOfDynamics, plural, =1{one child}other{# children}}")
     else Some(danger"maximum-number-of-chilren-message: Please provide no more than {$maximumNumberOfDynamics, plural, =1{one child}other{# children}}")
+
+  override def actionsHtml: NodeSeq = <div class="actions"><button type="submit" name="add-entry-button2" id="f5slJj14WWMY_hl_add-entry-button2" class="can-be-disabled btn btn-default btn-xs" value="-1"><span class="fa fa-plus"></span></button></div>
+
+  val removeButton = new Child("remove-dynamic-button", this) with IconButtonXs with DynamicOptions with DefaultDisplayType with Floating with StringInput {
+    override def execute(): Seq[Result] = removeDynamicAt(value)
+
+    override protected def selfIsDisabled: Boolean =
+      control.dynamics.size <= control.minimumNumberOfDynamics
+
+    override protected def selfIsIgnored: Boolean =
+      control.isDisabled || control.minimumNumberOfDynamics == control.maximumNumberOfDynamics && selfIsDisabled
+  }
+
+  def removeDynamicAt(id: String) = dynamics.find(_.id == id).foreach(_children -= _)
+
+  def hasSorter = isSortable
+
+  def isSortable = sortableCache()
+
+  def computeSortable = true
+
+  private[this] val sortableCache = Memo {isEnabled && dynamics.size > 1 && computeSortable}
+
+  (0 until minimumNumberOfDynamics).map(_ => createChild())
 }
 
 protected[form] object DynamicID extends DynamicVariableWithDefault[String] {
@@ -976,6 +1004,31 @@ trait DynamicContainer extends Container {
   val dynamicId: String = DynamicID.current
 
   override val prefixForChildNames: String = parent.prefixForChildNames + dynamicId
+
+  override def shellCssClasses: Seq[String] = "dynamic-container-shell" +: super.containerCssClasses
+
+  override def actionsHtml: NodeSeq =
+    <div class="actions">{sortHandleHtml}{dynamicRemoveActionHtml}{dynamicRemoveActionHtml}</div>
+
+  def sortHandleHtml = if (hasSorter) <span class="sort-handle fa fa-reorder"></span> else NodeSeq.Empty
+
+  def dynamicAddActionHtml = parentD.removeButton.withOption(id)(_.html)
+
+  def dynamicRemoveActionHtml = parentD.removeButton.withOption(id)(_.html)
+
+    override def shellHtml: Elem = super.shellHtml
+    .addClass(hasActions, "has-actions")
+    .addClass(hasSorter, "has-sort-handle")
+
+  def parentD = parent.asInstanceOf[DynamicChildren]
+
+  def hasActions = /*!childAddButton.isIgnored ||*/ !parentD.removeButton.isHidden
+//
+//  def entryActions = <div class="actions">{sortHandleHtml}{addActionHtml}{removeActionHtml}</div>.removeIfEmpty
+//
+//  def entryAddActionHtml(entry: Entry) = entryAddButton.withOption(entry.index)(_.html)
+
+  def hasSorter = parentD.hasSorter
 }
 
 trait Floating extends Component {
@@ -1045,7 +1098,7 @@ class Form(val ilk: String) extends Container with CancelStateInheritance with L
 
   lazy val actionReason = request.parameters.getString(PN_ACTION_REASON, "")
 
-  override def translator = Request.current.translator.usage("FORM").usage(ilk)
+  override def translator = request.translator.usage("FORM").usage(ilk)
 
   def hidden(name: String, value: String): NodeSeq = <input type="hidden" autocomplete="off" name={name} value={value} />
 
@@ -1136,7 +1189,7 @@ class Form(val ilk: String) extends Container with CancelStateInheritance with L
     if (isIgnored) NodeSeq.Empty
     else surround(inlineContent, "false") ++ javascriptHtml
 
-  override def enabledComponentHtml: NodeSeq = surround({if (modal) modalContent else inlineContent})
+  override def componentHtml: NodeSeq = surround({if (modal) modalContent else inlineContent})
 
   def surround(content: NodeSeq, modalValue: String = modal.toString) =
     <form id={formId} name={name} class={formCssClasses} action={actionLink} method="post" enctype="multipart/form-data">
@@ -1187,7 +1240,7 @@ class Form(val ilk: String) extends Container with CancelStateInheritance with L
 
   def formDescriptionString = t"form-description:"
 
-  def formBody = defaultButtonHtml ++ super.enabledComponentHtml
+  def formBody = defaultButtonHtml ++ super.componentHtml
 
   def javascriptHtml = javascript.toString match {case "" => NodeSeq.Empty case js => <script>{Unparsed("document.addEventListener('twibs-loaded', function() {" + js + "}, false)")}</script> }
 
