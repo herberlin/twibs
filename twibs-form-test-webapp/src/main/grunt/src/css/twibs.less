@@ -7,6 +7,8 @@
 @import "pnotify.custom.less";
 @import "bootstrap-chosen.less";
 @import "jquery.bootstrap-touchspin.less";
+@import "flags.less";
+@import "select2.less";
 
 .t-form {
     .chosen-container-single .chosen-default, .chosen-container-multi .chosen-choices .search-field .default {
@@ -60,18 +62,13 @@
         // Control shell can have a message specific background
         &.has-error {
             &:extend(.bg-danger);
-            min-height: 36px;
+            min-height: @input-height-base;
         }
 
         > .actions {
+            position: static;
             float: right;
             padding: 4px 5px 4px 4px;
-        }
-
-        .actions {
-            .control-shell {
-                display: inline-block;
-            }
         }
     }
 
@@ -91,25 +88,23 @@
         }
     }
 
-    .entry, .dynamic-container-shell {
+    // Actions and sorting
+    .has-actions {
         position: relative;
-
-        &.has-actions {
-            padding-right: 59px;
-        }
-        &.has-sort-handle {
-            padding-right: 28px;
-        }
-        &.has-actions.has-sort-handle {
-            padding-right: 79px;
-        }
-
-        > .actions {
-            position: absolute;
-            right: 0;
-            top: 0;
-            padding: 4px;
-        }
+        padding-right: 59px;
+    }
+    .has-sort-handle {
+        position: relative;
+        padding-right: 28px;
+    }
+    .has-actions.has-sort-handle {
+        padding-right: 79px;
+    }
+    .actions {
+        position: absolute;
+        right: 0;
+        top: 0;
+        padding: 4px;
     }
 
     .sort-handle {
@@ -118,6 +113,7 @@
         cursor: move;
     }
 
+    // Background for radio and checkboxes
     .with-control-bg {
         padding: 0 8px 5px 8px;
         border-radius: @border-radius-base;
@@ -154,13 +150,19 @@
 
     .html-field {
         height: auto;
-        min-height: 4em;
+        min-height: @input-height-base;
         .clearfix();
     }
 
     .btn + .btn {
         margin-left: 6px;
     }
+
+    select[multiple].chosen {
+        // Avoid jumping of scroll bar
+        height: @input-height-base;
+    }
+
     //.emptiable {
     //    position: relative;
     //    display: block;
@@ -183,11 +185,6 @@
     //        }
     //    }
     //}
-
-    select[multiple].chosen {
-        // Avoid jumping of scroll bar
-        height: @input-height-base;
-    }
 }
 
 .sortable-placeholder {

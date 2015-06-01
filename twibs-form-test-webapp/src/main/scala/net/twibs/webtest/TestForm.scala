@@ -4,8 +4,10 @@
 
 package net.twibs.webtest
 
+import com.ibm.icu.util.ULocale
 import net.twibs.form._
 import net.twibs.util._
+import net.twibs.util.XmlUtils._
 
 class TestForm extends Form("test") with HorizontalForm {
   override def formTitleHtml = <h1>{formTitleString}</h1>
@@ -25,6 +27,18 @@ class TestForm extends Form("test") with HorizontalForm {
 
     override protected def selfIsIgnored: Boolean = mode.string == "ignored"
 
+    >> {<h3>Language Select List</h3>}
+
+    new SingleSelectField("countries") with StringInput with Select2 {
+      override def options: Seq[String] = ULocale.getISOCountries
+
+      override protected def titleFor(string: String): String =
+        ULocale.getDisplayCountry(Request.locale.getLanguage + "_" + string, Request.locale)
+
+      override def optionHtmlFor(entry: Entry, option: Entry) =
+        super.optionHtmlFor(entry, option).set("data-text", <span><i class={s"flag flag-${option.string.toLowerCase}"}></i> {option.title}</span>)
+    }
+
     >> {<h3>Dynamic Container</h3>}
     new ChildContainer("dynamic") with DynamicChildren {
       override type T = DynamicContainer
@@ -39,7 +53,7 @@ class TestForm extends Form("test") with HorizontalForm {
 
     >> {<h3>Multiselect Fields</h3>}
 
-    new MultiSelectField("multi-select-chosen") with StringInput with Chosen {
+    new MultiSelectField("multi-select-chosen") with StringInput with Select2 {
       override def options: Seq[ValueType] = "Dear" :: "Bear" :: "Lion" :: Nil
     }
 
@@ -47,7 +61,7 @@ class TestForm extends Form("test") with HorizontalForm {
       override def options: Seq[ValueType] = "Dear" :: "Bear" :: "Lion" :: Nil
     }
 
-    new MultiSelectField("multi-select-optional-chosen") with StringInput with Chosen with Optional {
+    new MultiSelectField("multi-select-optional-chosen") with StringInput with Select2 with Optional {
       override def options: Seq[ValueType] = "Dear" :: "Bear" :: "Lion" :: Nil
     }
 
@@ -93,6 +107,7 @@ class TestForm extends Form("test") with HorizontalForm {
     }
 
     >> {<h3>Single Select Fields</h3>}
+
     new SingleSelectField("single-select-multiple-values") with StringInput with SubmitOnChange {
       override def options = "Dear" :: "Bear" :: "Lion" :: Nil
 
@@ -107,8 +122,7 @@ class TestForm extends Form("test") with HorizontalForm {
       override def maximumNumberOfEntries: Int = 3
     }
 
-    >> {<h3>Chosen select</h3>}
-    new SingleSelectField("chosen-single-select-multiple-values") with StringInput with Chosen with SubmitOnChange {
+    new SingleSelectField("chosen-single-select-multiple-values") with StringInput with Select2 with SubmitOnChange {
       override def options = "Dear" :: "Bear" :: "Lion" :: Nil
 
       override def execute(): Seq[Result] =
@@ -120,6 +134,14 @@ class TestForm extends Form("test") with HorizontalForm {
       override def minimumNumberOfEntries: Int = 1
 
       override def maximumNumberOfEntries: Int = 3
+    }
+
+    new SingleSelectField("single-select-multiple-values") with StringInput with SubmitOnChange with Optional {
+      override def options = "Dear" :: "Bear" :: "Lion" :: Nil
+    }
+
+    new SingleSelectField("chosen-single-select-multiple-values") with StringInput with Select2 with SubmitOnChange with Optional {
+      override def options = "Dear" :: "Bear" :: "Lion" :: Nil
     }
 
     >> {<h3>Single Line Fields</h3>}

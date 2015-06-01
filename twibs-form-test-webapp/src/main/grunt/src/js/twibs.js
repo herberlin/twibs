@@ -36,7 +36,7 @@ $(function () {
         // Overwrite jquery focus to support chosen
         var oFocus = jQuery.fn.focus;
         jQuery.fn.focus = function () {
-            return this.hasClass('chosen') ? this.trigger('chosen:open.chosen') : oFocus.apply(this, arguments);
+            return this.hasClass('select2') ? this.select2('open') : oFocus.apply(this, arguments);
         };
 
         $.fn.disableForm = function () {
@@ -44,7 +44,7 @@ $(function () {
                 var $this = $(this);
                 $this.find('.can-be-disabled').attr('disabled', 'disabled');
                 $this.find('.can-be-disabled-by-class').addClass('disabled');
-                $this.find('select.form-control').trigger("chosen:updated");
+                //$this.find('select.form-control').trigger("chosen:updated");
             });
         };
 
@@ -66,15 +66,20 @@ $(function () {
                 var $this = $(this);
 
                 // Init chosen elements
-                $this.find('select.chosen').chosen({
-                    disable_search_threshold: 6,
-                    width: '100%'
-                });
-                $this.find('select.chosen-optional').chosen({
-                    allow_single_deselect: true,
-                    disable_search_threshold: 6,
-                    width: '100%'
-                });
+                $this.find('select.select2')
+                    .each(function () {
+                        var $select = $(this);
+                        $select.select2({
+                            minimumResultsForSearch: 6,
+                            templateResult: function (state) {
+                                return state.id && $(state.element).data('text') ? $($(state.element).data('text')) : state.text;
+                            },
+                            templateSelection: function (state) {
+                                return state.id && $(state.element).data('text') ? $($(state.element).data('text')) : state.text;
+                            },
+                            allowClear: !$select.hasClass('required')
+                        })
+                    });
 
                 // Init sortable
                 $this.find('.sortable')
@@ -106,8 +111,7 @@ $(function () {
             return this.each(function () {
                 var $this = $(this);
                 $this.find('.sortable').sortable('destroy');
-                $this.find('select.chosen').chosen('destroy');
-                $this.find('select.chosen-optional').chosen('destroy');
+                $this.find('select.select2').select2('destroy');
                 $this.find('.date-time-picker').datetimepicker("remove");
                 $this.find('input.numeric').TouchSpin("destroy");
 

@@ -351,7 +351,7 @@ trait OneControlPerEntry extends Control {
 trait OneControlPerEntryWithOptions extends OneControlPerEntry with Options {
   def controlHtmlFor(entry: Entry) = optionEntries.flatMap(option => optionHtmlFor(entry, option))
 
-  def optionHtmlFor(entry: Entry, option: Entry): NodeSeq
+  def optionHtmlFor(entry: Entry, option: Entry): Elem
 }
 
 trait Field extends Control with Focusable with ParametersInLinks {
@@ -433,8 +433,8 @@ trait HtmlFieldTrait extends MultiLineFieldTrait with HtmlInput {
 
 trait SelectField extends FormControlField with Options
 
-trait Chosen extends SelectField {
-  override def controlCssClasses = (if (required) "chosen" else "chosen-optional") +: super.controlCssClasses
+trait Select2 extends SelectField {
+  override def controlCssClasses = "select2" +: super.controlCssClasses
 }
 
 trait SingleSelectFieldTrait extends SelectField with OneControlPerEntryWithOptions {
@@ -450,12 +450,13 @@ trait SingleSelectFieldTrait extends SelectField with OneControlPerEntryWithOpti
       .addClass(isDisabled, "disabled")
       .addClass(!isDisabled, "can-be-disabled")
       .addClass(submitOnChange && isEnabled, FormConstants.ACTION_SUBMIT_ON_CHANGE)
+      .addClass(required, "required")
 
   def emptyOption(entry: Entry) =
     if (required && optionEntries.exists(_.string == entry.string)) NodeSeq.Empty
     else <option value=""></option>.set(entry.string == "", "selected")
 
-  override def optionHtmlFor(entry: Entry, option: Entry): NodeSeq =
+  override def optionHtmlFor(entry: Entry, option: Entry) =
     <option value={ option.string }>{ option.title }</option>.set(option.string == entry.string, "selected")
 }
 
@@ -521,7 +522,7 @@ trait RadioFieldTrait extends Field with OneControlPerEntryWithOptions {
 
   override def controlHtmlFor(entry: Entry): NodeSeq = super.controlHtmlFor(entry) ++ entryTriggerHtml
 
-  override def optionHtmlFor(entry: Entry, option: Entry): NodeSeq =
+  override def optionHtmlFor(entry: Entry, option: Entry) =
     <div class="radio">
       <label>
         {inputFieldFor(entry, option)}
@@ -556,7 +557,7 @@ trait RadioFieldTrait extends Field with OneControlPerEntryWithOptions {
 }
 
 trait RadioInlineLayout extends RadioFieldTrait {
-  override def optionHtmlFor(entry: Entry, option: Entry): NodeSeq =
+  override def optionHtmlFor(entry: Entry, option: Entry) =
     <label class="radio-inline">{inputFieldFor(entry, option)} {option.title}</label>.addClass(isDisabled, "disabled")
 }
 
@@ -799,7 +800,12 @@ trait Container extends Component {
 
   def descendants: Stream[Component] = GraphUtils.breadthFirstSearch[Component](this) {
     case container: Container => container.children
-    case component => Seq(component)
+    case component => Seq()
+  }.map(_.head)
+
+  def descendantsDFS: Stream[Component] = GraphUtils.depthFirstSearch[Component](this) {
+    case container: Container => container.children
+    case component => Seq()
   }.map(_.head)
 
   override def reset(): Unit = {
@@ -1016,17 +1022,18 @@ trait DynamicContainer extends Container {
 
   def dynamicRemoveActionHtml = parentD.removeButton.withOption(id)(_.html)
 
-    override def shellHtml: Elem = super.shellHtml
+  override def shellHtml: Elem = super.shellHtml
     .addClass(hasActions, "has-actions")
     .addClass(hasSorter, "has-sort-handle")
 
   def parentD = parent.asInstanceOf[DynamicChildren]
 
   def hasActions = /*!childAddButton.isIgnored ||*/ !parentD.removeButton.isHidden
-//
-//  def entryActions = <div class="actions">{sortHandleHtml}{addActionHtml}{removeActionHtml}</div>.removeIfEmpty
-//
-//  def entryAddActionHtml(entry: Entry) = entryAddButton.withOption(entry.index)(_.html)
+
+  //
+  //  def entryActions = <div class="actions">{sortHandleHtml}{addActionHtml}{removeActionHtml}</div>.removeIfEmpty
+  //
+  //  def entryAddActionHtml(entry: Entry) = entryAddButton.withOption(entry.index)(_.html)
 
   def hasSorter = parentD.hasSorter
 }
@@ -1150,7 +1157,7 @@ class Form(val ilk: String) extends Container with CancelStateInheritance with L
 
   override def javascript: JsCmd = if (isDisabled) JsEmpty else descendants.collect { case c if c.isEnabled && c != this => c.javascript }
 
-  def focusJs = descendants.collectFirst({ case f: Focusable if f.needsFocus => f.focusJs }) getOrElse refocusJs
+  def focusJs = descendantsDFS.collectFirst({ case f: Focusable if f.needsFocus => f.focusJs }) getOrElse refocusJs
 
   def refocusJs = focusedId.fold(JsEmpty)(id => jQuery(id).call("focus"))
 
