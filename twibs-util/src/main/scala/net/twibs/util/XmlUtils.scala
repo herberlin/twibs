@@ -32,7 +32,9 @@ trait XmlUtils {
 
     def setNotEmpty(name: String, value: String): Elem = set(!value.isEmpty, name, value)
 
-    def set(name: String, value: String): Elem = elem % Attribute(name, Text(value), Null)
+    def set(name: String, value: String): Elem = set(name, Text(value))
+
+    def set(name: String, value: Text): Elem = elem % Attribute(name, value, Null)
 
     def set(name: String): Elem = set(name, name)
 

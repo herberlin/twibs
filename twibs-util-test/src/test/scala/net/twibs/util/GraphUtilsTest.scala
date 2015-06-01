@@ -7,7 +7,7 @@ package net.twibs.util
 import net.twibs.testutil.TwibsTest
 
 class GraphUtilsTest extends TwibsTest {
-  test("BreadthFirstSearch") {
+  test("Search") {
     class Node(var name: String, var nodes: Seq[Node] = Seq()) {
       override def toString: String = name
     }
@@ -24,5 +24,6 @@ class GraphUtilsTest extends TwibsTest {
     level2_3.nodes = Seq(root, leaf2, leaf2, leaf1)
 
     GraphUtils.breadthFirstSearch(root)(_.nodes).map(_.head).mkString(",") shouldBe "r,1_1,1_2,2_1,2_2,2_3,3_1,3_2,3_3"
+    GraphUtils.depthFirstSearch(root)(_.nodes).map(_.head).mkString(",") shouldBe "3_1,3_2,2_1,1_1,3_3,2_2,2_3,1_2,r"
   }
 }
