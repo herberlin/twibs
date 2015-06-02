@@ -61,7 +61,8 @@
             options_index: this.options_index,
             value: option.value,
             text: option.text,
-            html: option.innerHTML,
+            /* TWIBS: Patch: Enable html contentn via data attribute */
+            html: /* TWIBS--> */ option.getAttribute('data-text') ||/* <-- TWIBS */ option.innerHTML,
             title: option.title ? option.title : void 0,
             selected: option.selected,
             disabled: group_disabled === true ? group_disabled : option.disabled,
