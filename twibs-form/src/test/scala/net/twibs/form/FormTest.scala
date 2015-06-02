@@ -100,9 +100,9 @@ class FormTest extends TwibsTest {
 
   test("Dynamic values validation") {
     val form = new Form("test") {
-      val dynamics = new ChildContainer("uploads") with DynamicChildren {
+      val dynamics = new ChildContainer("uploads") with DynamicParent {
 
-        class UserContainer extends ChildContainer("user") with DynamicContainer {
+        class UserContainer extends ChildContainer("user") with DynamicChild {
           val username = new SingleLineField("username") with StringInput
 
           val password = new SingleLineField("password") with StringInput
@@ -203,9 +203,9 @@ class FormTest extends TwibsTest {
         val container = new ChildContainer("level2") {
           val field = new SingleLineField("field") with StringInput
 
-          val dynamics = new ChildContainer("uploads") with DynamicChildren {
+          val dynamics = new ChildContainer("uploads") with DynamicParent {
 
-            class UserContainer extends ChildContainer("user") with DynamicContainer {
+            class UserContainer extends ChildContainer("user") with DynamicChild {
               val username = new SingleLineField("username") with StringInput
 
               val password = new SingleLineField("password") with StringInput
@@ -284,9 +284,9 @@ class FormTest extends TwibsTest {
 
         new DisplayText("<h3>Display text</h3>")
 
-        val dynamics = new ChildContainer("users") with DynamicChildren {
+        val dynamics = new ChildContainer("users") with DynamicParent {
 
-          class UserContainer extends ChildContainer("user") with DynamicContainer {
+          class UserContainer extends ChildContainer("user") with DynamicChild {
             val username = new SingleLineField("username") with StringInput
 
             val password = new SingleLineField("password") with StringInput

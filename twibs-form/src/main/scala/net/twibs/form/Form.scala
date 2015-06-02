@@ -8,7 +8,7 @@ import com.google.common.net.UrlEscapers
 import net.twibs.util.JavaScript._
 import net.twibs.util.XmlUtils._
 import net.twibs.util._
-import net.twibs.web._
+import net.twibs.web.{Response, StringResponse, TextMimeType, VolatileResponse}
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
@@ -54,12 +54,16 @@ trait Component extends TranslationSupport {
   }
 
   def reset(): Unit = {
+    resetCached()
+    _validated = false
+    _parsed = false
+  }
+
+  def resetCached(): Unit = {
     disabledCache.reset()
     hiddenCache.reset()
     ignoredCache.reset()
     validCache.reset()
-    _validated = false
-    _parsed = false
   }
 
   def javascript: JsCmd = JsEmpty
@@ -117,7 +121,9 @@ trait Component extends TranslationSupport {
 
   implicit def toParameterSeq(parameter: (String, String)): Seq[(String, String)] = Seq(parameter)
 
-  def executeInTree(): Seq[Result] = if (isEnabled && parsed) execute() else Ignored
+  def executeInTree(): Seq[Result] = if (isExecuted) execute() else Ignored
+
+  def isExecuted: Boolean = isEnabled && parsed
 
   def execute(): Seq[Result] = Ignored
 
@@ -317,7 +323,7 @@ trait OneControlPerEntry extends Control {
 
   private[this] val sortableCache = Memo {isEnabled && entries.size > 1 && computeSortable}
 
-  val entryAddButton = new Child("add-entry-button", control.parent) with IconButtonXs with DynamicOptions with IntInput with DefaultDisplayType with Floating {
+  val entryAddButton = new Child("add-entry-button", control.parent) with IconButtonXs with DynamicOptions with IntInput with DefaultDisplayType with Floating with NoRefocus {
     override def execute(): Seq[Result] = addEntryBefore(value)
 
     override protected def selfIsDisabled: Boolean =
@@ -327,7 +333,7 @@ trait OneControlPerEntry extends Control {
       control.isDisabled || control.minimumNumberOfEntries == control.maximumNumberOfEntries && selfIsDisabled
   }
 
-  val entryRemoveButton = new Child("remove-entry-button", control.parent) with IconButtonXs with DynamicOptions with DefaultDisplayType with Floating with IntInput {
+  val entryRemoveButton = new Child("remove-entry-button", control.parent) with IconButtonXs with DynamicOptions with DefaultDisplayType with Floating with IntInput with NoRefocus {
     override def execute(): Seq[Result] = removeEntryAt(value)
 
     override protected def selfIsDisabled: Boolean =
@@ -343,8 +349,8 @@ trait OneControlPerEntry extends Control {
 
   override protected def setEntries(es: Seq[Entry]): Unit = {
     super.setEntries(es)
-    entryAddButton.reset()
-    entryRemoveButton.reset()
+    entryAddButton.resetCached()
+    entryRemoveButton.resetCached()
   }
 }
 
@@ -366,6 +372,14 @@ trait Field extends Control with Focusable with ParametersInLinks {
   override def focusJs: JsCmd = jQuery(focusId).call("focus")
 
   def focusId = invalidControlIdOption getOrElse id
+
+  implicit class Bs3RichControlElem(elem: Elem) {
+    def enrichControl: Elem = elem
+      .setIfMissing(isDisabled, "disabled")
+      .addClass(isDisabled, "disabled")
+      .addClass(!isDisabled, "can-be-disabled")
+      .addClass(submitOnChange && isEnabled, FormConstants.ACTION_SUBMIT_ON_CHANGE)
+  }
 }
 
 trait FormControlField extends Field {
@@ -382,11 +396,8 @@ trait SingleLineFieldTrait extends FormControlField with OneControlPerEntry {
   override def translator: Translator = super.translator.kind("SINGLE-LINE")
 
   override def controlHtmlFor(entry: Entry): NodeSeq =
-      <input type="text" name={name} id={entryId(entry)} placeholder={placeholder} value={entry.string} class={controlCssClasses}/>
-        .setIfMissing(isDisabled, "disabled")
-      .addClass(isDisabled, "disabled")
-      .addClass(!isDisabled, "can-be-disabled")
-      .addClass(submitOnChange && isEnabled, FormConstants.ACTION_SUBMIT_ON_CHANGE)
+    <input type="text" name={name} id={entryId(entry)} placeholder={placeholder} value={entry.string} class={controlCssClasses}/>
+      .enrichControl
       .set(maximumLength < Int.MaxValue, "maxlength", maximumLength.toString)
 }
 
@@ -395,10 +406,7 @@ trait MultiLineFieldTrait extends FormControlField with OneControlPerEntry {
 
   override def controlHtmlFor(entry: Entry) =
     <textarea rows={rows.toString} name={name} id={entryId(entry)} placeholder={placeholder} class={controlCssClasses}>{entry.string}</textarea>
-        .setIfMissing(isDisabled, "disabled")
-      .addClass(isDisabled, "disabled")
-      .addClass(!isDisabled, "can-be-disabled")
-      .addClass(submitOnChange && isEnabled, FormConstants.ACTION_SUBMIT_ON_CHANGE)
+      .enrichControl
       .set(maximumLength < Int.MaxValue, "maxlength", maximumLength.toString)
 
   def rows = 6
@@ -420,11 +428,8 @@ trait HtmlFieldTrait extends MultiLineFieldTrait with HtmlInput {
 
   override def controlHtmlFor(entry: Entry) =
     <div data-name={name} id={entryId(entry)} placeholder={placeholder} class={controlCssClasses}>{Unparsed(entry.string)}</div>
-        .setIfMissing(isDisabled, "disabled")
-      .addClass(isDisabled, "disabled")
+      .enrichControl
       .set(isEnabled, "contenteditable", "true")
-      .addClass(!isDisabled, "can-be-disabled")
-      .addClass(submitOnChange && isEnabled, FormConstants.ACTION_SUBMIT_ON_CHANGE)
 
   override def renderHidden(entry: Entry): NodeSeq = <textarea class="concealed" name={name}>{entry.string}</textarea>
 
@@ -446,10 +451,7 @@ trait SingleSelectFieldTrait extends SelectField with OneControlPerEntryWithOpti
 
   override def controlHtmlFor(entry: Entry) =
     <select name={name} id={entryId(entry)} data-placeholder={placeholder} class={controlCssClasses}>{emptyOption(entry) ++ super.controlHtmlFor(entry)}</select>
-        .setIfMissing(isDisabled, "disabled")
-      .addClass(isDisabled, "disabled")
-      .addClass(!isDisabled, "can-be-disabled")
-      .addClass(submitOnChange && isEnabled, FormConstants.ACTION_SUBMIT_ON_CHANGE)
+      .enrichControl
       .addClass(required, "required")
 
   def emptyOption(entry: Entry) =
@@ -465,10 +467,7 @@ trait MultiSelectFieldTrait extends SelectField with OneControlForAllEntriesTrig
 
   override def controlHtml =
     <select name={name} id={id} data-placeholder={placeholder} class={controlCssClasses} multiple="multiple">{super.controlHtml}</select>
-      .setIfMissing(isDisabled, "disabled")
-      .addClass(isDisabled, "disabled")
-      .addClass(!isDisabled, "can-be-disabled")
-      .addClass(submitOnChange && isEnabled, FormConstants.ACTION_SUBMIT_ON_CHANGE)
+      .enrichControl
 
   override def optionHtmlFor(option: Entry): NodeSeq =
     <option value={ option.string }>{ option.title }</option>.set(entries.exists(_.string == option.string), "selected")
@@ -486,11 +485,8 @@ trait CheckboxFieldTrait extends Field with OneControlForAllEntriesTriggered {
     </div>.addClass(isDisabled, "disabled")
 
   def inputFieldFor(option: Entry): NodeSeq =
-      <input type="checkbox" name={name} id={optionId(option)} value={option.string} class={controlCssClasses} />
-        .setIfMissing(isDisabled, "disabled")
-      .addClass(isDisabled, "disabled")
-      .addClass(!isDisabled, "can-be-disabled")
-      .addClass(submitOnChange && isEnabled, FormConstants.ACTION_SUBMIT_ON_CHANGE)
+    <input type="checkbox" name={name} id={optionId(option)} value={option.string} class={controlCssClasses} />
+      .enrichControl
       .set(values.contains(option.valueOption.get), "checked")
 
   override def shellHtml: Elem = super.shellHtml.addClass("with-control-bg")
@@ -531,11 +527,8 @@ trait RadioFieldTrait extends Field with OneControlPerEntryWithOptions {
     </div>.addClass(isDisabled, "disabled")
 
   def inputFieldFor(entry: Entry, option: Entry): NodeSeq =
-      <input type="radio" data-name={name} name={entryName(entry)} id={optionId(entry, option)} value={option.string} class={controlCssClasses} />
-        .setIfMissing(isDisabled, "disabled")
-      .addClass(isDisabled, "disabled")
-      .addClass(!isDisabled, "can-be-disabled")
-      .addClass(submitOnChange && isEnabled, FormConstants.ACTION_SUBMIT_ON_CHANGE)
+    <input type="radio" data-name={name} name={entryName(entry)} id={optionId(entry, option)} value={option.string} class={controlCssClasses} />
+      .enrichControl
       .set(entry.valueOption == option.valueOption, "checked")
 
   override def parse(parameterStrings: Seq[String]): Unit = super.parse(resolveEntryTriggers(parameterStrings))
@@ -574,11 +567,8 @@ trait AbstractDateTimeFieldTrait extends FormControlField with OneControlPerEntr
       .setNotEmpty("data-date-enddate", maximumString)
 
   private def realControlHtmlFor(entry: Entry) =
-      <input type="text" name={name} id={entryId(entry)} placeholder={placeholder} value={entry.string} class={controlCssClasses}/>
-        .setIfMissing(isDisabled, "disabled")
-      .addClass(isDisabled, "disabled")
-      .addClass(!isDisabled, "can-be-disabled")
-      .addClass(submitOnChange && isEnabled, FormConstants.ACTION_SUBMIT_ON_CHANGE)
+    <input type="text" name={name} id={entryId(entry)} placeholder={placeholder} value={entry.string} class={controlCssClasses}/>
+      .enrichControl
       .set(maximumLength < Int.MaxValue, "maxlength", maximumLength.toString)
 
   override def javascript: JsCmd =
@@ -627,12 +617,9 @@ trait NumberFieldTrait extends FormControlField with OneControlPerEntry with Num
   override def translator: Translator = super.translator.kind("NUMBER")
 
   override def controlHtmlFor(entry: Entry) =
-      <input type="text" name={name} id={entryId(entry)} placeholder={placeholder} value={entry.string} class={controlCssClasses}/>
-      .setIfMissing(isDisabled, "disabled")
-      .addClass(isDisabled, "disabled")
-      .addClass(!isDisabled, "can-be-disabled")
+    <input type="text" name={name} id={entryId(entry)} placeholder={placeholder} value={entry.string} class={controlCssClasses}/>
+      .enrichControl
       .addClass(!isDisabled, "numeric")
-      .addClass(submitOnChange && isEnabled, FormConstants.ACTION_SUBMIT_ON_CHANGE)
       .set(maximumLength < Int.MaxValue, "maxlength", maximumLength.toString)
       .setNotEmpty("data-min", minimumString)
       .setNotEmpty("data-max", maximumString)
@@ -936,10 +923,10 @@ trait Container extends Component {
 
 }
 
-trait DynamicChildren extends Container {
+trait DynamicParent extends Container {
   control =>
 
-  type T <: DynamicContainer
+  type T <: DynamicChild
 
   override def reset(): Unit = {
     super.reset()
@@ -948,7 +935,7 @@ trait DynamicChildren extends Container {
   }
 
   override def renderChild(child: Component) = super.renderChild(child) ++ {
-    child match {case dc: DynamicContainer => form.hidden(name, dc.dynamicId) case _ => NodeSeq.Empty}
+    child match {case dc: DynamicChild => form.hidden(name, dc.dynamicId) case _ => NodeSeq.Empty}
   }
 
   override protected def computeValid = super.computeValid && numberOfDynamicsValid
@@ -962,7 +949,25 @@ trait DynamicChildren extends Container {
 
   def recreateChild(dynamicId: String): T = dynamics.collectFirst { case child if child.dynamicId == dynamicId => child } getOrElse DynamicID.use(dynamicId) {createChild()}
 
+  def createChildBefore(dynamicId: String): Unit = {
+    dynamics.find(_.dynamicId == dynamicId).map(_children.indexOf) match {
+      case None => createChild()
+      case Some(before) =>
+        val c = createChild()
+        _children -= c
+        _children.insert(before, c)
+    }
+    dynamicAddButton.resetCached()
+    dynamicRemoveButton.resetCached()
+  }
+
   def createChild(): T
+
+  def removeDynamicAt(dynamicId: String): Unit = {
+    dynamics.find(_.dynamicId == dynamicId).foreach(_children -= _)
+    dynamicAddButton.resetCached()
+    dynamicRemoveButton.resetCached()
+  }
 
   def numberOfDynamicsValid = !parsed || numberOfDynamicsInRange
 
@@ -977,10 +982,14 @@ trait DynamicChildren extends Container {
     else if (dynamics.size < minimumNumberOfDynamics) Some(danger"minimum-number-of-children-message: Please provide at least {$minimumNumberOfDynamics, plural, =1{one child}other{# children}}")
     else Some(danger"maximum-number-of-chilren-message: Please provide no more than {$maximumNumberOfDynamics, plural, =1{one child}other{# children}}")
 
-  override def actionsHtml: NodeSeq = <div class="actions"><button type="submit" name="add-entry-button2" id="f5slJj14WWMY_hl_add-entry-button2" class="can-be-disabled btn btn-default btn-xs" value="-1"><span class="fa fa-plus"></span></button></div>
+  override def actionsHtml: NodeSeq = <div class="actions">{dynamicAddHtml}</div>
 
-  val removeButton = new Child("remove-dynamic-button", this) with IconButtonXs with DynamicOptions with DefaultDisplayType with Floating with StringInput {
-    override def execute(): Seq[Result] = removeDynamicAt(value)
+  def dynamicAddHtml = dynamicAddButton.withOption("")(_.html)
+
+  override def shellCssClasses: Seq[String] = "dynamic-parent-shell" +: super.containerCssClasses
+
+  val dynamicRemoveButton = new Child("remove-dynamic-button", this) with IconButtonXs with DynamicOptions with DefaultDisplayType with Floating with StringInput with NoRefocus {
+    override def execute(): Seq[Result] = control.removeDynamicAt(value)
 
     override protected def selfIsDisabled: Boolean =
       control.dynamics.size <= control.minimumNumberOfDynamics
@@ -989,7 +998,15 @@ trait DynamicChildren extends Container {
       control.isDisabled || control.minimumNumberOfDynamics == control.maximumNumberOfDynamics && selfIsDisabled
   }
 
-  def removeDynamicAt(id: String) = dynamics.find(_.id == id).foreach(_children -= _)
+  val dynamicAddButton = new Child("add-dynamic-button", this) with IconButtonXs with DynamicOptions with DefaultDisplayType with Floating with StringInput with NoRefocus {
+    override def execute(): Seq[Result] = control.createChildBefore(string)
+
+    override protected def selfIsDisabled: Boolean =
+      control.dynamics.size >= control.maximumNumberOfDynamics
+
+    override protected def selfIsIgnored: Boolean =
+      control.isDisabled || control.minimumNumberOfDynamics == control.maximumNumberOfDynamics && selfIsDisabled
+  }
 
   def hasSorter = isSortable
 
@@ -1006,36 +1023,31 @@ protected[form] object DynamicID extends DynamicVariableWithDefault[String] {
   override def default: String = IdGenerator.next()
 }
 
-trait DynamicContainer extends Container {
+trait DynamicChild extends Container {
   val dynamicId: String = DynamicID.current
 
   override val prefixForChildNames: String = parent.prefixForChildNames + dynamicId
 
-  override def shellCssClasses: Seq[String] = "dynamic-container-shell" +: super.containerCssClasses
+  override def shellCssClasses: Seq[String] = "dynamic-child-shell" +: super.containerCssClasses
 
   override def actionsHtml: NodeSeq =
-    <div class="actions">{sortHandleHtml}{dynamicRemoveActionHtml}{dynamicRemoveActionHtml}</div>
+    <div class="actions">{sortHandleHtml}{dynamicAddActionHtml}{dynamicRemoveActionHtml}</div>.removeIfEmpty
 
   def sortHandleHtml = if (hasSorter) <span class="sort-handle fa fa-reorder"></span> else NodeSeq.Empty
 
-  def dynamicAddActionHtml = parentD.removeButton.withOption(id)(_.html)
+  def dynamicAddActionHtml = dynamicParent.dynamicAddButton.withOption(dynamicId)(_.html)
 
-  def dynamicRemoveActionHtml = parentD.removeButton.withOption(id)(_.html)
+  def dynamicRemoveActionHtml = dynamicParent.dynamicRemoveButton.withOption(dynamicId)(_.html)
 
   override def shellHtml: Elem = super.shellHtml
     .addClass(hasActions, "has-actions")
     .addClass(hasSorter, "has-sort-handle")
 
-  def parentD = parent.asInstanceOf[DynamicChildren]
+  def dynamicParent: DynamicParent = parent.asInstanceOf[DynamicParent]
 
-  def hasActions = /*!childAddButton.isIgnored ||*/ !parentD.removeButton.isHidden
+  def hasActions = !dynamicParent.dynamicAddButton.isIgnored || !dynamicParent.dynamicRemoveButton.isHidden
 
-  //
-  //  def entryActions = <div class="actions">{sortHandleHtml}{addActionHtml}{removeActionHtml}</div>.removeIfEmpty
-  //
-  //  def entryAddActionHtml(entry: Entry) = entryAddButton.withOption(entry.index)(_.html)
-
-  def hasSorter = parentD.hasSorter
+  def hasSorter = dynamicParent.hasSorter
 }
 
 trait Floating extends Component {
@@ -1046,6 +1058,12 @@ trait Focusable extends Component {
   def needsFocus: Boolean
 
   def focusJs: JsCmd
+}
+
+trait NoRefocus extends Focusable {
+  def needsFocus: Boolean = isExecuted
+
+  def focusJs: JsCmd = JsEmpty
 }
 
 trait CancelStateInheritance extends Component {

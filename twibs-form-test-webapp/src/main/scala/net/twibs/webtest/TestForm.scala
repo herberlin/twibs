@@ -40,12 +40,12 @@ class TestForm extends Form("test") with HorizontalForm {
     }
 
     >> {<h3>Dynamic Container</h3>}
-    new ChildContainer("dynamic") with DynamicChildren {
-      override type T = DynamicContainer
+    new ChildContainer("dynamic") with DynamicParent {
+      override type T = DynamicChild
 
       override def minimumNumberOfDynamics: Int = 2
 
-      override def createChild(): T = new HorizontalLayout with DynamicContainer {
+      override def createChild(): T = new HorizontalLayout with DynamicChild {
         new SingleLineField("first-name") with StringInput
         new SingleLineField("last-name") with StringInput
       }

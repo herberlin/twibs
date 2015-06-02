@@ -75,7 +75,7 @@
         display: block;
     }
 
-    .dynamic-container-shell > .form-container {
+    .dynamic-child-shell > .form-container {
         padding: @padding-base-vertical @padding-base-horizontal;
         border: 1px solid @input-border;
         border-radius: @input-border-radius;
@@ -84,6 +84,15 @@
 
         .form-group:last-child {
             margin-bottom: 0;
+        }
+    }
+
+    .dynamic-parent-shell {
+        .clearfix();
+        > .actions {
+            position: static;
+            float: right;
+            padding: 4px 5px 4px 4px;
         }
     }
 
