@@ -43,7 +43,7 @@
         <twibs.version>0.14-SNAPSHOT</twibs.version>
         <scala.main.version>2.11</scala.main.version>
         <scala.version>${scala.main.version}.6</scala.version>
-        <scala.module.version>1.0.2</scala.module.version>
+        <scala.module.version>1.0.4</scala.module.version>
         <maven.test.skip>false</maven.test.skip>
     </properties>
     <prerequisites>
