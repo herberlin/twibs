@@ -433,8 +433,8 @@ trait HtmlFieldTrait extends MultiLineFieldTrait with HtmlInput {
 
 trait SelectField extends FormControlField with Options
 
-trait Select2 extends SelectField {
-  override def controlCssClasses = "select2" +: super.controlCssClasses
+trait Chosen extends SelectField {
+  override def controlCssClasses = "chosen" +: super.controlCssClasses
 }
 
 trait SingleSelectFieldTrait extends SelectField with OneControlPerEntryWithOptions {

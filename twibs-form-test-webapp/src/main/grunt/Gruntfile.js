@@ -13,7 +13,6 @@ module.exports = function (grunt) {
                 'src/js/jquery.form.js',
                 'src/js/pnotify.custom.js',
                 'src/js/html.sortable.js',
-                'src/js/select2.full.js',
                 'src/js/twibs.js'
             ],
             dest: 'clientlibs/twibs.js'

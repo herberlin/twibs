@@ -29,7 +29,7 @@ class TestForm extends Form("test") with HorizontalForm {
 
     >> {<h3>Language Select List</h3>}
 
-    new SingleSelectField("countries") with StringInput with Select2 {
+    new SingleSelectField("countries") with StringInput with Chosen {
       override def options: Seq[String] = ULocale.getISOCountries
 
       override protected def titleFor(string: String): String =
@@ -53,7 +53,7 @@ class TestForm extends Form("test") with HorizontalForm {
 
     >> {<h3>Multiselect Fields</h3>}
 
-    new MultiSelectField("multi-select-chosen") with StringInput with Select2 {
+    new MultiSelectField("multi-select-chosen") with StringInput with Chosen {
       override def options: Seq[ValueType] = "Dear" :: "Bear" :: "Lion" :: Nil
     }
 
@@ -61,7 +61,7 @@ class TestForm extends Form("test") with HorizontalForm {
       override def options: Seq[ValueType] = "Dear" :: "Bear" :: "Lion" :: Nil
     }
 
-    new MultiSelectField("multi-select-optional-chosen") with StringInput with Select2 with Optional {
+    new MultiSelectField("multi-select-optional-chosen") with StringInput with Chosen with Optional {
       override def options: Seq[ValueType] = "Dear" :: "Bear" :: "Lion" :: Nil
     }
 
@@ -122,7 +122,7 @@ class TestForm extends Form("test") with HorizontalForm {
       override def maximumNumberOfEntries: Int = 3
     }
 
-    new SingleSelectField("chosen-single-select-multiple-values") with StringInput with Select2 with SubmitOnChange {
+    new SingleSelectField("chosen-single-select-multiple-values") with StringInput with Chosen with SubmitOnChange {
       override def options = "Dear" :: "Bear" :: "Lion" :: Nil
 
       override def execute(): Seq[Result] =
@@ -140,7 +140,7 @@ class TestForm extends Form("test") with HorizontalForm {
       override def options = "Dear" :: "Bear" :: "Lion" :: Nil
     }
 
-    new SingleSelectField("chosen-single-select-multiple-values") with StringInput with Select2 with SubmitOnChange with Optional {
+    new SingleSelectField("chosen-single-select-multiple-values") with StringInput with Chosen with SubmitOnChange with Optional {
       override def options = "Dear" :: "Bear" :: "Lion" :: Nil
     }
 
