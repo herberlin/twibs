@@ -77,7 +77,11 @@ module.exports = function (grunt) {
         copy: {
             development: {
                 files: [
-                    {expand: true, src: ['clientlibs/**', 'src/**'], dest: '../../../target/twibs-form-test-webapp'}
+                    {
+                        expand: true,
+                        src: ['clientlibs/**', 'src/**'],
+                        dest: '../../../target/webapp'
+                    }
                 ]
             },
             deploy: {
@@ -85,7 +89,7 @@ module.exports = function (grunt) {
                     {
                         expand: true,
                         src: ['clientlibs/**/*.{js,css}'],
-                        dest: '../../../target/twibs-form-test-webapp'
+                        dest: '../../../target/webapp'
                     }
                 ]
             }
