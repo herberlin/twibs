@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ * Copyright (C) 2013-2015 by Michael Hombre Brinkmann
  */
 
 package net.twibs.db
@@ -88,10 +88,10 @@ trait Database {
   protected def migrate(ds: DataSource): Unit =
     if (migrationLocations.nonEmpty) {
       val flyway = new Flyway()
-      flyway.setInitOnMigrate(true)
+      flyway.setBaselineOnMigrate(true)
       flyway.setLocations(migrationLocations: _*)
       flyway.setDataSource(ds)
-      flyway.setValidateOnMigrate(false) //(RunMode.isProduction || RunMode.isStaging)
+      flyway.setValidateOnMigrate(false) //(RunMode.isPublic)
       flyway.migrate()
     }
 

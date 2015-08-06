@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ * Copyright (C) 2013-2015 by Michael Hombre Brinkmann
  */
 
 package net.twibs.form.bootstrap3
@@ -138,7 +138,7 @@ trait DataTable[T] extends StaticContainer {
 
   def visibleColumns = columns.filter(_.visible)
 
-  def tableBody: NodeSeq = tableData.rows.map(tableRow).toList.flatten
+  def tableBody: NodeSeq = tableData.rows.flatMap(tableRow).toList
 
   trait Column {
     def name: String

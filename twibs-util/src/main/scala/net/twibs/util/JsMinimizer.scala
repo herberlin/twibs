@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ * Copyright (C) 2013-2015 by Michael Hombre Brinkmann
  */
 
 package net.twibs.util
 
 import com.google.javascript.jscomp._
-import scala.collection.JavaConverters._
+import scala.collection.convert.decorateAsJava._
 
 class JsMinimizer {
   def minimize(path: String, javascript: String) = {
@@ -33,7 +33,7 @@ class JsMinimizer {
 
   private def externs = CommandLineRunner.getDefaultExterns
 
-  def prettyPrint: Boolean = RunMode.isDevelopment || RunMode.isTest
+  def prettyPrint: Boolean = RunMode.isPrivate
 }
 
 class JsMinimizerException(message: String) extends Exception(message)

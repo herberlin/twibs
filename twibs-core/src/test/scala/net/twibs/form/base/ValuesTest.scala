@@ -6,7 +6,7 @@ package net.twibs.form.base
 
 import net.twibs.testutil.TwibsTest
 import net.twibs.util.XmlUtils._
-import net.twibs.util.{Message, Translator}
+import net.twibs.util.{Request, Message, Translator}
 
 import org.threeten.bp.LocalDateTime
 
@@ -23,7 +23,7 @@ class ValuesTest extends TwibsTest {
 
     field.validateString("") should be(field.Input("", "", None, None, continue = false))
     field.strings = "" :: Nil
-    field.validate() should beTrue
+    field.validate() shouldBe true
   }
 
   test("Required string validation") {
@@ -90,9 +90,9 @@ class ValuesTest extends TwibsTest {
 
   test("Long validation") {
     val field = new TestField with LongValues {
-      override def minimum = 0L
+      override def minimum = Some(0L)
 
-      override def maximum = 9
+      override def maximum = Some(9)
     }
 
     field.strings = "a" :: "-1" :: "1" :: "10" :: "9" :: Nil
@@ -102,9 +102,9 @@ class ValuesTest extends TwibsTest {
 
   test("Date time validation") {
     val field = new TestField with DateTimeValues {
-      override def minimum = LocalDateTime.of(2000, 12, 1, 12, 12)
+      override def minimum = Some(LocalDateTime.of(2000, 12, 1, 12, 12).atZone(Request.zoneId))
 
-      override def maximum = LocalDateTime.of(2000, 12, 24, 12, 12)
+      override def maximum = Some(LocalDateTime.of(2000, 12, 24, 12, 12).atZone(Request.zoneId))
     }
 
     field.strings = "01.12.2000 12:11:00" :: "01.12.2000 12:12:00" :: "xx" :: "24.12.2000 12:12:00" :: "24.12.2000 12:13:00" :: Nil
@@ -122,8 +122,8 @@ class ValuesTest extends TwibsTest {
     field.values should be(1L :: 2L :: 3L :: Nil)
     field.validValues should be(1L :: 3L :: Nil)
 
-    field.useEmptyOption("2") should beTrue
-    field.useEmptyOption("1") should beFalse
+    field.useEmptyOption("2") shouldBe true
+    field.useEmptyOption("1") shouldBe false
   }
 
   test("Options with titles") {
@@ -200,32 +200,32 @@ class ValuesTest extends TwibsTest {
   test("Single input value") {
     val field = new TestField with LongValues
     field.values = 3L :: 2L :: 1L :: Nil
-    field.computeIsValid should beFalse
+    field.computeIsValid shouldBe false
     field.values should be(3L :: 2L :: 1L :: Nil)
 
     field.values = 3L :: Nil
-    field.computeIsValid should beTrue
+    field.computeIsValid shouldBe true
     field.values should be(3L :: Nil)
 
     field.strings = "x" :: Nil
-    field.computeIsValid should beFalse
+    field.computeIsValid shouldBe false
     field.values should be('empty)
   }
 
   test("Modified input") {
     val field = new TestField with LongValues
-    field.isModified should beFalse
+    field.isModified shouldBe false
     field.values should be('empty)
-    field.isModified should beFalse
+    field.isModified shouldBe false
 
     field.strings = "" :: Nil
-    field.isModified should beTrue
+    field.isModified shouldBe true
 
     field.values should be('empty)
-    field.isModified should beTrue
+    field.isModified shouldBe true
     field.resetInputs()
     field.values should be('empty)
-    field.isModified should beFalse
+    field.isModified shouldBe false
   }
 
   test("Value option") {

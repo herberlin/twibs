@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ * Copyright (C) 2013-2015 by Michael Hombre Brinkmann
  */
 
 package net.twibs.form.base
@@ -11,7 +11,7 @@ class FormResponder(makeForm: () => BaseForm) extends Responder {
   lazy val actionLink = enhance(makeForm().actionLink)
 
   def respond(request: Request): Option[Response] =
-    if (request.path == actionLink) process(request)
+    if (request.path.string == actionLink) process(request)
     else None
 
   def process(request: Request): Option[Response] =

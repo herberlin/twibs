@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ * Copyright (C) 2013-2015 by Michael Hombre Brinkmann
  */
 
 package net.twibs.util
 
-import scala.collection.JavaConversions._
 import scala.collection.concurrent.TrieMap
+import scala.collection.convert.wrapAsScala._
 
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigException.Missing
@@ -58,4 +58,6 @@ private[util] class ConfigurationForTypesafeConfig(config: Config) extends Confi
   def getIntList(key: String) = store(key, config.getIntList(key).toList.map(Int.unbox))
 
   def getInt(key: String) = store(key, config.getInt(key))
+
+  //  def get(key: String) = config.getConfig().atPath()getObject("")
 }

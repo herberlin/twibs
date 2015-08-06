@@ -19,7 +19,7 @@
   }
 
   .controls .alert:last-child {
-    margin-bottom: 0px;
+    margin-bottom: 0;
   }
 
   .field-info {
@@ -116,8 +116,8 @@ option:disabled {
   .input-clear {
     position: absolute;
     right: 10px;
-    top: 0px;
-    padding: 9px 0px;
+    top: 0;
+    padding: 9px 0;
     z-index: 2;
     .opacity(0.3);
 
@@ -145,7 +145,7 @@ option:disabled {
       white-space: nowrap;
       padding-right: 18px;
       &:before {
-        font-family: FontAwesome;
+        font-family: FontAwesome, sans-serif;
         margin-right: -12px;
         float: right;
       }
@@ -212,15 +212,15 @@ tr.collapse.in {
   position: relative;
   > button {
     position: absolute;
-    right: 0px;
-    top: 0px;
+    right: 0;
+    top: 0;
   }
 }
 
 .cms-top-menu {
   position: fixed;
-  top: 0px;
-  right: 0px;
+  top: 0;
+  right: 0;
   padding: 4px;
   opacity: 0.2;
 }
@@ -252,7 +252,7 @@ span.placeholder {
 
 .detachable {
   background-color: lighten(@state-info-bg, 5%);
-  padding: 10px 8px 0px 8px;
+  padding: 10px 8px 0 8px;
   margin-bottom: 15px;
 
   .detachable {
@@ -262,20 +262,20 @@ span.placeholder {
   }
 
   > button.close {
-    margin: 0px 0px 6px 6px;
+    margin: 0 0 6px 6px;
   }
 
   .detachable-content {
-    overflow: hidden;
+    overflow: visible;
   }
 
   > .form-group:last-child {
-    margin-bottom: 0px;
+    margin-bottom: 0;
   }
 }
 
 .panel-body > .form-group:last-child {
-  margin-bottom: 0px;
+  margin-bottom: 0;
 }
 
 .has-spinner {

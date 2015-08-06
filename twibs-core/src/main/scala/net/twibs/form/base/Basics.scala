@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ * Copyright (C) 2013-2015 by Michael Hombre Brinkmann
  */
 
 package net.twibs.form.base
@@ -171,7 +171,7 @@ class Messages()(implicit val parent: Container) extends Component {
 abstract class HiddenField(override val ilk: String)(implicit val parent: Container) extends BaseField {
   override def asHtml =
     if (state.isIgnored) NodeSeq.Empty
-    else inputs.map(input => form.renderer.hiddenInput(name, input.string)).flatten
+    else inputs.flatMap(input => form.renderer.hiddenInput(name, input.string))
 }
 
 trait Renderer {

@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (C) 2013-2015 by Michael Hombre Brinkmann
+  -->
+
 <mime-info>
     <mime-type type="application/font-woff">
         <magic priority="50">

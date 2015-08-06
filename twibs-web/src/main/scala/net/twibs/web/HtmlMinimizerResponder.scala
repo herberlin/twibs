@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ * Copyright (C) 2013-2015 by Michael Hombre Brinkmann
  */
 
 package net.twibs.web
@@ -9,7 +9,7 @@ import net.twibs.util.Request
 
 class HtmlMinimizerResponder(contentResponder: Responder) extends Responder {
   def respond(request: Request): Option[Response] =
-    (if (request.path.toLowerCase.endsWith(".html")) contentResponder.respond(request) else None) match {
+    (if (request.path.suffix == "html") contentResponder.respond(request) else None) match {
       case Some(response) if !response.isContentFinal => Some(minimize(request, response))
       case any => any
     }

@@ -10,13 +10,13 @@ import scala.concurrent.duration._
 
 import net.twibs.testutil.TwibsTest
 import net.twibs.util.Parameters._
-import net.twibs.util.{Request, Loggable, Parameters}
+import net.twibs.util.{Path, Request, Loggable, Parameters}
 
 class ResponderTest extends TwibsTest with Loggable {
   private implicit def toRequest(pathArg: String): Request = toRequest(pathArg, "localhost", Parameters())
 
   private def toRequest(path: String, domain: String, parameters: Parameters, useCache: Boolean = true): Request =
-    Request.copy(path = path, domain = domain, parameters = parameters, useCache = useCache)
+    Request.copy(path = Path(path), domain = domain, parameters = parameters, useCache = useCache)
 
   val defaultFileResponder: Responder = new FileResponder(new File("src/test/webapp/default"))
   val www1FileResponder: Responder = new FileResponder(new File("src/test/webapp/www1")) :: defaultFileResponder :: Nil
@@ -74,9 +74,9 @@ class ResponderTest extends TwibsTest with Loggable {
     load(responder, "/withErrors.js") should be("// /withErrors.js:2: ERROR - Parse error. ',' expected\n//     return f(\"www1\";\n//                    ^\n// ")
 
     val response = responder.respond("/includeSimpleTwice.js").get
-    response.isModified should beFalse
+    response.isModified shouldBe false
     new File("src/test/webapp/www1/simple.js").setLastModified(System.currentTimeMillis)
-    response.isModified should beTrue
+    response.isModified shouldBe true
   }
 
   test("css minimizing") {
@@ -100,12 +100,12 @@ class ResponderTest extends TwibsTest with Loggable {
 
   test("Delegate inherits properties") {
     val mod: Response = new HtmlMinimizerResponder(www1FileResponder).respond("/a.html").get
-    mod.isContentFinal should beTrue
-    mod.isInMemory should beTrue
+    mod.isContentFinal shouldBe true
+    mod.isInMemory shouldBe true
 
     val org: Response = www1FileResponder.respond("/a.html").get
-    org.isContentFinal should beFalse
-    org.isInMemory should beFalse
+    org.isContentFinal shouldBe false
+    org.isInMemory shouldBe false
 
     org.expiresOnClientAfter should be(mod.expiresOnClientAfter)
     org.lastModified should be(mod.lastModified)
@@ -119,7 +119,7 @@ class ResponderTest extends TwibsTest with Loggable {
   test("static not found responder") {
     val responder = new StaticNotFoundResponder(www1FileResponder)
     load(responder, "/not-found.txt") should be("Not found")
-    responder.respond("/not-found.txt").get should be(anInstanceOf[NotFoundResponse])
+    responder.respond("/not-found.txt").get shouldBe an[NotFoundResponse]
   }
 
   test("static error responder") {
@@ -127,7 +127,7 @@ class ResponderTest extends TwibsTest with Loggable {
     load(responder, "/withErrors.css") should be( """// Parse Error: missing opening `(` in '/withErrors.less' (line 3, column 12) near
                                                     |// a {
                                                     |//     c:::f.?=)/)/%&%&$)(/=)ont-size: 12px;""".stripMargin)
-    responder.respond("/withErrors.css").get should be(anInstanceOf[ErrorResponse])
+    responder.respond("/withErrors.css").get shouldBe an[ErrorResponse]
   }
 
   test("recursive error responder") {
@@ -149,7 +149,7 @@ class ResponderTest extends TwibsTest with Loggable {
     val responder = new NotFoundResponder(contentResponder, contentResponder)
     load(responder, "/l1/l2/does_not_exist.html") should be("l2 404 default")
     load(responder, "/l1/does_not_exist.html") should be("l1 404 www1")
-    responder.respond("/l1/l2/does_not_exist.html").get should be(anInstanceOf[NotFoundResponse])
+    responder.respond("/l1/l2/does_not_exist.html").get shouldBe an[NotFoundResponse]
   }
 
   test("hide responder") {
@@ -162,24 +162,24 @@ class ResponderTest extends TwibsTest with Loggable {
 
   test("redirect responder") {
     val responder = new IndexRedirectResponder()
-    responder.respond("/file.txt") should be('empty)
+    responder.respond("/file.txt") shouldBe 'empty
     load(responder, "/") should be("/index.html")
     load(responder, "/_RedirectToIndex") should be("/index.html")
-    responder.respond("/_RedirectToIndex").get should be(anInstanceOf[RedirectResponse])
+    responder.respond("/_RedirectToIndex").get shouldBe an[RedirectResponse]
   }
 
   test("Relative path") {
-    toRequest("/a/b/c/test.html").relative("../../a.html").path should be("/a/a.html")
+    toRequest("/a/b/c/test.html").relative("../../a.html").path shouldBe Path("/a/a.html")
   }
 
   test("Request key equality") {
-    toRequest("/test.html").relative("x.html").cacheKey should equal(toRequest("/x.html").cacheKey)
-    toRequest("/test.html").relative("x.html").cacheKey should not equal toRequest("/y.html").cacheKey
-    toRequest("/a/b/c/test.html").relative("./../c/d/x.html").cacheKey should equal(toRequest("/a/b/c/d/x.html").cacheKey)
-    toRequest("/a/b/c/test.html").relative("/d/x.html").cacheKey should equal(toRequest("/d/x.html").cacheKey)
-    toRequest("/test.html", "localhost", Map("sEcho" -> List("1"))).relative("x.html").cacheKey should equal(toRequest("/x.html", "localhost", Map("sEcho" -> List("1"))).cacheKey)
-    toRequest("/test.html", "localhost", Map("sEcho" -> List("2"))).relative("x.html").cacheKey should not equal toRequest("/x.html", "localhost", Map("sEcho" -> List("1"))).cacheKey
-    toRequest("/test.html", "localhost", Map("sEcho" -> List("1"))).relative("x.html").cacheKey should not equal toRequest("/x.html", "otherhost", Map("sEcho" -> List("1"))).cacheKey
+    toRequest("/test.html").relative("x.html").responseRequest should equal(toRequest("/x.html").responseRequest)
+    toRequest("/test.html").relative("x.html").responseRequest should not equal toRequest("/y.html").responseRequest
+    toRequest("/a/b/c/test.html").relative("./../c/d/x.html").responseRequest should equal(toRequest("/a/b/c/d/x.html").responseRequest)
+    toRequest("/a/b/c/test.html").relative("/d/x.html").responseRequest should equal(toRequest("/d/x.html").responseRequest)
+    toRequest("/test.html", "localhost", Map("sEcho" -> List("1"))).relative("x.html").responseRequest should equal(toRequest("/x.html", "localhost", Map("sEcho" -> List("1"))).responseRequest)
+    toRequest("/test.html", "localhost", Map("sEcho" -> List("2"))).relative("x.html").responseRequest should not equal toRequest("/x.html", "localhost", Map("sEcho" -> List("1"))).responseRequest
+    toRequest("/test.html", "localhost", Map("sEcho" -> List("1"))).relative("x.html").responseRequest should not equal toRequest("/x.html", "otherhost", Map("sEcho" -> List("1"))).responseRequest
   }
 
   test("unique cache") {

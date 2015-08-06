@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ * Copyright (C) 2013-2015 by Michael Hombre Brinkmann
  */
 
 package net.twibs.util
@@ -9,6 +9,12 @@ case class IdString(string: String) {
     case ("", s) => IdString(s)
     case (s, "") => this
     case (s, a) => IdString(s + "_" + a)
+  }
+
+  def ~~(add: String) = (string, add) match {
+    case ("", s) => IdString(s)
+    case (s, "") => this
+    case (s, a) => IdString(s + "__" + a)
   }
 
   def +(add: String) = IdString(string + add)

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ * Copyright (C) 2013-2015 by Michael Hombre Brinkmann
  */
 
 package net.twibs.web
@@ -11,6 +11,8 @@ import java.io._
 import java.util.zip.GZIPOutputStream
 import net.twibs.util.Predef._
 import net.twibs.util.{ApplicationSettings, RunMode}
+
+import scala.language.postfixOps
 
 trait Response extends Serializable {
   def asInputStream: InputStream
@@ -36,19 +38,13 @@ trait Response extends Serializable {
   def isInMemory: Boolean
 
   lazy val gzippedOption: Option[Array[Byte]] = {
-    val bytes = asInputStream useAndClose {
-      is => compressWithGzip(is)
-    }
-    if (bytes.length < length)
-      Some(bytes)
-    else None
+    val bytes = asInputStream useAndClose compressWithGzip
+    if (bytes.length < length) Some(bytes) else None
   }
 
   private def compressWithGzip(uncompressed: InputStream) = {
     val baos = new ByteArrayOutputStream()
-    new GZIPOutputStream(baos) useAndClose {
-      os => ByteStreams.copy(uncompressed, os)
-    }
+    new GZIPOutputStream(baos) useAndClose {ByteStreams.copy(uncompressed, _)}
     baos.toByteArray
   }
 
@@ -105,7 +101,7 @@ class RedirectResponse(val asString: String) extends StringResponse {
 
   def isCacheable: Boolean = false
 
-  def expiresOnClientAfter: Duration = 8 hours
+  def expiresOnClientAfter = if (RunMode.isDevelopment) 1 seconds else 8 hours
 
   override def isContentFinal: Boolean = true
 }

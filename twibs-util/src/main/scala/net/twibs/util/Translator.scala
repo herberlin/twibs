@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ * Copyright (C) 2013-2015 by Michael Hombre Brinkmann
  */
 
 package net.twibs.util
@@ -7,8 +7,8 @@ package net.twibs.util
 import com.ibm.icu.text.MessageFormat
 import com.ibm.icu.util.ULocale
 
-import scala.collection.JavaConverters._
 import scala.collection.concurrent.TrieMap
+import scala.collection.convert.decorateAsJava._
 import scala.collection.mutable.ArrayBuffer
 import scala.xml.Unparsed
 
@@ -30,7 +30,7 @@ abstract class Translator(id: String, usages: List[String], kinds: List[String])
     case ps => getTranslator(id + ps.mkString, appendPrefixes(usages, ps), appendPrefixes(kinds, ps))
   }
 
-  private def appendPrefixes(from: List[String], ps: List[String]) = from.map(parent => ps.map(prefix => parent + prefix + ".")).flatten ::: from
+  private def appendPrefixes(from: List[String], ps: List[String]) = from.flatMap(parent => ps.map(prefix => parent + prefix + ".")) ::: from
 
   def translate(key: String, default: => String, args: Any*): String =
     translateOrUseDefault(key, callUnresolved(key, default), args: _*)
@@ -48,7 +48,7 @@ abstract class Translator(id: String, usages: List[String], kinds: List[String])
   }
 
   private def resolve(prefixes: List[String], key: String): Option[String] =
-    prefixes.view.map(prefix => resolve(prefix + key)).collectFirst { case Some(x) => x}
+    prefixes.view.map(prefix => resolve(prefix + key)).collectFirst { case Some(x) => x }
 
   def translate(sc: StringContext, args: Any*): String = {
     sc.checkLengths(args)
@@ -89,7 +89,7 @@ abstract class Translator(id: String, usages: List[String], kinds: List[String])
       }
     } catch {
       case e: IllegalArgumentException =>
-        Translator.logger.error(s"Invalid format '$messageFormatString'", e)
+        TranslatorLogger.logger.error(s"Invalid format '$messageFormatString'", e)
         throw e
     }
 
@@ -116,12 +116,16 @@ trait TranslationSupport {
   }
 }
 
-object Translator extends UnwrapCurrent[Translator] with Loggable {
+object Translator extends UnwrapCurrent[Translator] {
   def current: Translator = Request.current.translator
 
   implicit def withTranslationFormatter(sc: StringContext)(implicit translator: Translator = current) = new {
     def t(args: Any*): String = translator.translate(sc, args: _*)
   }
+}
+
+private object TranslatorLogger {
+  lazy val logger = Logger(Translator.getClass)
 }
 
 abstract class BaseResolver(val locale: ULocale) {
@@ -147,5 +151,5 @@ abstract class BaseResolver(val locale: ULocale) {
 class TranslatorResolver(locale: ULocale, configuration: Configuration) extends BaseResolver(locale) {
   protected def resolve(fullKey: String): Option[String] = configuration.getString(fullKey)
 
-  protected def unresolved(fullKey: String, default: String): Unit = Translator.logger.info(s"Unresolved $fullKey: $default")
+  protected def unresolved(fullKey: String, default: String): Unit = TranslatorLogger.logger.info(s"Unresolved $fullKey: $default")
 }

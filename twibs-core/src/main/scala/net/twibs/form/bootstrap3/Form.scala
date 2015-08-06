@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ * Copyright (C) 2013-2015 by Michael Hombre Brinkmann
  */
 
 package net.twibs.form.bootstrap3
@@ -121,7 +121,7 @@ abstract class Field private(override val ilk: String, val parent: Container, un
     else if (state.isDisabled) inputsAsHiddenHtml ++ fieldAsDecoratedHtml
     else fieldAsDecoratedHtml
 
-  def inputsAsHiddenHtml = inputs.map(input => form.renderer.hiddenInput(name, input.string)).flatten
+  def inputsAsHiddenHtml = inputs.flatMap(input => form.renderer.hiddenInput(name, input.string))
 
   def fieldAsDecoratedHtml: NodeSeq =
     <div class={formGroupCssClasses} id={formGroupId}>
@@ -160,7 +160,7 @@ abstract class Field private(override val ilk: String, val parent: Container, un
 
   def infoMessage = translator.translate("info-message", "Info message")
 
-  def inputsAsHtml: NodeSeq = inputs.map(inputWithMessageHtml).flatten
+  def inputsAsHtml: NodeSeq = inputs.flatMap(inputWithMessageHtml)
 
   def inputWithMessageHtml(input: Input): NodeSeq = inputAsSurroundedHtml(input) ++ messageHtmlFor(input)
 

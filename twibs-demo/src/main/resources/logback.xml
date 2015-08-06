@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (C) 2013-2015 by Michael Hombre Brinkmann
+  -->
+
 <configuration>
     <appender name="MAIN" class="ch.qos.logback.core.FileAppender">
         <File>${catalina.base}/logs/twibs-demo.log</File>

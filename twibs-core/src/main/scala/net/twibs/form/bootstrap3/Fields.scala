@@ -1,17 +1,15 @@
 /*
- * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ * Copyright (C) 2013-2015 by Michael Hombre Brinkmann
  */
 
 package net.twibs.form.bootstrap3
 
-import scala.xml._
-
 import net.twibs.form.base._
 import net.twibs.util.JavaScript._
 import net.twibs.util._
-
 import org.threeten.bp.format.DateTimeFormatter
-import org.threeten.bp.{LocalDate, LocalDateTime}
+
+import scala.xml._
 
 trait Emptiable extends Field {
   override def inputAsEnrichedHtml(input: Input): NodeSeq =
@@ -84,9 +82,9 @@ trait DateTimeField extends AbstractDateTimeField with DateTimeValues {
 
   lazy val dateTimeFormatterForBrowser = DateTimeFormatter.ofPattern(formatPatternForBrowser)
 
-  def minimumFormattedForBrowser: String = if (minimum == LocalDateTime.MIN) "" else editDateTimeFormat.format(minimum)
+  def minimumFormattedForBrowser: String = minimum.fold("")(editDateTimeFormat.format)
 
-  def maximumFormattedForBrowser: String = if (maximum == LocalDateTime.MAX) "" else editDateTimeFormat.format(maximum)
+  def maximumFormattedForBrowser: String = maximum.fold("")(editDateTimeFormat.format)
 }
 
 trait DateField extends AbstractDateTimeField with DateValues {
@@ -96,9 +94,9 @@ trait DateField extends AbstractDateTimeField with DateValues {
 
   lazy val dateFormatterForBrowser = DateTimeFormatter.ofPattern(formatPatternForBrowser)
 
-  def minimumFormattedForBrowser: String = if (minimum == LocalDate.MIN) "" else editDateFormat.format(minimum)
+  def minimumFormattedForBrowser: String = minimum.fold("")(editDateFormat.format)
 
-  def maximumFormattedForBrowser: String = if (maximum == LocalDate.MAX) "" else editDateFormat.format(maximum)
+  def maximumFormattedForBrowser: String = maximum.fold("")(editDateFormat.format)
 }
 
 trait PasswordField extends TextField {
@@ -171,7 +169,7 @@ trait FloatingInfo extends Field {
 }
 
 trait CheckOrRadioField extends FieldWithOptions with FloatingInfo {
-  override def inputsAsHtml: NodeSeq = infoButtonHtml ++ options.map(optionAsHtml).flatten
+  override def inputsAsHtml: NodeSeq = infoButtonHtml ++ options.flatMap(optionAsHtml)
 
   def optionAsHtml(option: OptionI): NodeSeq =
     if (inlineField) {
@@ -196,7 +194,7 @@ trait CheckOrRadioField extends FieldWithOptions with FloatingInfo {
 trait CheckBoxField extends CheckOrRadioField {
   def checkOrRadioType = "checkbox"
 
-  override def messageHtml: NodeSeq = (super.messageHtml ++ inputs.map(messageHtmlFor)).flatten
+  override def messageHtml: NodeSeq = super.messageHtml ++ inputs.flatMap(messageHtmlFor)
 
   override def minimumNumberOfInputs = if (required) 1 else 0
 
@@ -279,7 +277,7 @@ trait UploadWithOverwrite extends Container {
     def deleteFileEntry(fileEntry: FileEntry): Unit = UploadWithOverwrite.this.deleteFileEntry(fileEntry)
 
     // Ignore parameters from Request
-    override def strings_=(strings: Seq[String]): Unit = Unit
+    override def strings_=(strings: Seq[String]): Unit = ()
 
     override def defaultValues: Seq[ValueType] = defaultFileEntries
   }

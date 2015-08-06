@@ -13,13 +13,13 @@ class SettingsTest extends TwibsTest {
     sys.version should be(sys.majorVersion)
     SystemSettings.version should be(sys.fullVersion)
   }
-  SystemSettings.runMode.isTest should beTrue
+  SystemSettings.runMode.isTest shouldBe true
 
   test("Default Mode") {
-    RunMode.isProduction should beFalse
-    RunMode.isStaging should beFalse
-    RunMode.isDevelopment should beFalse
-    RunMode.isTest should beTrue
+    RunMode.isProduction shouldBe false
+    RunMode.isStaging shouldBe false
+    RunMode.isDevelopment shouldBe false
+    RunMode.isTest shouldBe true
   }
 
   test("Default loaded configuration is Default application") {
@@ -59,27 +59,18 @@ class SettingsTest extends TwibsTest {
     }
   }
 
-  test("Loading configuration") {
-
-    //    b.getString("mode") should be("unknown")
-    //    b.getString("message") should be("Runmode unknown Host unknown User unknown")
-    //    cfg.getString("mode") should be("test")
-    //    cfg.getString("message") should be("Runmode test Host unknown User unknown")
-  }
-
   test("Validate context path") {
     intercept[NullPointerException] {
-      Request.assertThatContextPathIsValid(null)
+      Request.requireValidContextPath(null)
     }
-    intercept[AssertionError] {
-      Request.assertThatContextPathIsValid("/")
+    intercept[IllegalArgumentException] {
+      Request.requireValidContextPath("/")
     }.getMessage should include("not be /")
-    intercept[AssertionError] {
-      Request.assertThatContextPathIsValid("nix")
+    intercept[IllegalArgumentException] {
+      Request.requireValidContextPath("nix")
     }.getMessage should include("start with /")
-    intercept[AssertionError] {
-      Request.assertThatContextPathIsValid("/x x")
+    intercept[IllegalArgumentException] {
+      Request.requireValidContextPath("/x x")
     }.getMessage should include("invalid")
-    Request.assertThatContextPathIsValid("") should equal("")
   }
 }

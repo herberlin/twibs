@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ * Copyright (C) 2013-2015 by Michael Hombre Brinkmann
  */
 
 package net.twibs.form.bootstrap3
@@ -27,7 +27,7 @@ trait UploadButton extends Button with StringValues with PrimaryDisplayType {
   override def parse(request: Request) = request.uploads.get(name).map(uploads => uploaded(uploads.toList))
 
   // TODO: Convert UploadButton to input without appropriate Renderer
-  override def execute(): Unit = Unit
+  override def execute(): Unit = ()
 
   def uploaded(uploads: List[Upload]): Unit
 
@@ -90,7 +90,7 @@ trait BootstrapButton extends InteractiveComponent with Values with DisplayType 
 
   override def asHtml: NodeSeq =
     if (state.isIgnored) NodeSeq.Empty
-    else if (state.isHidden) inputs.map(input => form.renderer.hiddenInput(name, input.string)).flatten
+    else if (state.isHidden) inputs.flatMap(input => form.renderer.hiddenInput(name, input.string))
     else buttonAsDecoratedHtml
 
   def buttonAsDecoratedHtml: NodeSeq =

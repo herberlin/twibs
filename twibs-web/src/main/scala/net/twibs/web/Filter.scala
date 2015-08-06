@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ * Copyright (C) 2013-2015 by Michael Hombre Brinkmann
  */
 
 package net.twibs.web
@@ -14,27 +14,20 @@ import org.apache.commons.fileupload.disk.DiskFileItemFactory
 import org.apache.commons.fileupload.servlet.ServletFileUpload
 import org.apache.commons.fileupload.{FileItem, FileItemFactory}
 import org.apache.commons.io.FileUtils
-import org.threeten.bp.LocalDateTime
+import org.threeten.bp.{DateTimeException, ZoneId, ZonedDateTime}
 
-import scala.collection.JavaConverters._
+import scala.collection.convert.wrapAsScala._
 
-class Filter extends javax.servlet.Filter {
+abstract class AbstractFilter extends javax.servlet.Filter {
   private var servletContextVar: ServletContext = null
 
   def servletContext = servletContextVar
 
-  private var combiningResponderVar: CombiningResponder = null
-
-  def combiningResponder = combiningResponderVar
-
-  def createCombiningResponder(): CombiningResponder = new FilterResponder(this)
-
   override def init(filterConfig: FilterConfig): Unit = {
     servletContextVar = filterConfig.getServletContext
-    combiningResponderVar = createCombiningResponder()
   }
 
-  override def destroy(): Unit = combiningResponderVar.destroy()
+  override def destroy(): Unit = ()
 
   override def doFilter(request: ServletRequest, response: ServletResponse, filterChain: FilterChain): Unit =
     CurrentServletRequest.withValue(request) {
@@ -52,26 +45,43 @@ class Filter extends javax.servlet.Filter {
       CurrentHttpServletResponse.withValue(httpResponse) {
         httpRequest.setCharacterEncoding(Charsets.UTF_8.name)
         httpResponse.setCharacterEncoding(Charsets.UTF_8.name)
-        httpResponse.setHeader("X-Twibs", if (RunMode.isProduction) SystemSettings.version else SystemSettings.version + " - " + RunMode.name)
+        httpResponse.setHeader("X-Twibs", if (RunMode.isPublic) SystemSettings.version else SystemSettings.version + " - " + RunMode.name)
         val request = createRequest(httpRequest, httpResponse)
-        request.use {
-          combiningResponder.respond(request) match {
-            case Some(response) =>
-              new HttpResponseRenderer(request, response, httpRequest, httpResponse).render()
-            case None =>
-              combiningResponder.modifyForChaining(request).use {
-                filterChain.doFilter(httpRequest, httpResponse)
-                None
-              }
-          }
-        }
+        request.use {doFilter(request, httpRequest, httpResponse, filterChain)}
       }
     }
   }
 
+  def doFilter(request: Request, httpRequest: HttpServletRequest, httpResponse: HttpServletResponse, filterChain: FilterChain): Unit
 
   def createRequest(httpServletRequest: HttpServletRequest, httpServletResponse: HttpServletResponse): Request =
     HttpServletRequestWithCommonsFileUpload(httpServletRequest, httpServletResponse)
+}
+
+class Filter extends AbstractFilter {
+  private var combiningResponderVar: CombiningResponder = null
+
+  def combiningResponder = combiningResponderVar
+
+  def createCombiningResponder(): CombiningResponder = new FilterResponder(this)
+
+  override def init(filterConfig: FilterConfig): Unit = {
+    super.init(filterConfig)
+    combiningResponderVar = createCombiningResponder()
+  }
+
+  override def destroy(): Unit = combiningResponderVar.destroy()
+
+  override def doFilter(request: Request, httpRequest: HttpServletRequest, httpResponse: HttpServletResponse, filterChain: FilterChain): Unit = {
+    combiningResponder.respond(request) match {
+      case Some(response) =>
+        new HttpResponseRenderer(request, response, httpRequest, httpResponse).render()
+      case None =>
+        ApplicationResponder.modify(request).use {
+          filterChain.doFilter(httpRequest, httpResponse)
+        }
+    }
+  }
 }
 
 trait HttpServletUtils {
@@ -79,37 +89,35 @@ trait HttpServletUtils {
 }
 
 object HttpServletRequestBase extends HttpServletUtils {
-  def apply(httpServletRequest: HttpServletRequest, httpServletResponse: HttpServletResponse): Request =
+  def apply(httpServletRequest: HttpServletRequest, httpServletResponse: HttpServletResponse): Request = {
+    val cookieContainer = new CookieContainer {
+      def getCookie(name: String) = Option(httpServletRequest.getCookies).flatMap(_.find(_.getName.equalsIgnoreCase(name))).map(_.getValue)
+
+      def removeCookie(name: String) = {
+        val cookie: Cookie = new Cookie(name, "empty")
+        cookie.setMaxAge(0)
+        cookie.setPath("/")
+        httpServletResponse.addCookie(cookie)
+      }
+
+      def setCookie(name: String, value: String) = {
+        val cookie: Cookie = new Cookie(name, value)
+        cookie.setMaxAge(5 * 365 * 24 * 60 * 60)
+        cookie.setPath("/")
+        httpServletResponse.addCookie(cookie)
+      }
+    }
+
+    val zoneId = cookieContainer.getCookie("client-time-zone").fold(Request.zoneId) { z =>
+      try {ZoneId.of(z)} catch {
+        case e: DateTimeException => Request.zoneId
+      }
+    }
+
     Request.copy(
-      timestamp = LocalDateTime.now(),
+      session = new HttpSession(httpServletRequest),
 
-      method = httpServletRequest.getMethod match {
-        case "GET" => GetMethod
-        case "POST" => PostMethod
-        case "PUT" => PutMethod
-        case "DELETE" => DeleteMethod
-        case _ => UnknownMethod
-      },
-
-      protocol = httpServletRequest.getProtocol,
-
-      domain = httpServletRequest.getServerName,
-
-      port = httpServletRequest.getServerPort,
-
-      path = httpServletRequest.getServletPath + (Option(httpServletRequest.getPathInfo) getOrElse ""),
-
-      doesClientSupportGzipEncoding = Option(httpServletRequest.getHeader("Accept-Encoding")).exists(_ contains "gzip"),
-
-      accept = Option(httpServletRequest.getHeader("Accept")).map(_.split(",").toList) getOrElse Nil,
-
-      remoteAddress = httpServletRequest.getRemoteAddr,
-
-      remoteHost = httpServletRequest.getRemoteHost,
-
-      userAgent = httpServletRequest.getHeader("User-Agent"),
-
-      desiredLocale = ULocale.forLocale(httpServletRequest.getLocale),
+      cookies = cookieContainer,
 
       attributes = new AttributeContainer {
         def setAttribute(name: String, value: Any): Unit = httpServletRequest.setAttribute(name, value)
@@ -119,27 +127,40 @@ object HttpServletRequestBase extends HttpServletUtils {
         def removeAttribute(name: String): Unit = httpServletRequest.removeAttribute(name)
       },
 
-      cookies = new CookieContainer {
-        def getCookie(name: String) = Option(httpServletRequest.getCookies).flatMap(_.find(_.getName.equalsIgnoreCase(name))).map(_.getValue)
+      // The timestamp is created in the zone of the system, not the client
+      timestamp = ZonedDateTime.now(),
 
-        def removeCookie(name: String) = {
-          val cookie: Cookie = new Cookie(name, "empty")
-          cookie.setMaxAge(0)
-          cookie.setPath("/")
-          httpServletResponse.addCookie(cookie)
-        }
-
-        def setCookie(name: String, value: String) = {
-          val cookie: Cookie = new Cookie(name, value)
-          cookie.setMaxAge(5 * 365 * 24 * 60 * 60)
-          cookie.setPath("/")
-          httpServletResponse.addCookie(cookie)
-        }
+      method = httpServletRequest.getMethod match {
+        case "GET" => GetMethod
+        case "POST" => PostMethod
+        case "PUT" => PutMethod
+        case "DELETE" => DeleteMethod
+        case _ => UnknownMethod
       },
 
-      session = new HttpSession(httpServletRequest),
+      protocol = if (httpServletRequest.isSecure) "https" else "http",
 
-      useCache = !((RunMode.isDevelopment || RunMode.isTest) && httpServletRequest.getHeader("Cache-Control") == "no-cache" && httpServletRequest.getHeader("If-Modified-Since") == null)
+      domain = httpServletRequest.getServerName,
+
+      port = httpServletRequest.getServerPort,
+
+      path = httpServletRequest.getRequestURI.stripPrefix(httpServletRequest.getContextPath),
+
+      remoteAddress = httpServletRequest.getRemoteAddr,
+
+      remoteHost = httpServletRequest.getRemoteHost,
+
+      userAgent = httpServletRequest.getHeader("User-Agent"),
+
+      desiredLocale = ULocale.forLocale(httpServletRequest.getLocale),
+
+      doesClientSupportGzipEncoding = Option(httpServletRequest.getHeader("Accept-Encoding")).exists(_ contains "gzip"),
+
+      accept = Option(httpServletRequest.getHeader("Accept")).map(_.split(",").toList) getOrElse Nil,
+
+      useCache = !(RunMode.isPrivate && httpServletRequest.getHeader("Cache-Control") == "no-cache" && httpServletRequest.getHeader("If-Modified-Since") == null),
+
+      zoneId = zoneId
 
       //  def uri = httpServletRequest.getRequestURI
 
@@ -149,11 +170,12 @@ object HttpServletRequestBase extends HttpServletUtils {
 
       //  def remoteUserOption = Option(httpServletRequest.getRemoteUser)
     )
+  }
 }
 
 object HttpServletRequestWithCommonsFileUpload extends HttpServletUtils {
   def apply(httpServletRequest: HttpServletRequest, httpServletResponse: HttpServletResponse) = {
-    lazy val allFileItems: Seq[FileItem] = fileUpload.parseRequest(httpServletRequest).asScala
+    lazy val allFileItems: Seq[FileItem] = fileUpload.parseRequest(httpServletRequest)
 
     def fileUpload = new ServletFileUpload(fileItemFactory)
 
@@ -165,16 +187,16 @@ object HttpServletRequestWithCommonsFileUpload extends HttpServletUtils {
 
     def parameters: Parameters = removeUnderscoreParameterSetByJQuery(urlParameters ++ multiPartParameters)
 
-    def urlParameters: Map[String, Seq[String]] = httpServletRequest.getParameterMap.asScala.map(entry => (entry._1, entry._2.toSeq)).toMap
+    def urlParameters: Map[String, Seq[String]] = httpServletRequest.getParameterMap.map(entry => (entry._1, entry._2.toSeq)).toMap
 
     def multiPartParameters: Map[String, Seq[String]] =
-      if (isMultiPart) CollectionUtils.zipToMap(formFieldsFromMultipartRequest.map(fileItem => (fileItem.getFieldName, fileItem.getString(Charsets.UTF_8.name))))
+      if (isMultiPart) CollectionUtils.seqToMap(formFieldsFromMultipartRequest.map(fileItem => (fileItem.getFieldName, fileItem.getString(Charsets.UTF_8.name))))
       else Map()
 
     def formFieldsFromMultipartRequest: Seq[FileItem] = allFileItems.filter(_.isFormField)
 
     def uploads: Map[String, Seq[Upload]] =
-      if (isMultiPart) CollectionUtils.zipToMap(fileItemsFromMultipartRequest.map(fileItem => (fileItem.getFieldName, toUpload(fileItem))))
+      if (isMultiPart) CollectionUtils.seqToMap(fileItemsFromMultipartRequest.map(fileItem => (fileItem.getFieldName, toUpload(fileItem))))
       else Map()
 
     def isMultiPart = ServletFileUpload.isMultipartContent(httpServletRequest)

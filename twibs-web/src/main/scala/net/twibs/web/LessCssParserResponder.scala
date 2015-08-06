@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ * Copyright (C) 2013-2015 by Michael Hombre Brinkmann
  */
 
 package net.twibs.web
@@ -10,9 +10,9 @@ import scala.collection.mutable.ListBuffer
 
 class LessCssParserResponder(contentResponder: Responder, compress: Boolean = true) extends Responder with Loggable {
   def respond(request: Request): Option[Response] =
-    if (request.path.toLowerCase.endsWith(".less")) contentResponder.respond(request)
-    else if (request.path.toLowerCase.endsWith(".css")) {
-      val lessRequest = request.copy(path = request.path.dropRight(3) + "less")
+    if (request.path.suffix == "less") contentResponder.respond(request)
+    else if (request.path.suffix == "css") {
+      val lessRequest = request.copy(path = request.path.copy(suffix = "less"))
       contentResponder.respond(request) orElse lessRequest.use {contentResponder.respond(lessRequest)} match {
         case Some(response) if !response.isContentFinal => Some(compile(lessRequest, response))
         case any => any
@@ -26,7 +26,7 @@ class LessCssParserResponder(contentResponder: Responder, compress: Boolean = tr
       relativePath =>
         logger.debug(s"Loading: $relativePath")
 
-        if (relativePath == request.path) Some(response.asString)
+        if (relativePath == request.path.string) Some(response.asString)
         else {
           contentResponder.respond(request.relative(relativePath)).map {
             response =>
@@ -37,7 +37,7 @@ class LessCssParserResponder(contentResponder: Responder, compress: Boolean = tr
     }
 
     try {
-      val string = lessCssParser.parse(request.path, compress)
+      val string = lessCssParser.parse(request.path.string, compress)
 
       new StringResponse with MultiResponseWrapper with CssMimeType {
         protected val delegatees: List[Response] = responsesBuffer.toList
@@ -50,7 +50,7 @@ class LessCssParserResponder(contentResponder: Responder, compress: Boolean = tr
       case e: LessCssParserException =>
         logger.error(e.getMessage, e)
 
-        val string = if (RunMode.isDevelopment || RunMode.isTest) "// " + e.getMessage.replace("\n", "\n// ") else "// Internal Server Error"
+        val string = if (RunMode.isPrivate) "// " + e.getMessage.replace("\n", "\n// ") else "// Internal Server Error"
 
         new StringResponse with MultiResponseWrapper with CssMimeType with ErrorResponse {
           protected val delegatees: List[Response] = responsesBuffer.toList

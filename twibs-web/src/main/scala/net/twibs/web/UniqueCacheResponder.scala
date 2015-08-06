@@ -1,23 +1,25 @@
 /*
- * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ * Copyright (C) 2013-2015 by Michael Hombre Brinkmann
  */
 
 package net.twibs.web
 
-import com.google.common.cache.{CacheLoader, CacheBuilder, LoadingCache}
 import java.io._
-import scala.collection.JavaConverters._
+
+import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
 import net.twibs.util.Predef._
-import net.twibs.util.{Request, RequestCacheKey, RunMode, Loggable}
+import net.twibs.util.{ResponseRequest, Loggable, Request, RunMode}
+
+import scala.collection.convert.wrapAsScala._
 
 class UniqueCacheResponder(delegate: Responder, fileOption: Option[File] = None) extends LoadingCacheResponder(delegate) with Loggable {
-  protected val cache: LoadingCache[RequestCacheKey, Option[Response]] = CacheBuilder.newBuilder().build(loader)
+  protected val cache: LoadingCache[ResponseRequest, Option[Response]] = CacheBuilder.newBuilder().build(loader)
 
-  private def loader = new CacheLoader[RequestCacheKey, Option[Response]]() {
-    def load(requestCacheKey: RequestCacheKey): Option[Response] = delegate.respond(Request)
+  private def loader = new CacheLoader[ResponseRequest, Option[Response]]() {
+    def load(requestCacheKey: ResponseRequest): Option[Response] = delegate.respond(Request)
   }
 
-  def useStorage: Boolean = RunMode.isDevelopment || RunMode.isTest
+  def useStorage: Boolean = RunMode.isPrivate
 
   def store(): Unit =
     fileOption.filter(file => useStorage).foreach(save)
@@ -25,7 +27,7 @@ class UniqueCacheResponder(delegate: Responder, fileOption: Option[File] = None)
   private[web] def save(file: File): Unit = {
     logger.info(s"Saving '${file.getAbsolutePath}'")
     try {
-      new FileOutputStream(file) useAndClose {os => save(os)}
+      new FileOutputStream(file) useAndClose { os => save(os)}
     } catch {
       case e: Exception =>
         if (logger.isDebugEnabled)
@@ -41,8 +43,8 @@ class UniqueCacheResponder(delegate: Responder, fileOption: Option[File] = None)
     oos.flush()
   }
 
-  private def asSerializableMap(): Map[RequestCacheKey, Response] =
-    cache.asMap.asScala.filterNot(_._2.isEmpty).map(e => (e._1, e._2.get)).toMap
+  private def asSerializableMap(): Map[ResponseRequest, Response] =
+    cache.asMap.filterNot(_._2.isEmpty).map(e => (e._1, e._2.get)).toMap
 
   def load(): Unit =
     fileOption.filter(file => useStorage && file.exists() && file.canRead && file.length > 0).foreach(load)
@@ -50,7 +52,7 @@ class UniqueCacheResponder(delegate: Responder, fileOption: Option[File] = None)
   private[web] def load(file: File): Unit = {
     logger.info(s"Loading '${file.getAbsolutePath}'")
     try {
-      new FileInputStream(file) useAndClose {is => load(is)}
+      new FileInputStream(file) useAndClose { is => load(is)}
     } catch {
       case e: Exception =>
         if (logger.isDebugEnabled)
@@ -61,8 +63,8 @@ class UniqueCacheResponder(delegate: Responder, fileOption: Option[File] = None)
   }
 
   private[web] def load(inputStream: InputStream): Unit =
-    setSerializableMap(new ObjectInputStream(inputStream).readObject.asInstanceOf[Map[RequestCacheKey, Response]])
+    setSerializableMap(new ObjectInputStream(inputStream).readObject.asInstanceOf[Map[ResponseRequest, Response]])
 
-  private def setSerializableMap(map: Map[RequestCacheKey, Response]): Unit =
+  private def setSerializableMap(map: Map[ResponseRequest, Response]): Unit =
     map.foreach(x => cache.put(x._1, Some(x._2)))
 }

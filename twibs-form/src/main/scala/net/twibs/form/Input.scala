@@ -1,54 +1,63 @@
 /*
- * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ * Copyright (C) 2013-2015 by Michael Hombre Brinkmann
  */
 
 package net.twibs.form
 
-import net.twibs.util.Parsers._
+import java.nio.charset.StandardCharsets
+import java.text.ParseException
+
+import com.ibm.icu.text.NumberFormat
 import net.twibs.util._
-import org.owasp.html.PolicyFactory
+import org.jsoup.Jsoup
+import org.jsoup.nodes.Document.OutputSettings
+import org.jsoup.nodes.Document.OutputSettings.Syntax
+import org.jsoup.nodes.Entities.EscapeMode
+import org.jsoup.safety.Whitelist
+import org.threeten.bp.format.{DateTimeFormatter, DateTimeParseException}
+import org.threeten.bp.{LocalDate, LocalDateTime, ZonedDateTime}
 
 trait Input extends TranslationSupport {
   type ValueType
 
-  case class Entry(string: String, valueOption: Option[ValueType], title: String, messageOption: Option[Message], continue: Boolean = true, index: Int = 0) {
-    def valid = messageOption.isEmpty
+  case class Entry(string: String, valueOption: Option[ValueType], title: String, validationMessageOption: Option[Message], continue: Boolean = true, index: Int = 0) {
+    def valid = validationMessageOption.isEmpty
 
     def withIndex(newIndex: Int) = copy(index = newIndex)
 
-    def invalid(message: Message) = copy(messageOption = Some(message), continue = false)
+    def invalid(message: Message) = copy(validationMessageOption = Some(message), continue = false)
 
     def validate(valid: => Boolean, message: => Message) = if (valid) this else invalid(message)
   }
 
   private[this] var _entries: Option[Seq[Entry]] = None
 
-  private[this] var _messageOption: Option[Message] = None
+  private[this] var _validationMessageOption: Option[Message] = None
 
-  private[this] final val cachedDefaultEntries = LazyCache(computeDefaultEntries)
+  private[this] final val cachedDefaultEntries = Memo(computeDefaultEntries)
 
   final def values_=(values: Seq[ValueType]): Unit = {
     setEntries(values.map(valueToEntry))
-    _messageOption = None
+    _validationMessageOption = None
   }
 
   final def strings_=(strings: Seq[String]): Unit = {
     setEntries(strings.map(stringToEntry))
-    _messageOption =
+    _validationMessageOption =
       if (_entries.get.size < minimumNumberOfEntries)
-        Some(warn"minimum-number-of-entries-message: Please enter at least {$minimumNumberOfEntries, plural, =1{one value}other{# values}}")
+        Some(danger"minimum-number-of-entries-message: Please enter at least {$minimumNumberOfEntries, plural, =1{one value}other{# values}}")
       else if (_entries.get.size > maximumNumberOfEntries)
-        Some(warn"maximum-number-of-entries-message: Please enter no more than {$maximumNumberOfEntries, plural, =1{one value}other{# values}}")
+        Some(danger"maximum-number-of-entries-message: Please enter no more than {$maximumNumberOfEntries, plural, =1{one value}other{# values}}")
       else None
   }
 
-  private def setEntries(es: Seq[Entry]): Unit = _entries = Some(es.zipWithIndex.map { case (i, index) => i.copy(index = index)})
+  protected def setEntries(es: Seq[Entry]): Unit = _entries = Some(reindex(es))
 
   protected def stringToEntry(string: String) =
     stringProcessors(Entry(string, None, string, None)) match {
       case e if e.continue => convertToValue(e.string) match {
-        case None => e.invalid(warn"format-message: Invalid format for string ''${e.string}''")
-        case valueOption => valueProcessors(valueToEntry(valueOption.get))
+        case None => e.invalid(danger"format-message: Invalid format for string ''${e.string}''")
+        case Some(value) => valueProcessors(valueToEntry(value))
       }
       case e => e
     }
@@ -59,7 +68,7 @@ trait Input extends TranslationSupport {
 
   private def processRequired = (entry: Entry) =>
     if (entry.continue && entry.string.isEmpty)
-      if (required) entry.invalid(warn"required-message: Please enter a value")
+      if (required) entry.invalid(danger"required-message: Please enter a value")
       else entry.copy(continue = false)
     else entry
 
@@ -68,9 +77,9 @@ trait Input extends TranslationSupport {
       entry.copy(string = trim(entry.string))
     else entry
 
-  private def minimumLengthProcessor = (entry: Entry) => entry.validate(entry.string.length >= minimumLength, warn"minimum-length-message: Please enter at least $minimumLength characters")
+  private def minimumLengthProcessor = (entry: Entry) => entry.validate(entry.string.length >= minimumLength, danger"minimum-length-message: Please enter at least $minimumLength characters")
 
-  private def maximumLengthProcessor = (entry: Entry) => entry.validate(entry.string.length <= maximumLength, warn"maxiumum-length-message: Please enter no more than $maximumLength characters")
+  private def maximumLengthProcessor = (entry: Entry) => entry.validate(entry.string.length <= maximumLength, danger"maxiumum-length-message: Please enter no more than $maximumLength characters")
 
   protected def trim(string: String) = string.trim
 
@@ -82,17 +91,21 @@ trait Input extends TranslationSupport {
 
   protected def titleFor(string: String) = string
 
-  // Implement
+  /* Implement */
+
   def defaults: Seq[ValueType] = Nil
 
   def convertToString(value: ValueType): String
 
   def convertToValue(string: String): Option[ValueType]
 
-  // Overridable
+  /* Overridable */
+
   def required = true
 
   def trim = true
+
+  def minimumNumberOfDefaultEntries = minimumNumberOfEntries
 
   def minimumNumberOfEntries = 1
 
@@ -104,22 +117,26 @@ trait Input extends TranslationSupport {
 
   def computeDefaultEntries = {
     val ret = defaults.map(valueToEntry)
-    val pad = minimumNumberOfEntries - ret.size
-    if (pad > 0) ret ++ List.fill(pad)(stringToEntry("")) else ret
+    val pad = minimumNumberOfDefaultEntries - ret.size
+    reindex(if (pad > 0) ret ++ List.fill(pad)(stringToEntry("")) else ret)
   }
 
+  def reindex(es: Seq[Entry]) = es.zipWithIndex.map { case (e, index) => e.copy(index = index) }
+
   // Accessors
-  final def defaultEntries = cachedDefaultEntries.value
+  final def defaultEntries = cachedDefaultEntries()
 
   final def isModified = _entries.isDefined
 
-  final def valid = messageOption.isEmpty && entries.forall(_.valid)
+  final def valid = validationMessageOption.isEmpty && firstInvalidEntryOption.isEmpty
 
-  final def messageOption = _messageOption
+  final def firstInvalidEntryOption = entries.find(!_.valid)
+
+  final def validationMessageOption = _validationMessageOption
 
   final def entries: Seq[Entry] = _entries getOrElse defaultEntries
 
-  final def values: Seq[ValueType] = entries.map(_.valueOption).flatten
+  final def values: Seq[ValueType] = entries.flatMap(_.valueOption)
 
   final def strings: Seq[String] = entries.map(_.string)
 
@@ -130,7 +147,7 @@ trait Input extends TranslationSupport {
 
   final def string = strings.head
 
-  final def stringOrEmpty = strings.headOption getOrElse ""
+//  final def stringOrEmpty = strings.headOption getOrElse ""
 
   final def string_=(string: String) = strings = string :: Nil
 
@@ -174,7 +191,7 @@ trait Optional extends Input {
 }
 
 trait TranslatedValueTitles extends Input {
-  override protected def titleFor(string: String): String = translator.usage("value-title").translate(string, super.titleFor(string))
+  override def titleFor(string: String): String = translator.usage("values").usage(string).translate("title", super.titleFor(string))
 }
 
 trait StringInput extends Input {
@@ -186,7 +203,7 @@ trait StringInput extends Input {
 
   override def stringProcessors: (Entry) => Entry = super.stringProcessors andThen regexProcessor
 
-  private def regexProcessor = (entry: Entry) => entry.validate(regex.isEmpty || entry.string.matches(regex), warn"regex-message: Please enter a string that matches ''$regex''")
+  private def regexProcessor = (entry: Entry) => entry.validate(regex.isEmpty || entry.string.matches(regex), danger"regex-message: Please enter a string that matches ''$regex''")
 
   // Overideable
   def regex = ""
@@ -198,7 +215,7 @@ trait SingleLineInput extends StringInput {
   override protected def trim(string: String): String = super.trim(super.trim(string).stripLineEnd)
 
   private def checkLineBreaks = (entry: Entry) =>
-    if (entry.continue && (entry.string.contains("\n") || entry.string.contains("\r"))) entry.invalid(warn"line-breaks-message: Value must not contain line breaks")
+    if (entry.continue && (entry.string.contains("\n") || entry.string.contains("\r"))) entry.invalid(danger"line-breaks-message: Value must not contain line breaks")
     else entry
 }
 
@@ -206,22 +223,35 @@ trait EmailAddressInput extends SingleLineInput {
   override def stringProcessors = super.stringProcessors andThen emailAddressProcessor
 
   private def emailAddressProcessor = (entry: Entry) =>
-    if (entry.continue) entry.validate(EmailUtils.isValidEmailAddress(entry.string), warn"format-message: ''${entry.string}'' is not a valid email address")
+    if (entry.continue) entry.validate(EmailUtils.isValidEmailAddress(entry.string), danger"format-message: ''${entry.string}'' is not a valid email address")
     else entry
 }
 
 trait WebAddressInput extends SingleLineInput {
   override def stringProcessors = super.stringProcessors andThen webAddressProcessor
 
-  private def webAddressProcessor = (entry: Entry) => entry.validate(UrlUtils.isValidWebAddress(entry.string), warn"format-message: ''${entry.string}'' is not a valid web address")
+  private def webAddressProcessor = (entry: Entry) => entry.validate(UrlUtils.isValidWebAddress(entry.string), danger"format-message: ''${entry.string}'' is not a valid web address")
 }
 
 trait HtmlInput extends StringInput {
-  def policyFactory: PolicyFactory
+  def whitelist = HtmlInput.whitelist
+
+  def outputSettings = HtmlInput.outputSettings
 
   override def stringProcessors = super.stringProcessors andThen cleanupHtml
 
-  private def cleanupHtml = (entry: Entry) => entry.copy(string = policyFactory.sanitize(entry.string))
+  private def cleanupHtml = (entry: Entry) => entry.copy(string = cleanup(entry.string))
+
+  private def cleanup(string: String) = Jsoup.clean(string, "", whitelist, outputSettings)
+
+  override protected def trim(string: String): String =
+    if (HtmlUtils.convertHtmlToPlain(string).trim.isEmpty) "" else super.trim(string)
+}
+
+object HtmlInput {
+  val whitelist = Whitelist.none().addTags("strong", "b", "em", "i", "p", "br")
+
+  val outputSettings = new OutputSettings().charset(StandardCharsets.UTF_8).escapeMode(EscapeMode.xhtml).prettyPrint(false).syntax(Syntax.xml)
 }
 
 trait BooleanInput extends Input {
@@ -232,32 +262,168 @@ trait BooleanInput extends Input {
   override def convertToValue(string: String) = Some("true" == string)
 }
 
-trait LongInput extends Input {
-  override type ValueType = Long
+trait MinMaxInput extends Input {
+  def minimum: Option[ValueType] = None
 
-  override def convertToString(l: Long) = l.toString
+  def maximum: Option[ValueType] = None
 
-  override def convertToValue(string: String) = string.toLongOption
+  override def valueProcessors = super.valueProcessors andThen checkMinimum andThen checkMaximum
+
+  protected def isLessOrEqualMaximum(value: ValueType): Boolean
+
+  protected def isGreaterOrEqualMinimum(value: ValueType): Boolean
+
+  private def checkMinimum = (entry: Entry) =>
+    if (entry.continue && minimum.isDefined && entry.valueOption.isDefined)
+      entry.validate(isGreaterOrEqualMinimum(entry.valueOption.get), danger"minimum-message: Must be greater or equal ${titleForValue(minimum.get)}.")
+    else entry
+
+  private def checkMaximum = (entry: Entry) =>
+    if (entry.continue && maximum.isDefined && entry.valueOption.isDefined)
+      entry.validate(isLessOrEqualMaximum(entry.valueOption.get), danger"maximum-message: Must be less or equal  ${titleForValue(maximum.get)}.")
+    else entry
+
+  def titleForValue(value: ValueType) = titleFor(convertToString(value))
+
+  def minimumString: String = minimum.fold("")(convertToString)
+
+  def maximumString: String = maximum.fold("")(convertToString)
 }
 
-trait IntInput extends Input {
-  override type ValueType = Int
+trait AbstractDateTimeInput extends MinMaxInput {
+  def formatPattern: String
 
-  override def convertToString(i: Int) = i.toString
+  lazy val editFormat: DateTimeFormatter = DateTimeFormatter.ofPattern(formatPattern, translator.locale.toLocale)
 
-  override def convertToValue(string: String) = string.toIntOption
+  def displayFormat = editFormat
+}
+
+trait DateTimeInput extends AbstractDateTimeInput {
+  override type ValueType = ZonedDateTime
+
+  override def convertToString(value: ZonedDateTime) = editFormat.format(value)
+
+  override def convertToValue(string: String) = try {
+    Some(LocalDateTime.parse(string, editFormat).atZone(Request.zoneId))
+  } catch {
+    case e: DateTimeParseException => None
+  }
+
+  override def titleForValue(value:ValueType) = displayFormat.format(value)
+
+  override protected def isLessOrEqualMaximum(value: ValueType): Boolean = maximum.forall(!value.isAfter(_))
+
+  override protected def isGreaterOrEqualMinimum(value: ValueType): Boolean = minimum.forall(!value.isBefore(_))
+
+  def formatPattern: String = translator.translate("format-pattern", "yyyy-MM-dd HH:mm")
+}
+
+trait DateInput extends AbstractDateTimeInput {
+  override type ValueType = LocalDate
+
+  override def convertToString(value: LocalDate) = editFormat.format(value)
+
+  override def convertToValue(string: String) = try {
+    Some(LocalDate.parse(string, editFormat))
+  } catch {
+    case e: DateTimeParseException => None
+  }
+
+  def formatPattern: String = translator.translate("format-pattern", "yyyy-MM-dd")
+
+  override def titleForValue(value:ValueType) = displayFormat.format(value)
+
+  override protected def isLessOrEqualMaximum(value: ValueType): Boolean = maximum.forall(!value.isAfter(_))
+
+  override protected def isGreaterOrEqualMinimum(value: ValueType): Boolean = minimum.forall(!value.isBefore(_))
+}
+
+trait NumberInput extends MinMaxInput {
+  def editFormat: NumberFormat
+
+  def displayFormat: NumberFormat = editFormat
+
+  override def convertToString(value: ValueType) = editFormat.format(value)
+
+  override def convertToValue(string: String) = try {
+    Some(parseString(string))
+  } catch {
+    case e: ParseException => None
+  }
+
+  protected def parseString(string: String): ValueType
+
+  override def titleForValue(value: ValueType): String = displayFormat.format(value)
+}
+
+trait IntInput extends NumberInput {
+  type ValueType = Int
+
+  def editFormat = Formatters.integerFormat
+
+  protected def parseString(string: String): ValueType = editFormat.parse(string).intValue
+
+  protected def isGreaterOrEqualMinimum(value: ValueType) = minimum.forall(value >= _)
+
+  protected def isLessOrEqualMaximum(value: ValueType) = maximum.forall(value <= _)
+}
+
+trait LongInput extends NumberInput {
+  type ValueType = Long
+
+  def editFormat = Formatters.integerFormat
+
+  protected def parseString(string: String): ValueType = editFormat.parse(string).longValue
+
+  protected def isGreaterOrEqualMinimum(value: ValueType) = minimum.forall(value >= _)
+
+  protected def isLessOrEqualMaximum(value: ValueType) = maximum.forall(value <= _)
+}
+
+trait DoubleInput extends NumberInput {
+  type ValueType = Double
+
+  def editFormat = Formatters.decimalFormat
+
+  protected def parseString(string: String): ValueType = editFormat.parse(string).doubleValue
+
+  protected def isGreaterOrEqualMinimum(value: ValueType) = minimum.forall(value >= _)
+
+  protected def isLessOrEqualMaximum(value: ValueType) = maximum.forall(value <= _)
+}
+
+trait PercentInput extends NumberInput {
+  type ValueType = Double
+
+  def editFormat = Formatters.percentFormatWithoutSuffix
+
+  override def displayFormat = Formatters.percentFormat
+
+  protected def parseString(string: String): ValueType = editFormat.parse(string).doubleValue
+
+  protected def isGreaterOrEqualMinimum(value: ValueType) = minimum.forall(value >= _)
+
+  protected def isLessOrEqualMaximum(value: ValueType) = maximum.forall(value <= _)
+
+  override def minimum = Some(0D)
+
+  override def maximum = Some(100D)
 }
 
 trait Options extends Input {
   def options: Seq[ValueType]
 
-  def optionEntries: Seq[Entry] = options.map(super.valueToEntry)
+  def optionEntries: Seq[Entry] = reindex(options.map(super.valueToEntry))
 
   override protected def valueToEntry(value: ValueType): Entry =
-    optionEntries.find(_.valueOption == Some(value)) getOrElse (throw new FormException("Value must be in options"))
+    optionEntries.find(_.valueOption.contains(value)) getOrElse invalidate(super.valueToEntry(value))
 
   override protected def stringToEntry(string: String): Entry =
-    optionEntries.find(_.string == string) getOrElse Entry(string, None, string, Some(warn"not-an-option-message: ''$string'' is not an option"))
+    optionEntries.find(_.string == string) getOrElse invalidate(super.stringToEntry(string))
+
+  private def invalidate(entry: Entry) =
+    if (entry.valid) entry.copy(validationMessageOption = Some(danger"not-an-option-message: ''${entry.string}'' is not an option"))
+    else entry
 }
 
 trait EnumerationInput[E <: Enumeration] extends Input with Options {
@@ -277,3 +443,5 @@ trait EnumerationInput[E <: Enumeration] extends Input with Options {
 
   override protected def titleFor(string: String): String = translator.usage("value-title").translate(string, string)
 }
+
+class FormException(message: String) extends RuntimeException(message)

@@ -9,59 +9,59 @@ import net.twibs.util.EmailUtils._
 
 class EmailUtilsTest extends TwibsTest {
   test("Email validation") {
-    isValidEmailAddress("me@example.com") should beTrue
-    isValidEmailAddress("me@example.com") should beTrue
-    isValidEmailAddress("x.me@example.com") should beTrue
-    isValidEmailAddress("a@a.de") should beTrue
-    isValidEmailAddress("A@a.De") should beTrue
-    isValidEmailAddress("_A_@a.De") should beTrue
-    isValidEmailAddress("-A-@a.De") should beTrue
-    isValidEmailAddress("%x%me%@example.com") should beTrue
+    isValidEmailAddress("me@example.com") shouldBe true
+    isValidEmailAddress("me@example.com") shouldBe true
+    isValidEmailAddress("x.me@example.com") shouldBe true
+    isValidEmailAddress("a@a.de") shouldBe true
+    isValidEmailAddress("A@a.De") shouldBe true
+    isValidEmailAddress("_A_@a.De") shouldBe true
+    isValidEmailAddress("-A-@a.De") shouldBe true
+    isValidEmailAddress("%x%me%@example.com") shouldBe true
 
-    isValidEmailAddress("") should beFalse
-    isValidEmailAddress("  ") should beFalse
-    isValidEmailAddress(" aa ") should beFalse
-    isValidEmailAddress(" a a ") should beFalse
-    isValidEmailAddress("a") should beFalse
-    isValidEmailAddress("me@") should beFalse
-    isValidEmailAddress("@example") should beFalse
-    isValidEmailAddress("@example.com") should beFalse
-    isValidEmailAddress("x me@example.com") should beFalse
-    isValidEmailAddress("me@ example.com") should beFalse
-    isValidEmailAddress("me @example.com") should beFalse
-    isValidEmailAddress("me@example .com") should beFalse
-    isValidEmailAddress("me@example. com") should beFalse
-    isValidEmailAddress("me@example.") should beFalse
-    isValidEmailAddress("me@") should beFalse
-    isValidEmailAddress("@example.com") should beFalse
-    isValidEmailAddress("me(at)example.com") should beFalse
+    isValidEmailAddress("") shouldBe false
+    isValidEmailAddress("  ") shouldBe false
+    isValidEmailAddress(" aa ") shouldBe false
+    isValidEmailAddress(" a a ") shouldBe false
+    isValidEmailAddress("a") shouldBe false
+    isValidEmailAddress("me@") shouldBe false
+    isValidEmailAddress("@example") shouldBe false
+    isValidEmailAddress("@example.com") shouldBe false
+    isValidEmailAddress("x me@example.com") shouldBe false
+    isValidEmailAddress("me@ example.com") shouldBe false
+    isValidEmailAddress("me @example.com") shouldBe false
+    isValidEmailAddress("me@example .com") shouldBe false
+    isValidEmailAddress("me@example. com") shouldBe false
+    isValidEmailAddress("me@example.") shouldBe false
+    isValidEmailAddress("me@") shouldBe false
+    isValidEmailAddress("@example.com") shouldBe false
+    isValidEmailAddress("me(at)example.com") shouldBe false
 
-    isValidEmailAddress(" me@example.com ") should beFalse
-    isValidEmailAddress(" me@example.com") should beFalse
-    isValidEmailAddress("me@example.com ") should beFalse
+    isValidEmailAddress(" me@example.com ") shouldBe false
+    isValidEmailAddress(" me@example.com") shouldBe false
+    isValidEmailAddress("me@example.com ") shouldBe false
 
-    isValidEmailAddress("A@-a.De") should beFalse
-    isValidEmailAddress("a.s@-online.de") should beFalse
-    isValidEmailAddress(".s@a.de") should beFalse
-    isValidEmailAddress("s.@a.de") should beFalse
-    isValidEmailAddress("a!@a.de") should beFalse
-    isValidEmailAddress("me@example") should beFalse
-    isValidEmailAddress("x..me@example.com") should beFalse
+    isValidEmailAddress("A@-a.De") shouldBe false
+    isValidEmailAddress("a.s@-online.de") shouldBe false
+    isValidEmailAddress(".s@a.de") shouldBe false
+    isValidEmailAddress("s.@a.de") shouldBe false
+    isValidEmailAddress("a!@a.de") shouldBe false
+    isValidEmailAddress("me@example") shouldBe false
+    isValidEmailAddress("x..me@example.com") shouldBe false
 
-    isRfc822InternetAddress( """"Me" <%x%me%@example.com>""") should beTrue
-    isRfc822InternetAddress( """"Me < %x%me%@example.com >""") should beFalse
+    isRfc822InternetAddress( """"Me" <%x%me%@example.com>""") shouldBe true
+    isRfc822InternetAddress( """"Me < %x%me%@example.com >""") shouldBe false
   }
 
   test("RFC822") {
-    isRfc822InternetAddress("A@-a.De") should beTrue
-    isRfc822InternetAddress("a.s@-online.de") should beTrue
-    isRfc822InternetAddress(".s@a.de") should beTrue
-    isRfc822InternetAddress("s.@a.de") should beTrue
-    isRfc822InternetAddress("a!@a.de") should beTrue
-    isRfc822InternetAddress("me@example") should beTrue
-    isRfc822InternetAddress("x..me@example.com") should beTrue
-    isRfc822InternetAddress("me@example.com, me@example.com") should beFalse
-    isRfc822InternetAddress("me@ex%ample.com") should beFalse
+    isRfc822InternetAddress("A@-a.De") shouldBe true
+    isRfc822InternetAddress("a.s@-online.de") shouldBe true
+    isRfc822InternetAddress(".s@a.de") shouldBe true
+    isRfc822InternetAddress("s.@a.de") shouldBe true
+    isRfc822InternetAddress("a!@a.de") shouldBe true
+    isRfc822InternetAddress("me@example") shouldBe true
+    isRfc822InternetAddress("x..me@example.com") shouldBe true
+    isRfc822InternetAddress("me@example.com, me@example.com") shouldBe false
+    isRfc822InternetAddress("me@ex%ample.com") shouldBe false
 
     toInternetAddressOption(""""Me" <%x%me%@example.com>""").get.getPersonal should be ("Me")
     toInternetAddressOption(""""Me" < %x%me%@example.com >""").get.getAddress should be ("%x%me%@example.com")

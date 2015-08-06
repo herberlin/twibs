@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ * Copyright (C) 2013-2015 by Michael Hombre Brinkmann
  */
 
 package net.twibs.util
@@ -50,10 +50,12 @@ case class Parameters(parameterMap: Map[String, Seq[String]] = Map()) extends Se
   override def equals(obj: Any): Boolean = obj.isInstanceOf[Parameters] && obj.asInstanceOf[Parameters].parameterMap.equals(parameterMap)
 
   override def hashCode(): Int = 17 + parameterMap.hashCode()
+
+  def toURLString = if(parameterMap.isEmpty) "" else "?" + parameterMap.flatMap(e => e._2.map(v => s"${e._1}=$v")).mkString("&")
 }
 
 object Parameters {
-  implicit def convertToParameters(parameterMap: Map[String, Seq[String]]) = new Parameters(parameterMap)
+  implicit def convertToParameters(parameterMap: Map[String, Seq[String]]): Parameters = new Parameters(parameterMap)
 
   implicit def convertToParameters() = new Parameters()
 }

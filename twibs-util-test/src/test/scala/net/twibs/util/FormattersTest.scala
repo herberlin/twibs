@@ -51,14 +51,16 @@ class FormattersTest extends FunSuite with Matchers {
   }
 
   test("Format zoned") {
-    SystemSettings.copy(zoneId = ZoneId.of("Europe/Berlin")).use {
+    Request.copy(zoneId = ZoneId.of("Europe/Berlin")).use {
       LocalDateTime.of(2012, 4, 16, 12, 13, 14, 15000000).formatAsIsoWithOffset should equal("2012-04-16T12:13:14.015+02:00")
       LocalDateTime.of(2012, 12, 16, 12, 13, 14, 15000000).formatAsIsoWithOffset should equal("2012-12-16T12:13:14.015+01:00")
     }
-    SystemSettings.copy(zoneId = ZoneId.of("America/New_York")).use {
+    Request.copy(zoneId = ZoneId.of("America/New_York")).use {
       LocalDateTime.of(2012, 4, 16, 12, 13, 14, 15000000).formatAsIsoWithOffset should equal("2012-04-16T12:13:14.015-04:00")
       LocalDateTime.of(2012, 12, 16, 12, 13, 14, 15000000).formatAsIsoWithOffset should equal("2012-12-16T12:13:14.015-05:00")
     }
+
+    ZonedDateTime.of(LocalDateTime.of(2012, 12, 16, 12, 13, 14, 15000000), ZoneId.of("Europe/Berlin")).formatAsIsoWithOffset should equal("2012-12-16T12:13:14.015+01:00")
   }
 
   test("Implicit percent") {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ * Copyright (C) 2013-2015 by Michael Hombre Brinkmann
  */
 
 package net.twibs.web
@@ -15,7 +15,7 @@ class JsMergerResponder(contentResponder: Responder) extends Responder with Logg
   def respond(request: Request): Option[Response] = respond(0, request)
 
   def respond(recursionLevel: Int, request: Request): Option[Response] =
-    (if (recursionLevel < maxLevelOfRecursion && request.path.toLowerCase.endsWith(".js")) contentResponder.respond(request) else None) match {
+    (if (recursionLevel < maxLevelOfRecursion && request.path.suffix == "js") contentResponder.respond(request) else None) match {
       case Some(response) if !response.isContentFinal => Some(merge(request, response, recursionLevel + 1))
       case any => any
     }

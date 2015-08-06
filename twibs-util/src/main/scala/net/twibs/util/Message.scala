@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ * Copyright (C) 2013-2015 by Michael Hombre Brinkmann
  */
 
 package net.twibs.util
@@ -12,6 +12,11 @@ case class Message(text: NodeSeq, displayTypeString: String, importance: Int, di
   def showNotification: JsCmd = showNotification(Map())
 
   def showNotification(options: Map[String, Any] = Map()): JsCmd = JsCmd("").call("new PNotify", Map("text" -> text, "type" -> displayTypeString.replace("danger", "error"), "nonblock" -> Map("nonblock" -> true)) ++ options)
+
+  def messageTypeString = displayTypeString match {
+    case "danger" => "error"
+    case m => m
+  }
 
   override def toString: String = s"$displayTypeString: $text"
 

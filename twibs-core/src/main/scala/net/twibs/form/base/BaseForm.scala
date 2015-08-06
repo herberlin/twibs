@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ * Copyright (C) 2013-2015 by Michael Hombre Brinkmann
  */
 
 package net.twibs.form.base
@@ -385,15 +385,21 @@ trait UseLastParameterOnly extends BaseField {
   override def parse(parameters: Seq[String]): Unit = super.parse(parameters.lastOption.map(_ :: Nil) getOrElse Nil)
 }
 
-class LazyCacheComponent[T](calculate: => T)(implicit val parent: Container) extends LazyCache[T] with Floating {
-  private val lazyCache = LazyCache(calculate)
+class MemoComponent[T](calculate: => T)(implicit val parent: Container) extends Floating {
+  private val memo = Memo(calculate)
 
-  def valueOption: Option[T] = lazyCache.valueOption
+  def valueOption: Option[T] = memo.asOption
 
-  def value: T = lazyCache.value
+  def value: T = memo()
 
   override def reset(): Unit = {
     super.reset()
-    lazyCache.reset()
+    memo.reset()
   }
+}
+
+object MemoComponent {
+  implicit def apply[T](f: => T) = Memo(f)
+
+  implicit def unwrap[T](memoComponent: MemoComponent[T]): T = memoComponent.value
 }

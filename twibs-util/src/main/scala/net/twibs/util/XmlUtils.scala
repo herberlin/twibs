@@ -1,13 +1,14 @@
 /*
- * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ * Copyright (C) 2013-2015 by Michael Hombre Brinkmann
  */
 
 package net.twibs.util
 
-import xml._
+import scala.xml._
 
 trait XmlUtils {
-  implicit def enhanceElemWithMethods(elem: Elem) = new {
+
+  implicit class RichElem(elem: Elem) {
     def addClass(condition: Boolean, cssClass: => String): Elem = if (condition) addClasses(cssClass :: Nil) else elem
 
     def addClasses(condition: Boolean, cssClasses: => Seq[String]): Elem = if (condition) addClasses(cssClasses) else elem
@@ -29,28 +30,44 @@ trait XmlUtils {
 
     def merge(cssClasses: Seq[String]) = cssClasses.filterNot(_.isEmpty).distinct.mkString(" ")
 
-    def set(name: String, value: String): Elem = elem % Attribute(name, Text(value), Null)
+    def setNotEmpty(name: String, value: String): Elem = set(!value.isEmpty, name, value)
+
+    def set(name: String, value: String): Elem = set(name, Text(value))
+
+    def set(name: String, value: Text): Elem = elem % Attribute(name, value, Null)
 
     def set(name: String): Elem = set(name, name)
+
+    def set(name: => String, value: => Option[String]): Elem = set(value.isDefined, name, value.get)
 
     def set(condition: Boolean, name: => String, value: => String): Elem = if (condition) set(name, value) else elem
 
     def set(condition: Boolean, name: => String): Elem = set(condition, name, name)
 
+    def setIfMissing(name: String): Elem = setIfMissing(name, name)
+
     def setIfMissing(name: String, value: String): Elem = if (elem.attribute(name).isEmpty) elem % Attribute(name, Text(value), Null) else elem
+
+    def setIfMissing(name: String, value: Option[String]): Elem = setIfMissing(value.isDefined, name, value.get)
+
+    def setIfMissing(condition: Boolean, name: => String): Elem = setIfMissing(condition, name, name)
 
     def setIfMissing(condition: Boolean, name: => String, value: => String): Elem = if (condition) setIfMissing(name, value) else elem
 
     def removeAttribute(name: String): Elem = elem.copy(attributes = elem.attributes.filter(_.key != name))
 
     def surround(ns: NodeSeq) = ns match {case NodeSeq.Empty => ns case _ => elem.copy(child = ns) }
+
+    def removeIfEmpty: NodeSeq = if(elem.child.isEmpty) NodeSeq.Empty else elem
   }
 
   implicit def cssClassesToAttributeValue(cssClasses: Seq[String]): Seq[Node] = Text(cssClasses.map(_.trim).filterNot(_.isEmpty).distinct.mkString(" "))
 
   implicit def toXmlText(string: String): Text = Text(string)
 
-  implicit def toCssClasses(baseCssClasses: Seq[String]) = new {
+  implicit def toXmlAttribute(nodeSeq: NodeSeq): Text = nodeSeq.toString()
+
+  implicit class CssClasses(baseCssClasses: Seq[String]) {
     def addClass(condition: Boolean, cssClass: => String): Seq[String] = if (condition) addClasses(cssClass :: Nil) else baseCssClasses
 
     def addClasses(condition: Boolean, cssClasses: => Seq[String]): Seq[String] = if (condition) addClasses(cssClasses) else baseCssClasses
@@ -61,6 +78,7 @@ trait XmlUtils {
 
     private def cleanup(cssClasses: Seq[String]) = cssClasses.filterNot(_.isEmpty).distinct
   }
+
 }
 
 object XmlUtils extends XmlUtils

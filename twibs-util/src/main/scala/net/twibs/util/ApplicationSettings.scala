@@ -1,19 +1,20 @@
 /*
- * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ * Copyright (C) 2013-2015 by Michael Hombre Brinkmann
  */
 
 package net.twibs.util
 
 import java.io.File
-import java.net.{InetAddress, URI, UnknownHostException}
+import java.net.{InetAddress, UnknownHostException}
 
 import com.ibm.icu.util.{Currency, ULocale}
 import com.typesafe.config.{Config, ConfigFactory, ConfigParseOptions}
 import org.apache.tika.Tika
-import org.threeten.bp.{LocalDateTime, ZoneId}
+import org.threeten.bp.{ZoneId, ZonedDateTime}
 
-import scala.collection.JavaConverters._
+import scala.collection.convert.wrapAsScala._
 import scala.concurrent.duration._
+import scala.language.postfixOps
 import scala.xml.{NodeSeq, Unparsed}
 
 private object ConfigHelper {
@@ -33,9 +34,9 @@ case class SystemSettings(startedAt: Long,
                           locale: ULocale,
                           fullVersion: String,
                           runMode: RunMode,
-                          os: OperatingSystem,
-                          zoneId: ZoneId) {
-  private[util] val configUnresolved = {
+                          os: OperatingSystem) {
+  @transient
+  private[util] lazy val configUnresolved = {
     ConfigFactory.invalidateCaches()
 
     def loadAndDecorate(loader: ClassLoader, name: String) =
@@ -53,11 +54,13 @@ case class SystemSettings(startedAt: Long,
     userConfigWithOsgiFallback.withFallback(baseConfig)
   }
 
-  val applicationSettings = configUnresolved.getObject("APPLICATIONS").unwrapped().keySet().asScala.map(name => name -> new ApplicationSettings(name, this)).toMap
+  @transient
+  lazy val applicationSettings = configUnresolved.getObject("APPLICATIONS").unwrapped().keySet().map(name => name -> new ApplicationSettings(name, this)).toMap
 
-  val defaultApplicationSettings = applicationSettings(ApplicationSettings.DEFAULT_NAME)
+  @transient
+  lazy val defaultApplicationSettings = applicationSettings(ApplicationSettings.DEFAULT_NAME)
 
-  def applicationSettingsForPath(path: String) = applicationSettings.values.collectFirst { case x if x.matches(path) => x} getOrElse defaultApplicationSettings
+  def applicationSettingsForPath(path: Path) = applicationSettings.values.collectFirst { case x if x.matches(path) => x } getOrElse defaultApplicationSettings
 
   val majorVersion = fullVersion.split("\\.")(0)
 
@@ -73,11 +76,11 @@ object SystemSettings extends UnwrapCurrent[SystemSettings] with Loggable {
 
   private def isCalledFromTestClass = new Exception().getStackTrace.exists(_.getClassName.startsWith("org.scalatest"))
 
-  def default = defaultCached.value
+  def default = defaultCached()
 
   private val internalDefault = computeDefault()
 
-  private val defaultCached = LazyCache(if (internalDefault.runMode.isDevelopment) 15 second else 8 hours)(computeDefault())
+  private val defaultCached = Memo(computeDefault()).recomputeAfter(if (internalDefault.runMode.isDevelopment) 15 second else 8 hours)
 
   private def computeDefault() = new SystemSettings(
     startedAt = System.currentTimeMillis,
@@ -97,8 +100,7 @@ object SystemSettings extends UnwrapCurrent[SystemSettings] with Loggable {
       case None if isCalledFromTestClass => RunMode.TEST
       case _ => RunMode.PRODUCTION
     },
-    os = OperatingSystem(System.getProperty("os.name").toLowerCase),
-    zoneId = ZoneId.systemDefault()
+    os = OperatingSystem(System.getProperty("os.name").toLowerCase)
   )
 
   logger.info(s"Run mode is '${default.runMode.name}'")
@@ -112,6 +114,10 @@ case class RunMode(name: String) {
   lazy val isStaging = this == RunMode.STAGING
 
   lazy val isProduction = this == RunMode.PRODUCTION
+
+  def isPublic = isStaging || isProduction
+
+  def isPrivate = isDevelopment || isTest
 }
 
 object RunMode extends UnwrapCurrent[RunMode] {
@@ -149,27 +155,33 @@ trait UserSettings {
 }
 
 case class ApplicationSettings(name: String, systemSettings: SystemSettings) {
-  private val configUnresolved = systemSettings.configUnresolved.childConfig("APPLICATIONS." + name)
+  @transient
+  private lazy val configUnresolved = systemSettings.configUnresolved.childConfig("APPLICATIONS." + name)
 
-  val configuration: Configuration = new ConfigurationForTypesafeConfig(configUnresolved.resolve())
+  @transient
+  lazy val configuration: Configuration = new ConfigurationForTypesafeConfig(configUnresolved.resolve())
 
-  val locales = configuration.getStringList("locales").fold(List(systemSettings.locale))(_.map(localeId => new ULocale(localeId)))
+  @transient
+  lazy val locales = configuration.getStringList("locales").fold(List(systemSettings.locale))(_.map(localeId => new ULocale(localeId)))
 
-  val translators: Map[ULocale, Translator] = locales.map(locale => locale -> new TranslatorResolver(locale, new ConfigurationForTypesafeConfig(configUnresolved.childConfig("LOCALES." + locale.toString).resolve())).root.usage(name)).toMap
+  @transient
+  lazy val translators: Map[ULocale, Translator] = locales.map(locale => locale -> new TranslatorResolver(locale, new ConfigurationForTypesafeConfig(configUnresolved.childConfig("LOCALES." + locale.toString).resolve())).root.usage(name)).toMap
 
-  val defaultRequest = Request(this)
+  @transient
+  lazy val defaultRequest = Request(this)
 
+  @transient
   lazy val tika = new Tika()
 
   def use[T](f: => T) = Request.copy(applicationSettings = this).use(f)
 
-  def matches(path: String) = configuration.getStringList("pathes", Nil).exists(path.startsWith)
+  def matches(path: Path) = configuration.getStringList("pathes", Nil).exists(path.string.startsWith)
 
-  def lookupLocale(desiredLocale: ULocale) = LocaleUtils.lookupLocale(locales, desiredLocale)
+  def lookupLocale(desiredLocale: ULocale) = if (locales.isEmpty) desiredLocale else LocaleUtils.lookupLocale(locales, desiredLocale)
 }
 
 object ApplicationSettings extends UnwrapCurrent[ApplicationSettings] {
-  val PN_NAME = "application-name"
+  val PN_NAME = "t-context"
 
   val DEFAULT_NAME = "default"
 
@@ -226,57 +238,76 @@ trait CurrentRequest {
   def formatters = request.formatters
 }
 
-case class Request private(applicationSettings: ApplicationSettings,
-                           desiredLocale: ULocale,
-                           parameters: Parameters,
+case class ResponseRequest(method: RequestMethod = GetMethod,
+                           protocol: String = "http",
+                           domain: String = "localhost",
+                           port: Int = 80,
                            contextPath: String = "",
-                           timestamp: LocalDateTime = LocalDateTime.now(),
+                           path: Path = "/",
+                           parameters: Parameters = Parameters())
+
+/**
+ * '''Note:''' Use [[ResponseRequest]] as cache key and for serialisation.
+ */
+case class Request private(applicationSettings: ApplicationSettings,
+                           session: Session = new SimpleSession(),
+                           cookies: CookieContainer = new SimpleCookieContainer(),
+                           attributes: AttributeContainer = new SimpleAttributeContainer(),
+                           timestamp: ZonedDateTime = ZonedDateTime.now(),
                            method: RequestMethod = GetMethod,
                            protocol: String = "http",
                            domain: String = "localhost",
                            port: Int = 80,
-                           path: String = "/",
-                           accept: List[String] = Nil,
+                           contextPath: String = "",
+                           path: Path = "/",
+                           parameters: Parameters,
+                           uploads: Map[String, Seq[Upload]] = Map(),
+                           user: User = User.anonymous,
                            remoteAddress: String = "::1",
                            remoteHost: String = "localhost",
                            userAgent: String = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/34.0.1847.116 Chrome/34.0.1847.116 Safari/537.36",
+                           desiredLocale: ULocale,
                            doesClientSupportGzipEncoding: Boolean = true,
+                           accept: List[String] = Nil,
                            useCache: Boolean = true,
-                           uploads: Map[String, Seq[Upload]] = Map(),
-                           attributes: AttributeContainer = new SimpleAttributeContainer(),
-                           cookies: CookieContainer = new SimpleCookieContainer(),
-                           session: Session = new SimpleSession(),
-                           user: User = User.anonymous) {
-  val locale = applicationSettings.lookupLocale(desiredLocale)
+                           zoneId: ZoneId = ZoneId.systemDefault()) {
+  @transient
+  lazy val locale = applicationSettings.lookupLocale(desiredLocale)
 
-  lazy val cacheKey = new RequestCacheKey(path, method, domain, parameters)
+  @transient
+  lazy val responseRequest = ResponseRequest(method, protocol, domain, port, contextPath, path, parameters)
 
+  @transient
   lazy val translator: Translator = applicationSettings.translators(locale)
 
-  lazy val formatters = new Formatters(translator, locale, Currency.getInstance("EUR"), applicationSettings.systemSettings.zoneId)
+  @transient
+  lazy val formatters = new Formatters(translator, locale, Currency.getInstance("EUR"), zoneId)
 
   def use[T](f: => T) = Request.use(this)(f)
 
   def useIt[R](f: (Request) => R): R = Request.use(this)(f(this))
 
-  def relative(relativePath: String) = this.copy(path = new URI(path).resolve(relativePath).normalize().toString)
+  def relative(relativePath: String) = this.copy(path = path.resolve(relativePath))
+
+  def dropFirstPathPart = this.copy(path = path.tail)
 
   def activate() = Request.activate(this)
 
-  Request.assertThatContextPathIsValid(contextPath)
+  def toDomainURL = s"$protocol://$domain${if (port != 80) s":$port" else ""}"
+
+  def toURLString = toDomainURL + path + parameters.toURLString
+
+  Request.requireValidContextPath(contextPath)
 }
 
 object Request extends DynamicVariableWithDynamicDefault[Request] {
   def createFallback: Request = Request(SystemSettings.default.defaultApplicationSettings)
 
-  def apply(applicationSettings: ApplicationSettings): Request = Request(applicationSettings, applicationSettings.locales.head, Parameters())
+  def apply(applicationSettings: ApplicationSettings): Request = Request(applicationSettings, desiredLocale = applicationSettings.locales.head, parameters = Parameters())
 
-  def assertThatContextPathIsValid(contextPath: String) = {
-    if (!contextPath.isEmpty) {
-      assert(contextPath != "/", "contextPath must not be /")
-      assert(contextPath.startsWith("/"), s"contextPath '$contextPath' must start with /")
-      assert("/" + UrlUtils.encodeUrl(UrlUtils.decodeUrl(contextPath.substring(1))) == contextPath, s"contextPath '$contextPath' is invalid")
-    }
-    contextPath
+  @inline def requireValidContextPath(contextPath: String) = {
+    require(contextPath != "/", "contextPath must not be /")
+    require(contextPath.isEmpty || contextPath.startsWith("/"), s"contextPath '$contextPath' must start with /")
+    require(contextPath.isEmpty || "/" + UrlUtils.encodeUrl(UrlUtils.decodeUrl(contextPath.substring(1))) == contextPath, s"contextPath '$contextPath' is invalid")
   }
 }

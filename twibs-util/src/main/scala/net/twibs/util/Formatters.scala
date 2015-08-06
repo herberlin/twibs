@@ -1,14 +1,15 @@
 /*
- * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ * Copyright (C) 2013-2015 by Michael Hombre Brinkmann
  */
 
 package net.twibs.util
 
 import com.ibm.icu.text.{DecimalFormat, NumberFormat}
-import com.ibm.icu.util.Currency
-import com.ibm.icu.util.ULocale
-import org.threeten.bp.format.{DateTimeFormatterBuilder, DateTimeFormatter}
+import com.ibm.icu.util.{Currency, ULocale}
 import org.threeten.bp._
+import org.threeten.bp.chrono.IsoChronology
+import org.threeten.bp.format.{DateTimeFormatter, DateTimeFormatterBuilder, ResolverStyle}
+import org.threeten.bp.temporal.ChronoField._
 
 class Formatters(translator: Translator, locale: ULocale, currency: Currency, zoneId: ZoneId) {
   val decimalFormat = {
@@ -26,7 +27,7 @@ class Formatters(translator: Translator, locale: ULocale, currency: Currency, zo
     ret
   }
 
-//  val currency = Currency.getInstance(currencyCode)
+  //  val currency = Currency.getInstance(currencyCode)
   val currencyFormatWithSymbol = {
     val ret = NumberFormat.getCurrencyInstance(locale)
     ret.setCurrency(currency)
@@ -49,7 +50,9 @@ class Formatters(translator: Translator, locale: ULocale, currency: Currency, zo
 
   val shortDateFormatter = new DateTimeFormatterBuilder().parseLenient().appendPattern(translator.translate("date-short-format", "dd.MM.yy")).toFormatter(locale.toLocale)
 
-  implicit def doubleToFormattable(value: Double) = new {
+  def doubleToFormattable(value: Double) = new DoubleFormattable(value)
+
+  class DoubleFormattable(value: Double) {
     def formatAsInteger = integerFormat.format(value)
 
     def formatAsPercent = percentFormat.format(value)
@@ -61,7 +64,9 @@ class Formatters(translator: Translator, locale: ULocale, currency: Currency, zo
     def formatAsCurrencyWithCode = currencyFormatWithCode.format(value)
   }
 
-  implicit def intToFormattable(value: Int) = new {
+  def intToFormattable(value: Int) = new IntFormattable(value)
+
+  class IntFormattable(value: Int) {
     def formatAsInteger = integerFormat.format(value)
 
     def formatAsPercent = percentFormat.format(value)
@@ -71,7 +76,9 @@ class Formatters(translator: Translator, locale: ULocale, currency: Currency, zo
     def formatAsCurrencyWithCode = currencyFormatWithCode.format(value)
   }
 
-  implicit def dateTimeToFormattable(dateTime: LocalDateTime) = new {
+  def localDateTimeToFormattable(value: LocalDateTime) = new LocalDateTimeFormattable(value)
+
+  class LocalDateTimeFormattable(dateTime: LocalDateTime) {
     def formatAsMediumDateTime = mediumDateTimeFormatter.format(dateTime)
 
     def formatAsIso = DateTimeFormatter.ISO_DATE_TIME.format(dateTime)
@@ -81,7 +88,21 @@ class Formatters(translator: Translator, locale: ULocale, currency: Currency, zo
     def withZoneId = ZonedDateTime.of(dateTime, zoneId)
   }
 
-  implicit def dateToFormattable(date: LocalDate) = new {
+  def zonedDateTimeToFormattable(value: ZonedDateTime) = new ZonedDateTimeFormattable(value)
+
+  class ZonedDateTimeFormattable(dateTime: ZonedDateTime) {
+    def formatAsMediumDateTime = mediumDateTimeFormatter.format(dateTime)
+
+    def formatAsIso = DateTimeFormatter.ISO_DATE_TIME.format(dateTime)
+
+    def formatAsIsoWithOffset = DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(dateTime)
+
+    def formatAsFixedIsoLocalDateTime = Formatters.FIXED_ISO_LOCAL_DATE_TIME.format(dateTime)
+  }
+
+  def localDateToFormattable(value: LocalDate) = new LocalDateFormattable(value)
+
+  class LocalDateFormattable(date: LocalDate) {
     def formatAsMediumDate = mediumDateFormatter.format(date)
 
     def formatAsShortDate = shortDateFormatter.format(date)
@@ -107,11 +128,30 @@ object Formatters extends UnwrapCurrent[Formatters] {
 
   def current = Request.current.formatters
 
-  implicit def doubleToFormattable(value: Double) = current.doubleToFormattable(value)
+  implicit def doubleFormattable(value: Double): Formatters#DoubleFormattable = current.doubleToFormattable(value)
 
-  implicit def intToFormattable(value: Int) = current.intToFormattable(value)
+  implicit def intFormattable(value: Int): Formatters#IntFormattable = current.intToFormattable(value)
 
-  implicit def dateTimeToFormattable(dateTime: LocalDateTime) = current.dateTimeToFormattable(dateTime)
+  implicit def localDateTimeFormattable(dateTime: LocalDateTime): Formatters#LocalDateTimeFormattable = current.localDateTimeToFormattable(dateTime)
 
-  implicit def dateToFormattable(date: LocalDate) = current.dateToFormattable(date)
+  implicit def zonedDateTimeFormattable(dateTime: ZonedDateTime): Formatters#ZonedDateTimeFormattable = current.zonedDateTimeToFormattable(dateTime)
+
+  implicit def localDateFormattable(date: LocalDate): Formatters#LocalDateFormattable = current.localDateToFormattable(date)
+
+  /**
+   * Nearly the same as DateTimeFormatter.ISO_LOCAL_DATE_TIME but with always
+   * 3 digits for nano seconds.
+   *
+   * For better layout in log files and
+   * used for querying JCR (which needs fixed nano seconds with 3 digits)
+   */
+  val FIXED_ISO_LOCAL_DATE_TIME = new DateTimeFormatterBuilder()
+    .parseCaseInsensitive.append(DateTimeFormatter.ISO_LOCAL_DATE)
+    .appendLiteral('T')
+    .appendValue(HOUR_OF_DAY, 2)
+    .appendLiteral(':')
+    .appendValue(MINUTE_OF_HOUR, 2)
+    .optionalStart.appendLiteral(':').appendValue(SECOND_OF_MINUTE, 2)
+    .optionalStart.appendFraction(NANO_OF_SECOND, 3, 3, true)
+    .toFormatter.withResolverStyle(ResolverStyle.STRICT).withChronology(IsoChronology.INSTANCE)
 }

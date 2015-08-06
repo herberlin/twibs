@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2014 by Michael Hombre Brinkmann
+ * Copyright (C) 2013-2015 by Michael Hombre Brinkmann
  */
 
 package net.twibs.web
@@ -59,6 +59,4 @@ trait CombiningResponder extends Responder {
   def staticContentResponders(): List[Responder] = classLoaderResponder :: new LessVarsResponder() :: Nil
 
   def classLoaderResponder: ClassLoaderResponder = new ClassLoaderResponder(getClass.getClassLoader, "/META-INF/resources")
-
-  def modifyForChaining(request: Request): Request = ApplicationResponder.modify(request)
 }

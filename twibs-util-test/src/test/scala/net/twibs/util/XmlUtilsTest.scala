@@ -6,6 +6,8 @@ package net.twibs.util
 
 import net.twibs.testutil.TwibsTest
 
+import scala.xml.NodeSeq
+
 class XmlUtilsTest extends TwibsTest {
 
   import XmlUtils._
@@ -34,5 +36,10 @@ class XmlUtilsTest extends TwibsTest {
   test("Remove attribute") {
       <span a="a" b="b"/>.removeAttribute("b") should be(<span a="a" />)
       <span a="a" b="b"/>.removeAttribute("c") should be(<span a="a" b="b"/>)
+  }
+
+  test("Delete if empty") {
+    <div a="a"><div></div></div>.removeIfEmpty should be( <div a="a"><div></div></div>)
+    <div a="a"></div>.removeIfEmpty should be(NodeSeq.Empty)
   }
 }
