@@ -6,7 +6,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>net.twibs</groupId>
     <artifactId>twibs-parent</artifactId>
-    <version>0.14</version>
+    <version>0.15-SNAPSHOT</version>
     <inceptionYear>2013</inceptionYear>
     <packaging>pom</packaging>
     <name>Twibs: Maven Parent</name>
@@ -25,7 +25,7 @@
         <url>https://github.com/hombre/twibs.git</url>
         <connection>scm:git:https://github.com/hombre/twibs.git</connection>
         <developerConnection>scm:git:https://github.com/hombre/twibs.git</developerConnection>
-        <tag>v0.14</tag>
+        <tag>HEAD</tag>
     </scm>
     <developers>
         <developer>
